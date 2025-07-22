@@ -3844,7 +3844,8 @@
 
             await Promise.all([
                 fetchSocialAccounts(),
-                fetchWhatsappGroups()
+                fetchWhatsappGroups(),
+                fetchCompanies()
             ]);
             
             if (state.socialAccounts.length > 0) {
