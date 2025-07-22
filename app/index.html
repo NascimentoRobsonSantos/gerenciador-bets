@@ -1541,7 +1541,9 @@
             menuContainer.className = 'sidebar-menu';
 
             // Módulos ativos para a empresa do usuário logado
-            const currentUserCompany = state.companies.find(c => c.id === state.companyId);
+            // const currentUserCompany = state.companies.find(c => c.id === state.companyId);
+            // const activeCompanyModules = currentUserCompany ? currentUserCompany.modules : {};
+            const currentUserCompany = state.companies.find(c => String(c.id) === String(state.companyId));
             const activeCompanyModules = currentUserCompany ? currentUserCompany.modules : {};
 
             const sortedAccounts = [...state.socialAccounts].sort((a, b) => {
