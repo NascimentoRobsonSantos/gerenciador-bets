@@ -832,6 +832,36 @@
         </div>
     </div>
 
+    <div id="modalEditCompany" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" data-modal-id="modalEditCompany">&times;</button>
+            <h3>Editar Dados da Empresa</h3>
+            <form id="formEditCompany">
+                <input type="hidden" id="editCompanyId">
+                <div>
+                    <label for="editCompanyName">Nome da Empresa:</label>
+                    <input type="text" id="editCompanyName" required>
+                </div>
+                <div>
+                    <label for="editCompanyEmail">E-mail:</label>
+                    <input type="email" id="editCompanyEmail" required>
+                </div>
+                <div>
+                    <label for="editCompanyWhatsapp">WhatsApp:</label>
+                    <input type="tel" id="editCompanyWhatsapp">
+                </div>
+                <div>
+                    <label for="editCompanyCnpjCpf">CNPJ/CPF:</label>
+                    <input type="text" id="editCompanyCnpjCpf">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel modal-close-btn-alternative" data-modal-id="modalEditCompany">Cancelar</button>
+                    <button type="submit" class="btn-confirm">Salvar Dados</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="modalEditCompanyModules" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close-btn" data-modal-id="modalEditCompanyModules">&times;</button>
@@ -1323,6 +1353,7 @@
 
             // Endpoints de Empresa e Usuários
             COMPANIES_CRUD: `${url_base}/companies`,
+            COMPANIES_MODULES_CRUD: `${url_base}/companies_modules`, // NOVO: Para gerenciar módulos da empresa
             USERS_CRUD: `${url_base}/users`,
 
             // Outros Endpoints
@@ -3372,6 +3403,47 @@
             renderCompaniesPage(); // Renderiza a página de empresas
         }
 
+        function handleEditCompanyDataModal(company) {
+            document.getElementById('editCompanyId').value = company.id;
+            document.getElementById('editCompanyName').value = company.name || '';
+            document.getElementById('editCompanyEmail').value = company.email || '';
+            document.getElementById('editCompanyWhatsapp').value = company.whatsapp || '';
+            document.getElementById('editCompanyCnpjCpf').value = company.cnpj_cpf || '';
+
+            openModal(document.getElementById('modalEditCompany'));
+        }
+
+        async function handleSaveCompanyData(event) {
+            event.preventDefault();
+            const companyId = document.getElementById('editCompanyId').value;
+            const payload = {
+                id: companyId,
+                name: document.getElementById('editCompanyName').value.trim(),
+                email: document.getElementById('editCompanyEmail').value.trim(),
+                whatsapp: document.getElementById('editCompanyWhatsapp').value.trim(),
+                cnpj_cpf: document.getElementById('editCompanyCnpjCpf').value.trim()
+            };
+
+            showLoading("Salvando dados da empresa...");
+            try {
+                const response = await fetchWithAuth(API_URLS.COMPANIES_CRUD, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                });
+                const responseData = await response.json();
+                if (!response.ok) throw new Error(responseData.message || "Erro ao salvar dados da empresa.");
+
+                showAlert("Dados da empresa atualizados com sucesso!");
+                closeModal(document.getElementById('modalEditCompany'));
+                await fetchCompanies(); // Recarrega as empresas para atualizar a tabela
+                renderCompaniesPage();
+            } catch (error) {
+                showAlert(`Erro ao salvar dados da empresa: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+
         async function fetchCompanies() {
             showLoading("Carregando empresas...");
             try {
@@ -3438,6 +3510,7 @@
                             <td data-label="Módulos">${formatCompanyModules(company.modules)}</td>
                             <td data-label="Ações">
                                 <div class="action-buttons">
+                                    <button class="btn-primary btn-edit-company-data">Editar Dados</button>
                                     <button class="btn-primary btn-edit-company-modules">Gerenciar Módulos</button>
                                     </div>
                             </td>
@@ -3447,6 +3520,19 @@
             `;
             tableContainer.appendChild(table);
             companiesContentArea.appendChild(tableContainer);
+
+            // Adiciona listeners aos botões
+            table.querySelectorAll('.btn-edit-company-data').forEach(btn => { // NOVO: Listener para editar dados da empresa
+                btn.addEventListener('click', (e) => {
+                    const companyId = e.target.closest('tr').dataset.companyId;
+                    const company = state.companies.find(c => c.id == companyId);
+                    if (company) {
+                        handleEditCompanyDataModal(company);
+                    } else {
+                        showAlert("Empresa não encontrada para edição.");
+                    }
+                });
+            });
 
             // Adiciona listeners aos botões de gerenciar módulos
             table.querySelectorAll('.btn-edit-company-modules').forEach(btn => {
@@ -3501,7 +3587,7 @@
 
             showLoading("Salvando módulos...");
             try {
-                const response = await fetchWithAuth(API_URLS.COMPANIES_CRUD, {
+                const response = await fetchWithAuth(API_URLS.COMPANIES_MODULES_CRUD, {
                     method: 'PUT',
                     body: JSON.stringify(payload)
                 });
