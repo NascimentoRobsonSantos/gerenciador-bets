@@ -2278,11 +2278,25 @@
                 renderPaginationControls();
             }
         }
+
+        // Função para salvar o estado atual no localStorage
+        function saveAppState() {
+            const appState = {
+                activeAccount: state.activeAccount,
+                activeMediaType: state.activeMediaType,
+                currentPage: state.currentPage
+            };
+            localStorage.setItem('appState', JSON.stringify(appState));
+            console.log("Estado da aplicação salvo:", appState); // Para depuração
+        }
         
         function trocarAba(account, type) {
             state.activeAccount = account;
             state.activeMediaType = type;
             state.currentPage = 1;
+
+            // Salva o novo estado no localStorage
+            saveAppState();
 
             showMainContent();
             renderSidebarMenu();
@@ -2297,6 +2311,10 @@
 
         function changePage(page) {
             state.currentPage = page;
+
+            // Salva o novo estado no localStorage
+            saveAppState();
+
             const mainContentEl = document.querySelector('.main-content');
             if (mainContentEl) mainContentEl.scrollTo({ top: 0, behavior: 'smooth' });
             fetchData();
@@ -4241,26 +4259,58 @@
 
             const savedToken = localStorage.getItem('authToken');
             const savedCompanyId = localStorage.getItem('companyId');
-            const savedUser = localStorage.getItem('currentUser'); // Recupera o usuário salvo
+            const savedUser = localStorage.getItem('currentUser');
 
-            if (savedToken && savedCompanyId && savedUser) { // Agora verifica também se há dados de usuário
+            let isLoggedIn = false;
+
+            if (savedToken && savedCompanyId) {
                 state.authToken = savedToken;
                 state.companyId = savedCompanyId;
-                state.currentUser = JSON.parse(savedUser); // Atribui o objeto de usuário ao estado
 
-                // Aplica o tema imediatamente com base na preferência do usuário
-                if (state.currentUser.dark_theme) {
-                    document.body.classList.add('dark-theme');
-                    document.getElementById('themeToggle').querySelector('.toggle-circle').style.transform = 'translateX(24px)';
-                } else {
-                    document.body.classList.remove('dark-theme');
-                    document.getElementById('themeToggle').querySelector('.toggle-circle').style.transform = 'translateX(2px)';
+                if (savedUser && savedUser !== 'undefined' && savedUser !== 'null') {
+                    try {
+                        const user = JSON.parse(savedUser);
+                        state.currentUser = user;
+
+                        if (state.currentUser.dark_theme) {
+                            document.body.classList.add('dark-theme');
+                        } else {
+                            document.body.classList.remove('dark-theme');
+                        }
+                        isLoggedIn = true;
+                    } catch (e) {
+                        console.error("Erro ao parsear 'currentUser' do localStorage. Limpando dados de login.", e);
+                        localStorage.removeItem('authToken');
+                        localStorage.removeItem('companyId');
+                        localStorage.removeItem('currentUser');
+                    }
                 }
+            }
 
+            if (isLoggedIn) {
                 loginContainer.style.display = 'none';
                 registerContainer.style.display = 'none';
                 appContainer.style.display = 'flex';
-                initMainApp(); // Inicia o aplicativo principal
+
+                // NOVO: Tenta carregar o estado da aplicação do localStorage
+                const savedAppState = localStorage.getItem('appState');
+                if (savedAppState) {
+                    try {
+                        const appState = JSON.parse(savedAppState);
+
+                        state.activeAccount = appState.activeAccount || state.activeAccount;
+                        state.activeMediaType = appState.activeMediaType || state.activeMediaType;
+                        state.currentPage = appState.currentPage || 1;
+                        console.log("Estado da aplicação carregado:", appState); // Para depuração
+
+                    } catch (e) {
+                        console.error("Erro ao parsear 'appState' do localStorage. Usando estado padrão.", e);
+                        localStorage.removeItem('appState'); // Limpa estado corrompido
+                    }
+                }
+
+                // Inicializa o aplicativo principal após tentar carregar o estado
+                initMainApp();
             } else {
                 loginContainer.style.display = 'flex';
                 appContainer.style.display = 'none';
