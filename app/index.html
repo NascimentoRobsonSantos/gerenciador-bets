@@ -1242,12 +1242,27 @@
             <form id="formUser">
                 <input type="hidden" id="userId">
                 <div>
+                    <label for="userName">Nome:</label>
+                    <input type="text" id="userName" required>
+                </div>
+                <div>
                     <label for="userEmail">E-mail:</label>
                     <input type="email" id="userEmail" required>
                 </div>
-                <div>
+                <div id="userPasswordField">
                     <label for="userPassword">Senha:</label>
                     <input type="password" id="userPassword" required>
+                </div>
+                <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 5px;">
+                    <label style="font-weight:normal;">
+                        <input type="checkbox" id="userIsActive" style="width:auto; margin-right:5px;"> Usuário Ativo
+                    </label>
+                    <label style="font-weight:normal;">
+                        <input type="checkbox" id="userAdmin" style="width:auto; margin-right:5px;"> Administrador
+                    </label>
+                    <label style="font-weight:normal;">
+                        <input type="checkbox" id="userDarkTheme" style="width:auto; margin-right:5px;"> Tema Escuro
+                    </label>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel modal-close-btn-alternative" data-modal-id="modalUser">Cancelar</button>
@@ -3642,13 +3657,22 @@
             const headerDiv = document.createElement('div');
             headerDiv.className = 'page-header';
             headerDiv.innerHTML = `<h2>Logins de Usuários</h2>`;
-            
+
             const createBtn = document.createElement('button');
             createBtn.className = 'btn-primary';
             createBtn.textContent = 'Criar Login';
             createBtn.addEventListener('click', () => {
                 formUser.reset();
+                document.getElementById('userId').value = ''; // Limpa o ID para criação
                 document.getElementById('userModalTitle').textContent = 'Criar Novo Login';
+                userPasswordField.style.display = 'block'; // Mostra o campo de senha na criação
+                // Define valores padrão para criação
+                userNameInput.value = '';
+                document.getElementById('userEmail').value = '';
+                document.getElementById('userPassword').value = '';
+                userIsActiveCheckbox.checked = true; // Novo usuário geralmente ativo por padrão
+                userAdminCheckbox.checked = false;
+                userDarkThemeCheckbox.checked = false; // Tema padrão claro
                 openModal(modalUser);
             });
             headerDiv.appendChild(createBtn);
@@ -3666,16 +3690,25 @@
             table.innerHTML = `
                 <thead>
                     <tr>
-                        <th>Email</th>
+                        <th>Nome</th>
+                        <th>E-mail</th>
+                        <th>Ativo</th>
+                        <th>Admin</th>
+                        <th>Tema Escuro</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${state.users.map(user => `
                         <tr data-user-id="${user.id}">
+                            <td data-label="Nome">${user.name || 'N/A'}</td>
                             <td data-label="Email">${user.email}</td>
+                            <td data-label="Ativo">${user.is_active ? '✔️' : '❌'}</td>
+                            <td data-label="Admin">${user.admin ? '✔️' : '❌'}</td>
+                            <td data-label="Tema Escuro">${user.dark_theme ? '✔️' : '❌'}</td>
                             <td data-label="Ações">
                                 <div class="action-buttons">
+                                    <button class="btn-primary btn-edit-user">Editar</button>
                                     <button class="btn-delete-user btn-delete">Excluir</button>
                                 </div>
                             </td>
@@ -3685,33 +3718,87 @@
             `;
             tableContainer.appendChild(table);
             usersContentArea.appendChild(tableContainer);
+
+            // Adicione os listeners para os novos botões "Editar" na tabela de usuários
+            table.querySelectorAll('.btn-edit-user').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const userId = e.target.closest('tr').dataset.userId;
+                    const user = state.users.find(u => u.id == userId);
+                    if (user) {
+                        handleEditUserModal(user);
+                    } else {
+                        showAlert("Usuário não encontrado para edição.");
+                    }
+                });
+            });
+        }
+
+        function handleEditUserModal(user) {
+            document.getElementById('userModalTitle').textContent = 'Editar Login';
+            document.getElementById('userId').value = user.id;
+            userNameInput.value = user.name || '';
+            document.getElementById('userEmail').value = user.email || '';
+            userPasswordField.style.display = 'none'; // Esconde o campo de senha na edição
+            document.getElementById('userPassword').removeAttribute('required'); // Remove a validação 'required'
+            userIsActiveCheckbox.checked = user.is_active || false;
+            userAdminCheckbox.checked = user.admin || false;
+            userDarkThemeCheckbox.checked = user.dark_theme || false;
+
+            openModal(modalUser);
         }
         
         async function handleUserFormSubmit(event) {
             event.preventDefault();
+            const userId = document.getElementById('userId').value; // Se houver ID, é edição
+            const isEditing = !!userId;
+
             const payload = {
-                email: document.getElementById('userEmail').value,
-                password: document.getElementById('userPassword').value,
-                company_id: state.companyId
+                name: userNameInput.value.trim(),
+                email: document.getElementById('userEmail').value.trim(),
+                is_active: userIsActiveCheckbox.checked,
+                admin: userAdminCheckbox.checked,
+                dark_theme: userDarkThemeCheckbox.checked, // Adiciona o dark_theme aqui também
+                company_id: state.companyId // Garante que o company_id é enviado
             };
-            
-            showLoading("Salvando login...");
+
+            let method = 'POST';
+            let url = API_URLS.USERS_CRUD;
+
+            if (isEditing) {
+                payload.id = userId;
+                method = 'PUT';
+                // A senha não deve ser enviada se não for explicitamente alterada,
+                // seu backend deve lidar com isso (ignorar senha vazia em PUTs)
+                // Ou você pode ter um campo de "Nova Senha" separado que só é enviado se preenchido.
+                // Por simplicidade, se for edição, não enviamos a senha a menos que haja um campo separado para isso.
+                // Se você tiver um campo "Nova Senha", adicione a lógica aqui.
+            } else { // Criação
+                payload.password = document.getElementById('userPassword').value;
+                if (!payload.password) {
+                    showAlert("A senha é obrigatória para novos logins.");
+                    return;
+                }
+            }
+
+            showLoading(isEditing ? "Salvando alterações do login..." : "Criando login...");
             try {
-                const response = await fetchWithAuth(API_URLS.USERS_CRUD, {
-                    method: 'POST',
+                const response = await fetchWithAuth(url, {
+                    method: method,
                     body: JSON.stringify(payload)
                 });
                 const responseData = await response.json();
-                if (!response.ok) throw new Error(responseData.message || "Erro ao salvar o login.");
+                if (!response.ok) throw new Error(responseData.message || (isEditing ? "Erro ao salvar o login." : "Erro ao criar o login."));
 
-                showAlert("Login salvo com sucesso!");
+                showAlert(isEditing ? "Login atualizado com sucesso!" : "Login criado com sucesso!");
                 closeModal(modalUser);
-                await fetchUsers();
+                await fetchUsers(); // Recarrega os usuários para atualizar a tabela
                 renderUsersPage();
             } catch (error) {
                 showAlert(`Erro: ${error.message}`);
             } finally {
                 hideLoading();
+                // Restaura a validação 'required' para o campo de senha para a próxima vez que o modal for aberto para CRIAÇÃO
+                document.getElementById('userPassword').setAttribute('required', 'true');
             }
         }
 
@@ -4106,6 +4193,12 @@
 
             // Listener para o formulário de edição de módulos da empresa
             document.getElementById('formEditCompanyModules').addEventListener('submit', handleSaveCompanyModules);
+
+            // Listener para o formulário de edição de dados da empresa
+            document.getElementById('formEditCompany').addEventListener('submit', handleSaveCompanyData);
+
+            // Listener para o formulário de criação/edição de usuário
+            document.getElementById('formUser').addEventListener('submit', handleUserFormSubmit);
 
         }
 
