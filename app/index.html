@@ -832,6 +832,35 @@
         </div>
     </div>
 
+    <div id="modalEditCompanyModules" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" data-modal-id="modalEditCompanyModules">&times;</button>
+            <h3>Gerenciar Módulos da Empresa</h3>
+            <form id="formEditCompanyModules">
+                <input type="hidden" id="editCompanyModulesId">
+                <p>Empresa: <strong id="editCompanyModulesName"></strong></p>
+                <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+                    <label>
+                        <input type="checkbox" id="moduleInstagram" style="width:auto; margin-right:5px;"> Instagram
+                    </label>
+                    <label>
+                        <input type="checkbox" id="moduleFacebook" style="width:auto; margin-right:5px;"> Facebook
+                    </label>
+                    <label>
+                        <input type="checkbox" id="moduleThreads" style="width:auto; margin-right:5px;"> Threads
+                    </label>
+                    <label>
+                        <input type="checkbox" id="moduleWhatsapp" style="width:auto; margin-right:5px;"> WhatsApp
+                    </label>
+                    </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel modal-close-btn-alternative" data-modal-id="modalEditCompanyModules">Cancelar</button>
+                    <button type="submit" class="btn-confirm">Salvar Módulos</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modals de Contas Sociais -->
     <div id="modalCreateSocialAccount" class="modal-overlay">
         <div class="modal-content">
@@ -1346,7 +1375,9 @@
             companies: [], // NOVO
             users: [], // NOVO
             newImageBase64: null,
-            scheduledPostFiles: []
+            scheduledPostFiles: [],
+            companies: [],
+            currentUser: null,
         };
 
         // --- Seletores de Elementos do DOM ---
@@ -1478,6 +1509,10 @@
             const menuContainer = document.createElement('div');
             menuContainer.className = 'sidebar-menu';
 
+            // Módulos ativos para a empresa do usuário logado
+            const currentUserCompany = state.companies.find(c => c.id === state.companyId);
+            const activeCompanyModules = currentUserCompany ? currentUserCompany.modules : {};
+
             const sortedAccounts = [...state.socialAccounts].sort((a, b) => {
                 const orderA = a.ordenacao !== null && a.ordenacao !== undefined ? a.ordenacao : 999;
                 const orderB = b.ordenacao !== null && b.ordenacao !== undefined ? b.ordenacao : 999;
@@ -1493,109 +1528,125 @@
                 return acc;
             }, {});
 
-            // Grupos de Redes Sociais (Dinâmico)
+            // Grupos de Redes Sociais (Dinâmico) - Exibir apenas se o módulo correspondente estiver ativo
             for (const socialMedia in groupedAccounts) {
                 const accounts = groupedAccounts[socialMedia];
-                const mediaGroup = document.createElement('div');
-                mediaGroup.className = 'menu-group';
-                const mediaParent = document.createElement('div');
-                mediaParent.className = 'menu-parent';
-                mediaParent.textContent = socialMedia;
-                const mediaSubmenu = document.createElement('ul');
+                let shouldDisplaySocialMediaGroup = false;
 
-                const isMediaGroupActive = accounts.some(acc => acc.nome_conta === state.activeAccount);
-                if (!isMediaGroupActive) {
-                    mediaParent.classList.add('collapsed');
-                    mediaSubmenu.classList.add('collapsed');
+                // Verifica se o módulo está ativo para esta rede social
+                if (socialMedia === 'Instagram' && activeCompanyModules.instagram) {
+                    shouldDisplaySocialMediaGroup = true;
+                } else if (socialMedia === 'Facebook' && activeCompanyModules.facebook) {
+                    shouldDisplaySocialMediaGroup = true;
+                } else if (socialMedia === 'Threads' && activeCompanyModules.threads) {
+                    shouldDisplaySocialMediaGroup = true;
                 }
+                // Adicione mais verificações para outras redes sociais aqui
 
-                mediaParent.addEventListener('click', () => {
-                    mediaParent.classList.toggle('collapsed');
-                    mediaSubmenu.classList.toggle('collapsed');
-                });
+                if (shouldDisplaySocialMediaGroup) {
+                    const mediaGroup = document.createElement('div');
+                    mediaGroup.className = 'menu-group';
+                    const mediaParent = document.createElement('div');
+                    mediaParent.className = 'menu-parent';
+                    mediaParent.textContent = socialMedia;
+                    const mediaSubmenu = document.createElement('ul');
 
-                mediaGroup.appendChild(mediaParent);
-                mediaGroup.appendChild(mediaSubmenu);
-
-                accounts.forEach(account => {
-                    const accountParent = document.createElement('div');
-                    accountParent.className = 'menu-parent submenu-item';
-                    accountParent.textContent = account.nome_conta;
-                    accountParent.style.paddingLeft = '15px';
-                    
-                    const accountSubmenu = document.createElement('ul');
-                    
-                    if (state.activeAccount !== account.nome_conta) {
-                        accountParent.classList.add('collapsed');
-                        accountSubmenu.classList.add('collapsed');
+                    const isMediaGroupActive = accounts.some(acc => acc.nome_conta === state.activeAccount);
+                    if (!isMediaGroupActive) {
+                        mediaParent.classList.add('collapsed');
+                        mediaSubmenu.classList.add('collapsed');
                     }
 
-                    accountParent.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        accountParent.classList.toggle('collapsed');
-                        accountSubmenu.classList.toggle('collapsed');
+                    mediaParent.addEventListener('click', () => {
+                        mediaParent.classList.toggle('collapsed');
+                        mediaSubmenu.classList.toggle('collapsed');
                     });
 
-                    MEDIA_TYPES.forEach(mediaType => {
-                        const li = document.createElement('li');
-                        li.className = 'submenu-item';
-                        li.textContent = mediaType.label;
-                        if (state.activeAccount === account.nome_conta && state.activeMediaType === mediaType.key) {
-                            li.classList.add('active');
+                    mediaGroup.appendChild(mediaParent);
+                    mediaGroup.appendChild(mediaSubmenu);
+
+                    accounts.forEach(account => {
+                        const accountParent = document.createElement('div');
+                        accountParent.className = 'menu-parent submenu-item';
+                        accountParent.textContent = account.nome_conta;
+                        accountParent.style.paddingLeft = '15px';
+
+                        const accountSubmenu = document.createElement('ul');
+
+                        if (state.activeAccount !== account.nome_conta) {
+                            accountParent.classList.add('collapsed');
+                            accountSubmenu.classList.add('collapsed');
                         }
-                        li.addEventListener('click', (e) => {
+
+                        accountParent.addEventListener('click', (e) => {
                             e.stopPropagation();
-                            trocarAba(account.nome_conta, mediaType.key);
+                            accountParent.classList.toggle('collapsed');
+                            accountSubmenu.classList.toggle('collapsed');
                         });
-                        accountSubmenu.appendChild(li);
+
+                        MEDIA_TYPES.forEach(mediaType => {
+                            const li = document.createElement('li');
+                            li.className = 'submenu-item';
+                            li.textContent = mediaType.label;
+                            if (state.activeAccount === account.nome_conta && state.activeMediaType === mediaType.key) {
+                                li.classList.add('active');
+                            }
+                            li.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                trocarAba(account.nome_conta, mediaType.key);
+                            });
+                            accountSubmenu.appendChild(li);
+                        });
+
+                        mediaSubmenu.appendChild(accountParent);
+                        mediaSubmenu.appendChild(accountSubmenu);
                     });
-                    
-                    mediaSubmenu.appendChild(accountParent);
-                    mediaSubmenu.appendChild(accountSubmenu);
-                });
-                menuContainer.appendChild(mediaGroup);
-            }
-
-            // Grupo WhatsApp Dinâmico
-            const whatsappGroup = document.createElement('div');
-            whatsappGroup.className = 'menu-group';
-            const whatsappParent = document.createElement('div');
-            whatsappParent.className = 'menu-parent';
-            whatsappParent.textContent = 'WhatsApp';
-            const whatsappSubmenu = document.createElement('ul');
-            
-            const isWhatsappActive = state.activeAccount === 'WhatsApp';
-             if (!isWhatsappActive) {
-                whatsappParent.classList.add('collapsed');
-                whatsappSubmenu.classList.add('collapsed');
-            }
-
-            whatsappParent.addEventListener('click', () => {
-                whatsappParent.classList.toggle('collapsed');
-                whatsappSubmenu.classList.toggle('collapsed');
-            });
-
-            whatsappGroup.appendChild(whatsappParent);
-            whatsappGroup.appendChild(whatsappSubmenu);
-            
-            const sortedGroups = [...state.whatsappGroups].sort((a, b) => (a.ordenacao || 999) - (b.ordenacao || 999));
-
-            sortedGroups.forEach(group => {
-                const li = document.createElement('li');
-                li.className = 'submenu-item';
-                li.textContent = `Ofertas - ${group.group_name}`;
-                if (state.activeAccount === 'WhatsApp' && state.activeMediaType === group.group_name) {
-                    li.classList.add('active');
+                    menuContainer.appendChild(mediaGroup);
                 }
-                li.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    trocarAba('WhatsApp', group.group_name);
-                });
-                whatsappSubmenu.appendChild(li);
-            });
-            menuContainer.appendChild(whatsappGroup);
+            }
 
-            // NOVO: Grupo Configurações
+            // Grupo WhatsApp Dinâmico - Exibir apenas se o módulo WhatsApp estiver ativo
+            if (activeCompanyModules.whatsapp) {
+                const whatsappGroup = document.createElement('div');
+                whatsappGroup.className = 'menu-group';
+                const whatsappParent = document.createElement('div');
+                whatsappParent.className = 'menu-parent';
+                whatsappParent.textContent = 'WhatsApp';
+                const whatsappSubmenu = document.createElement('ul');
+
+                const isWhatsappActive = state.activeAccount === 'WhatsApp';
+                if (!isWhatsappActive) {
+                    whatsappParent.classList.add('collapsed');
+                    whatsappSubmenu.classList.add('collapsed');
+                }
+
+                whatsappParent.addEventListener('click', () => {
+                    whatsappParent.classList.toggle('collapsed');
+                    whatsappSubmenu.classList.toggle('collapsed');
+                });
+
+                whatsappGroup.appendChild(whatsappParent);
+                whatsappGroup.appendChild(whatsappSubmenu);
+
+                const sortedGroups = [...state.whatsappGroups].sort((a, b) => (a.ordenacao || 999) - (b.ordenacao || 999));
+
+                sortedGroups.forEach(group => {
+                    const li = document.createElement('li');
+                    li.className = 'submenu-item';
+                    li.textContent = `Ofertas - ${group.group_name}`;
+                    if (state.activeAccount === 'WhatsApp' && state.activeMediaType === group.group_name) {
+                        li.classList.add('active');
+                    }
+                    li.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        trocarAba('WhatsApp', group.group_name);
+                    });
+                    whatsappSubmenu.appendChild(li);
+                });
+                menuContainer.appendChild(whatsappGroup);
+            }
+
+            // Grupo Configurações
             const configGroup = document.createElement('div');
             configGroup.className = 'menu-group';
             const configParent = document.createElement('div');
@@ -1616,7 +1667,7 @@
 
             configSubmenu.innerHTML = `
                 <li class="submenu-item" id="menu-companies">Empresas</li>
-                <li class="submenu-item" id="menu-users">Logins</li>
+                <li class="submenu-item" id="menu-users">Usuários</li>
                 <li class="submenu-item" id="menu-accounts">Redes Sociais</li>
                 <li class="submenu-item" id="menu-whatsapp-groups">Grupos WhatsApp</li>
                 <li class="submenu-item" id="menu-keyword">Palavra Chave</li>
@@ -1633,7 +1684,6 @@
             configGroup.appendChild(configParent);
             configGroup.appendChild(configSubmenu);
             menuContainer.appendChild(configGroup);
-            
             
             // Ações Rápidas (Mobile)
             const actionsGroup = document.createElement('div');
@@ -3315,12 +3365,159 @@
             contentDisplayArea.style.display = 'none';
             socialAccountsContentArea.style.display = 'none';
             whatsappGroupsContentArea.style.display = 'none';
-            companiesContentArea.style.display = 'block';
+            companiesContentArea.style.display = 'block'; // Mostra a área de empresas
             usersContentArea.style.display = 'none';
             paginationContainer.style.display = 'none';
-            // await fetchCompanies();
-            // renderCompaniesPage();
-            companiesContentArea.innerHTML = "<h2>Gerenciamento de Empresas (Em construção)</h2>";
+            await fetchCompanies(); // Busca as empresas
+            renderCompaniesPage(); // Renderiza a página de empresas
+        }
+
+        async function fetchCompanies() {
+            showLoading("Carregando empresas...");
+            try {
+                // A requisição para /companies precisa do company_id do usuário logado
+                // Mas para um admin gerenciar *todas* as empresas, talvez a API precise de um endpoint diferente
+                // Ou o endpoint atual lista todas as empresas visíveis ao admin.
+                // Vou assumir que o fetchWithAuth já injeta o company_id do usuário logado,
+                // e que o backend retornará as empresas que este usuário pode ver/gerenciar.
+                const response = await fetchWithAuth(API_URLS.COMPANIES_CRUD);
+                if (!response.ok) throw new Error("Não foi possível carregar as empresas.");
+                const result = await response.json();
+                state.companies = Array.isArray(result.data) ? result.data : [];
+                console.log("Empresas carregadas:", state.companies);
+            } catch (error) {
+                if (error.message !== "Sessão expirada.") {
+                    showAlert(`Erro ao carregar empresas: ${error.message}`);
+                }
+                state.companies = [];
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function renderCompaniesPage() {
+            companiesContentArea.innerHTML = '';
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'page-header';
+            headerDiv.innerHTML = `<h2>Gerenciamento de Empresas</h2>`;
+
+            // Botão para criar empresa (se houver essa funcionalidade para o admin)
+            // const createBtn = document.createElement('button');
+            // createBtn.className = 'btn-primary';
+            // createBtn.textContent = 'Criar Nova Empresa';
+            // createBtn.addEventListener('click', () => { /* Abrir modal de criação de empresa */ });
+            // headerDiv.appendChild(createBtn);
+
+            companiesContentArea.appendChild(headerDiv);
+
+            if (state.companies.length === 0) {
+                companiesContentArea.innerHTML += '<p>Nenhuma empresa cadastrada ou disponível para gerenciamento.</p>';
+                return;
+            }
+
+            const tableContainer = document.createElement('div');
+            tableContainer.className = 'table-container';
+            const table = document.createElement('table');
+            table.className = 'data-table';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Nome da Empresa</th>
+                        <th>CNPJ/CPF</th>
+                        <th>E-mail</th>
+                        <th>Módulos Ativos</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${state.companies.map(company => `
+                        <tr data-company-id="${company.id}">
+                            <td data-label="Nome">${company.name}</td>
+                            <td data-label="CNPJ/CPF">${company.cnpj_cpf || 'N/A'}</td>
+                            <td data-label="E-mail">${company.email || 'N/A'}</td>
+                            <td data-label="Módulos">${formatCompanyModules(company.modules)}</td>
+                            <td data-label="Ações">
+                                <div class="action-buttons">
+                                    <button class="btn-primary btn-edit-company-modules">Gerenciar Módulos</button>
+                                    </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+            tableContainer.appendChild(table);
+            companiesContentArea.appendChild(tableContainer);
+
+            // Adiciona listeners aos botões de gerenciar módulos
+            table.querySelectorAll('.btn-edit-company-modules').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const companyId = e.target.closest('tr').dataset.companyId;
+                    const company = state.companies.find(c => c.id == companyId);
+                    if (company) {
+                        handleEditCompanyModulesModal(company);
+                    } else {
+                        showAlert("Empresa não encontrada para edição.");
+                    }
+                });
+            });
+        }
+
+        function formatCompanyModules(modules) {
+            if (!modules) return 'N/A';
+            const activeModules = [];
+            for (const key in modules) {
+                if (modules[key]) {
+                    activeModules.push(key.charAt(0).toUpperCase() + key.slice(1)); // Capitaliza a primeira letra
+                }
+            }
+            return activeModules.length > 0 ? activeModules.join(', ') : 'Nenhum';
+        }
+
+        function handleEditCompanyModulesModal(company) {
+            document.getElementById('editCompanyModulesId').value = company.id;
+            document.getElementById('editCompanyModulesName').textContent = company.name;
+
+            // Preenche os checkboxes com base nos módulos atuais da empresa
+            document.getElementById('moduleInstagram').checked = company.modules?.instagram || false;
+            document.getElementById('moduleFacebook').checked = company.modules?.facebook || false;
+            document.getElementById('moduleThreads').checked = company.modules?.threads || false;
+            document.getElementById('moduleWhatsapp').checked = company.modules?.whatsapp || false;
+
+            openModal(document.getElementById('modalEditCompanyModules'));
+        }
+
+        async function handleSaveCompanyModules(event) {
+            event.preventDefault();
+            const companyId = document.getElementById('editCompanyModulesId').value;
+            const payload = {
+                id: companyId,
+                modules: {
+                    instagram: document.getElementById('moduleInstagram').checked,
+                    facebook: document.getElementById('moduleFacebook').checked,
+                    threads: document.getElementById('moduleThreads').checked,
+                    whatsapp: document.getElementById('moduleWhatsapp').checked,
+                }
+            };
+
+            showLoading("Salvando módulos...");
+            try {
+                const response = await fetchWithAuth(API_URLS.COMPANIES_CRUD, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                });
+                const responseData = await response.json();
+                if (!response.ok) throw new Error(responseData.message || "Erro ao salvar módulos.");
+
+                showAlert("Módulos da empresa atualizados com sucesso!");
+                closeModal(document.getElementById('modalEditCompanyModules'));
+                await fetchCompanies(); // Recarrega as empresas para atualizar a tabela
+                renderCompaniesPage();
+                renderSidebarMenu(); // Atualiza a sidebar com base nos novos módulos (próximo passo)
+            } catch (error) {
+                showAlert(`Erro ao salvar módulos: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
         }
 
         async function showUsersPage() {
@@ -3475,7 +3672,7 @@
 
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            
+
             const payload = {
                 email: email,
                 password: password
@@ -3488,14 +3685,18 @@
                     body: JSON.stringify(payload)
                 });
 
-                const responseData = await response.json().catch(() => ({ 
-                    message: `Erro no servidor: ${response.statusText}` 
+                const responseData = await response.json().catch(() => ({
+                    message: `Erro no servidor: ${response.statusText}`
                 }));
 
-                if (response.ok && responseData.token && responseData.company_id) {
-                    localStorage.setItem('authToken', responseData.token); 
-                    localStorage.setItem('companyId', responseData.company_id); 
-                    window.location.reload();
+                // Verifica se a resposta foi bem-sucedida e contém os dados necessários
+                if (response.ok && responseData.token && responseData.company_id && responseData.user) {
+                    localStorage.setItem('authToken', responseData.token);
+                    localStorage.setItem('companyId', responseData.company_id);
+                    // Salva o objeto completo do usuário, incluindo a preferência de tema
+                    localStorage.setItem('currentUser', JSON.stringify(responseData.user));
+
+                    window.location.reload(); // Recarrega para aplicar as configurações e inicializar o app
                 } else {
                     loginError.textContent = responseData.message || 'E-mail ou senha inválidos.';
                 }
@@ -3505,7 +3706,8 @@
             } finally {
                 hideLoading();
             }
-        }
+}
+
         
         async function handleRegisterCompany(event) {
             event.preventDefault();
@@ -3675,8 +3877,38 @@
                 document.body.classList.toggle('sidebar-collapsed');
             });
 
-            document.getElementById('themeToggle').addEventListener('click', () => {
-                document.body.classList.toggle('dark-theme');
+            document.getElementById('themeToggle').addEventListener('click', async () => {
+                const isDark = document.body.classList.toggle('dark-theme');
+                // Atualiza a posição do círculo do toggle
+                document.getElementById('themeToggle').querySelector('.toggle-circle').style.transform = isDark ? 'translateX(24px)' : 'translateX(2px)';
+
+                if (state.authToken && state.currentUser && state.currentUser.id) {
+                    showLoading("Salvando tema...");
+                    try {
+                        const payload = {
+                            id: state.currentUser.id, // ID do usuário logado
+                            dark_theme: isDark
+                        };
+                        const response = await fetchWithAuth(API_URLS.USERS_CRUD, { // Usando USERS_CRUD para atualização
+                            method: 'PUT',
+                            body: JSON.stringify(payload)
+                        });
+                        if (!response.ok) throw new Error(await response.text());
+
+                        // Atualiza o estado local do usuário e o localStorage
+                        state.currentUser.dark_theme = isDark;
+                        localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+                        showAlert("Tema salvo automaticamente!");
+                    } catch (error) {
+                        console.error("Erro ao salvar tema:", error);
+                        showAlert(`Erro ao salvar tema: ${error.message}`);
+                        // Reverte a UI se o salvamento falhar
+                        document.body.classList.toggle('dark-theme');
+                        document.getElementById('themeToggle').querySelector('.toggle-circle').style.transform = isDark ? 'translateX(2px)' : 'translateX(24px)';
+                    } finally {
+                        hideLoading();
+                    }
+                }
             });
             
             formCreateSocialAccount.addEventListener('submit', handleCreateSocialAccount);
@@ -3782,6 +4014,10 @@
                     reader.readAsDataURL(file);
                 });
             });
+
+            // Listener para o formulário de edição de módulos da empresa
+            document.getElementById('formEditCompanyModules').addEventListener('submit', handleSaveCompanyModules);
+
         }
 
         // --- Ponto de Entrada da Aplicação ---
@@ -3789,7 +4025,7 @@
             loginContainer = document.getElementById('login-container');
             registerContainer = document.getElementById('register-container');
             appContainer = document.getElementById('app-container');
-            
+
             loginForm.addEventListener('submit', handleLogin);
             registerForm.addEventListener('submit', handleRegisterCompany);
 
@@ -3799,38 +4035,56 @@
                 registerContainer.style.display = 'flex';
             });
 
-             document.getElementById('show-login').addEventListener('click', (e) => {
+            document.getElementById('show-login').addEventListener('click', (e) => {
                 e.preventDefault();
                 loginContainer.style.display = 'flex';
                 registerContainer.style.display = 'none';
             });
-            
+
             // CORREÇÃO: Listeners dos modais devem ser registrados sempre
             document.querySelectorAll('.modal-close-btn, .modal-close-btn-alternative').forEach(btn => {
                 btn.addEventListener('click', (event) => {
                     const modalId = event.target.dataset.modalId;
-                    if (modalId) { const modalToClose = document.getElementById(modalId); if (modalToClose) closeModal(modalToClose); }
+                    if (modalId) {
+                        const modalToClose = document.getElementById(modalId);
+                        if (modalToClose) closeModal(modalToClose);
+                    }
                 });
             });
             document.querySelectorAll('.modal-overlay').forEach(overlay => {
-                overlay.addEventListener('click', (event) => { if (event.target === overlay) closeModal(overlay); });
+                overlay.addEventListener('click', (event) => {
+                    if (event.target === overlay) closeModal(overlay);
+                });
             });
 
             const savedToken = localStorage.getItem('authToken');
             const savedCompanyId = localStorage.getItem('companyId');
+            const savedUser = localStorage.getItem('currentUser'); // Recupera o usuário salvo
 
-            if (savedToken && savedCompanyId) {
+            if (savedToken && savedCompanyId && savedUser) { // Agora verifica também se há dados de usuário
                 state.authToken = savedToken;
                 state.companyId = savedCompanyId;
+                state.currentUser = JSON.parse(savedUser); // Atribui o objeto de usuário ao estado
+
+                // Aplica o tema imediatamente com base na preferência do usuário
+                if (state.currentUser.dark_theme) {
+                    document.body.classList.add('dark-theme');
+                    document.getElementById('themeToggle').querySelector('.toggle-circle').style.transform = 'translateX(24px)';
+                } else {
+                    document.body.classList.remove('dark-theme');
+                    document.getElementById('themeToggle').querySelector('.toggle-circle').style.transform = 'translateX(2px)';
+                }
+
                 loginContainer.style.display = 'none';
                 registerContainer.style.display = 'none';
                 appContainer.style.display = 'flex';
-                initMainApp();
+                initMainApp(); // Inicia o aplicativo principal
             } else {
                 loginContainer.style.display = 'flex';
                 appContainer.style.display = 'none';
             }
         });
+
     </script>
 </body>
 </html>
