@@ -3186,7 +3186,7 @@
             state.activeAccount = account;
             state.activeMediaType = type;
 
-            account = decodeURIComponent(account);
+            const decodedAccountName = decodeURIComponent(account);
 
             [dashboardContentArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
             contentDisplayArea.style.display = 'block'; // Garante que a área de mídias está visível
@@ -3200,10 +3200,22 @@
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'header-actions';
             headerDiv.appendChild(actionsDiv);
+
+            let titleText = ''; // Variável para o texto do título
+
+            if (decodedAccountName === 'WhatsApp') {
+                titleText = `Ofertas - ${decodedAccountName}`;
+            } else if (type === 'scheduled-posts') {
+                titleText = `Posts Agendados (${decodedAccountName})`;
+            } else {
+                const mediaLabel = MEDIA_TYPES.find(mt => mt.key === type)?.label || type;
+                titleText = `${decodedAccountName} - ${mediaLabel}`;
+            }
+
+            pageTitle.textContent = titleText; // Define o H2 da página
+            document.title = titleText;
             
             if (account === 'WhatsApp') {
-                pageTitle.textContent = `Ofertas - ${account}`; // type aqui é o nome do grupo
-                
                 const filtersDiv = document.createElement('div');
                 filtersDiv.className = 'filters-container';
                 await fetchWhatsappGroups(); // Garante que os grupos e lojas estão carregados
@@ -4319,18 +4331,22 @@
 
 
         function setupEventListeners() {
-             if (contentDisplayArea && scrollTopBtn) {
-                 contentDisplayArea.addEventListener('scroll', () => {
-                     if (contentDisplayArea.scrollTop > 200) {
-                         scrollTopBtn.style.display = "block";
-                     } else {
-                         scrollTopBtn.style.display = "none";
-                     }
-                 });
-                 scrollTopBtn.addEventListener('click', () => {
-                     contentDisplayArea.scrollTo({ top: 0, behavior: 'smooth' });
-                 });
-             }
+            const mainContentEl = document.querySelector('.main-content'); // << Obtenha o elemento correto
+
+            if (mainContentEl && scrollTopBtn) {
+                // Monitore o scroll do main-content
+                mainContentEl.addEventListener('scroll', () => {
+                    if (mainContentEl.scrollTop > 200) {
+                        scrollTopBtn.style.display = "block";
+                    } else {
+                        scrollTopBtn.style.display = "none";
+                    }
+                });
+                // Faça o scroll do main-content ao clicar no botão
+                scrollTopBtn.addEventListener('click', () => {
+                    mainContentEl.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+            }
 
             document.getElementById('menuToggleBtn').addEventListener('click', () => {
                 document.body.classList.toggle('sidebar-collapsed'); // Este alterna
