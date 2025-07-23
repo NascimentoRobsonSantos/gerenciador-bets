@@ -3105,7 +3105,7 @@
             event.preventDefault();
             
             const id = document.getElementById('editWppId').value;
-            const accountName = state.activeMediaType; // CORREÇÃO
+            const accountName = decodeURIComponent(state.activeMediaType); // CORREÇÃO
             
             const payload = {
                 id: id,
@@ -3148,7 +3148,7 @@
             const confirmed = await showConfirm(`Tem certeza que deseja excluir a oferta de WhatsApp ID ${id}?`);
             if (!confirmed) return;
 
-            const accountName = state.activeMediaType; // CORREÇÃO
+            const accountName = decodeURIComponent(state.activeMediaType); // CORREÇÃO
 
             showLoading("Excluindo oferta...");
             try {
@@ -3181,7 +3181,7 @@
             const confirmed = await showConfirm(`Tem certeza que deseja POSTAR a oferta de WhatsApp ID ${id}?`);
             if (!confirmed) return;
             
-            const accountName = state.activeMediaType; // CORREÇÃO
+            const accountName = decodeURIComponent(state.activeMediaType); // CORREÇÃO
             
             const payload = {
                 id: itemData.id,
