@@ -56,6 +56,7 @@
             color: var(--text-color);
             line-height: 1.6;
             transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
         }
 
         /* --- TELAS DE LOGIN E REGISTRO --- */
@@ -175,7 +176,6 @@
             flex-grow: 1;
             margin-top: 60px; /* Altura do header */
             height: calc(100vh - 60px);
-            overflow: hidden; 
         }
 
         .sidebar {
@@ -1565,23 +1565,29 @@
         });
 
         // --- ROTEAMENTO ---
-        function navigateTo(path, params = [], query = {}) {
-            const encodedParams = params.map(p => encodeURIComponent(p)).join('/');
-            const hashPath = `#/${path}${encodedParams ? '/' + encodedParams : ''}`;
+        function navigateTo(mainPath, pathParams = [], query = {}) {
+            let encodedPathParams = '';
+            if (pathParams.length > 0) {
+                encodedPathParams = pathParams.map(p => encodeURIComponent(p)).join('/');
+            }
+
+            const hashPath = `#/${mainPath}${encodedPathParams ? '/' + encodedPathParams : ''}`;
             const queryString = new URLSearchParams(query).toString();
             const newHash = queryString ? `${hashPath}?${queryString}` : hashPath;
 
             if (window.location.hash === newHash) {
-                if (event && event.type === 'popstate') { 
+                if (event && (event.type === 'popstate' || event.target === window)) { // Se é F5 ou back/forward
                     router();
-                } else if (location.hash === newHash) {
+                } else if (mainPath === state.currentView && pathParams[0] === state.activeAccount && pathParams[1] === state.activeMediaType && query.page === state.currentPage) {
+                    return;
+                } else {
                     router();
                 }
                 return;
             }
 
             window.location.hash = newHash;
-}
+        }
 
         async function router() {
             const [hash, queryString] = (window.location.hash || '#/dashboard').split('?');
@@ -1589,7 +1595,7 @@
             const mainPath = pathParts[0] || 'dashboard';
             const params = pathParts.slice(1);
             const queryParams = new URLSearchParams(queryString || '');
-            
+
             // Esconder todos os content areas no início do router
             [dashboardContentArea, contentDisplayArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
             paginationContainer.style.display = 'none';
@@ -1602,10 +1608,7 @@
                     await showDashboardPage();
                     break;
                 case 'media':
-                    // Aqui, params[0] é a conta e params[1] é o tipo de mídia.
-                    // Eles já virão DECODIFICADOS pelo navegador.
-                    // NÃO APLIQUE decodeURIComponent NOVAMENTE aqui, isso causaria o %2520
-                    await showMediaContent(params[0] || '', params[1] || ''); 
+                    await showMediaContent(params[0] || '', params[1] || ''); 
                     break;
                 case 'settings':
                     const subpage = params[0];
@@ -1613,18 +1616,18 @@
                         case 'companies': await showCompaniesPage(); break;
                         case 'users': await showUsersPage(); break;
                         case 'accounts': await showSocialAccountsPage(); break;
-                        case 'whatsapp-groups': await showWhatsappGroupsPage(); break;
-                        case 'keyword': handleIncluirPalavra(); break; // Este ainda é um modal, o router só abre o modal
-                        default: navigateTo('dashboard');
+                        case 'whatsapp-groups': await showWhatsappGroupsPage(); break; // showWhatsappGroupsPage é para a listagem de GRUPOS, não ofertas
+                        case 'keyword': handleIncluirPalavra(); break;
+                        default: await showDashboardPage(); // Fallback para dashboard em caso de subpágina de settings inválida
                     }
                     break;
-                default:
-                    navigateTo('dashboard');
+                default: // Caso a mainPath seja inválida, redireciona para o dashboard
+                    await showDashboardPage();
+                    break;
             }
-            
-            // Assegure-se de que a sidebar e o cabeçalho são renderizados APÓS a view principal
-            renderHeaderSettings(); 
-            renderSidebarMenu(); 
+
+            renderHeaderSettings(); 
+            renderSidebarMenu(); 
         }
 
         // --- Handlers de Ações Globais ---
@@ -1803,11 +1806,11 @@
                     if (state.activeAccount === 'WhatsApp' && state.activeMediaType === group.group_name) {
                         li.classList.add('active');
                     }
-                    // li.addEventListener('click', (e) => {
-                    //     e.stopPropagation();
-                    //     navigateTo('media', ['WhatsApp', group.group_name]);
-                    //     closeSidebarIfMobile();
-                    // });
+                    li.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        navigateTo('media', ['WhatsApp', group.group_name]);
+                        closeSidebarIfMobile();
+                    });
                     whatsappSubmenu.appendChild(li);
                 });
                 menuContainer.appendChild(whatsappGroup);
