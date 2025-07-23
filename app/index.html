@@ -4055,7 +4055,7 @@
 
                         state.currentUser.dark_theme = isDark;
                         localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
-                        showAlert("Tema salvo automaticamente!");
+                        // showAlert("Tema salvo automaticamente!");
                     } catch (error) {
                         console.error("Erro ao salvar tema:", error);
                         showAlert(`Erro ao salvar tema: ${error.message}`);
