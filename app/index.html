@@ -592,9 +592,10 @@
             background-color: var(--hover-bg-color);
         }
         .data-table td .action-buttons {
-            display: flex;
-            gap: 8px;
-            flex-wrap: nowrap;
+            width: 100%;
+            justify-content: flex-end;
+            gap: 8px; 
+            padding-top: 10px;
         }
         .data-table td .action-buttons button {
             padding: 5px 10px;
@@ -1720,7 +1721,7 @@
         // Função auxiliar para fechar a sidebar no mobile
         function closeSidebarIfMobile() {
             if (window.innerWidth <= 992) {
-                document.body.classList.add('sidebar-collapsed'); // Garante que fecha
+                document.body.classList.remove('sidebar-collapsed');
             }
         }
 
