@@ -2411,6 +2411,9 @@
         
         function changePage(page) {
             state.currentPage = page;
+            const mainContentEl = document.querySelector('.main-content');
+            if (mainContentEl) mainContentEl.scrollTo({ top: 0, behavior: 'smooth' }); // << ADICIONE ESTA PARTE
+            
             const currentHash = window.location.hash.split('?')[0];
             navigateTo(currentHash.slice(2).split('/')[0], currentHash.slice(2).split('/').slice(1), { page });
         }
