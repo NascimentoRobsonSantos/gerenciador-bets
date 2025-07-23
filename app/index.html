@@ -1325,7 +1325,7 @@
                         </div>
                         <div>
                             <label for="scheduledPostDateTime">Horário da Postagem:</label>
-                            <input type="datetime-local" id="scheduledPostDateTime" required>
+                            <input type="datetime-local" id="scheduledPostDateTime" step="300" required>
                         </div>
                     </div>
                     <div class="edit-modal-preview">
@@ -4030,34 +4030,44 @@
             }
 
             showLoading("Gerando dados do anúncio...");
-            try {
-                const response = await fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, {
-                    method: 'POST',
-                    body: JSON.stringify({ url: url })
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.message || "Não foi possível buscar os dados do link.");
+            // try {
+            //     const response = await fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, {
+            //         method: 'POST',
+            //         body: JSON.stringify({ url: url })
+            //     });
+            //     const data = await response.json();
+            //     if (!response.ok) throw new Error(data.message || "Não foi possível buscar os dados do link.");
 
-                // Popula os campos com os dados retornados
-                if (data.message) {
-                    document.getElementById('createWppMessage').value = data.message;
-                }
-                if (data.image_base64) {
-                    state.newImageBase64 = data.image_base64;
-                    document.getElementById('createWppImagePreview').src = `data:image/jpeg;base64,${data.image_base64}`;
-                }
-                 if (data.loja) {
-                    document.getElementById('createWppLoja').value = data.loja;
-                }
+            //     // Popula os campos com os dados retornados
+            //     if (data.message) {
+            //         document.getElementById('createWppMessage').value = data.message;
+            //     }
+            //     if (data.image_base64) {
+            //         state.newImageBase64 = data.image_base64;
+            //         document.getElementById('createWppImagePreview').src = `data:image/jpeg;base64,${data.image_base64}`;
+            //     }
+            //      if (data.loja) {
+            //         document.getElementById('createWppLoja').value = data.loja;
+            //     }
 
-                showAlert("Dados do anúncio gerados com sucesso!");
-
-            } catch (error) {
-                console.error("Erro ao gerar anúncio do link:", error);
-                showAlert(`Erro: ${error.message}`);
-            } finally {
-                hideLoading();
-            }
+            //     showAlert("Dados do anúncio gerados com sucesso!");
+            //     closeModal(btnGenerateAd); 
+            // } catch (error) {
+            //     console.error("Erro ao gerar anúncio do link:", error);
+            //     showAlert(`Erro: ${error.message}`);
+            // } finally {
+            //     hideLoading();
+            // }
+            fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, { method: "POST", body: JSON.stringify({ url: url }) })
+                .then(async response => { if (!response.ok) throw new Error(await response.text()); return response.json(); })
+                .then(() => { showAlert('Dados do anúncio gerados com sucesso!'); fetchData(); })
+                .catch(error => { 
+                    if (error.message !== "Sessão expirada.") {
+                        console.error("Erro:", error); showAlert(`Erro: ${error.message}`); 
+                    }
+                })
+                .finally(hideLoading);
+            
         }
 
         // --- Funções do Dashboard ---
