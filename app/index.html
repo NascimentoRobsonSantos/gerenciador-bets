@@ -1592,23 +1592,41 @@
         async function router() {
             const [hash, queryString] = (window.location.hash || '#/dashboard').split('?');
             const pathParts = hash.slice(2).split('/').filter(p => p);
-            const mainPath = pathParts[0] || 'dashboard';
-            const params = pathParts.slice(1);
-            const queryParams = new URLSearchParams(queryString || '');
+            const newMainPath = pathParts[0] || 'dashboard';
+            const newParams = pathParts.slice(1);
+            const newPage = parseInt(queryParams.get('page') || '1', 10);
 
-            // Esconder todos os content areas no início do router
+            // Verifica se a navegação é apenas uma troca de página na mesma tela
+            const isJustPagination = newMainPath === 'media' &&
+                state.currentView === 'media' &&
+                newParams[0] === state.activeAccount &&
+                newParams[1] === state.activeMediaType &&
+                newPage !== state.currentPage;
+
+            if (isJustPagination) {
+                state.currentPage = newPage;
+                // Apenas busca os novos dados e rola para o topo, sem redesenhar a página
+                const mainContentEl = document.querySelector('.main-content');
+                if (mainContentEl) mainContentEl.scrollTo({ top: 0, behavior: 'smooth' });
+                await fetchData();
+                return; // Sai da função para evitar o redesenho completo
+            }
+
+            // Lógica para redesenho completo da página (quando muda de seção)
             [dashboardContentArea, contentDisplayArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
             paginationContainer.style.display = 'none';
 
-            state.currentPage = parseInt(queryParams.get('page') || '1', 10);
-            state.currentView = mainPath; // Atualiza a view atual no estado
+            state.currentPage = newPage;
+            state.currentView = newMainPath;
+            const mainPath = newMainPath; // Para manter compatibilidade com o switch
+            const params = newParams;   // Para manter compatibilidade com o switch
 
             switch (mainPath) {
                 case 'dashboard':
                     await showDashboardPage();
                     break;
                 case 'media':
-                    await showMediaContent(params[0] || '', params[1] || ''); 
+                    await showMediaContent(params[0] || '', params[1] || '');
                     break;
                 case 'settings':
                     const subpage = params[0];
@@ -1616,17 +1634,17 @@
                         case 'companies': await showCompaniesPage(); break;
                         case 'users': await showUsersPage(); break;
                         case 'accounts': await showSocialAccountsPage(); break;
-                        case 'whatsapp-groups': await showWhatsappGroupsPage(); break; // showWhatsappGroupsPage é para a listagem de GRUPOS, não ofertas
+                        case 'whatsapp-groups': await showWhatsappGroupsPage(); break;
                         case 'keyword': handleIncluirPalavra(); break;
-                        default: await showDashboardPage(); // Fallback para dashboard em caso de subpágina de settings inválida
+                        default: await showDashboardPage();
                     }
                     break;
-                default: // Caso a mainPath seja inválida, redireciona para o dashboard
+                default:
                     await showDashboardPage();
                     break;
             }
- 
-            renderSidebarMenu(); 
+
+            renderSidebarMenu();
         }
 
         // --- Handlers de Ações Globais ---
@@ -3192,20 +3210,17 @@
 
         // --- Funções de Gerenciamento de Contas ---
         async function showMediaContent(account, type) {
-            state.activeAccount = account; // Salva a versão codificada no state para a API
+            state.activeAccount = account;
             state.activeMediaType = type;
 
-            const decodedAccountName = decodeURIComponent(account); // Decodifica o nome para exibição
+            const decodedAccountName = decodeURIComponent(account);
 
-            // Oculta todas as outras áreas de conteúdo principal
             [dashboardContentArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
-            
-            contentDisplayArea.style.display = 'block'; // Mostra a área de conteúdo principal
-            paginationContainer.style.display = 'flex'; // Garante que a paginação apareça
+            contentDisplayArea.style.display = 'block';
+            paginationContainer.style.display = 'flex';
             
             contentDisplayArea.innerHTML = ''; 
 
-            // Cria o cabeçalho da página
             const headerDiv = document.createElement('div');
             headerDiv.className = 'page-header';
             const pageTitle = document.createElement('h2');
@@ -3214,43 +3229,69 @@
             actionsDiv.className = 'header-actions';
             headerDiv.appendChild(actionsDiv);
             
-            let titleText = ''; // Variável para o texto do título
+            let titleText = '';
 
             if (decodedAccountName === 'WhatsApp') {
                 const groupName = decodeURIComponent(type);
                 titleText = `Ofertas - ${groupName}`;
-            } else {
+                
+                // Adiciona os filtros e botões específicos do WhatsApp
+                const filtersDiv = document.createElement('div');
+                filtersDiv.className = 'filters-container';
+                await fetchWhatsappGroups();
+                const lojasOptions = state.whatsappLojas.map(loja => `<option value="${loja}">${loja}</option>`).join('');
+                filtersDiv.innerHTML = `
+                    <div>
+                        <label for="filter-loja">Filtrar por Loja:</label>
+                        <select id="filter-loja">
+                            <option value="">Todas as Lojas</option>
+                            ${lojasOptions}
+                        </select>
+                    </div>
+                `;
+                headerDiv.insertBefore(filtersDiv, actionsDiv);
+                filtersDiv.querySelector('#filter-loja')?.addEventListener('change', applyWhatsappFilters);
+
+                const createOfferBtn = document.createElement('button');
+                createOfferBtn.className = 'btn-primary';
+                createOfferBtn.textContent = 'Criar Oferta';
+                createOfferBtn.addEventListener('click', handleCreateOfferModal);
+                actionsDiv.appendChild(createOfferBtn);
+
+                const refreshBtn = document.createElement('button');
+                refreshBtn.className = 'btn-primary';
+                refreshBtn.textContent = 'Atualizar Lista';
+                refreshBtn.addEventListener('click', fetchData);
+                actionsDiv.appendChild(refreshBtn);
+
+            } else { // Para Instagram e outros
                 const mediaLabel = MEDIA_TYPES.find(mt => mt.key === type)?.label || type;
                 titleText = `${decodedAccountName} - ${mediaLabel}`;
+                
+                if (type === 'reels') {
+                    const btnReloadReels = document.createElement('button');
+                    btnReloadReels.className = 'btn-primary';
+                    btnReloadReels.textContent = '🔄 Recarregar Novos Reels';
+                    btnReloadReels.addEventListener('click', handleRecarregarReels);
+                    actionsDiv.appendChild(btnReloadReels);
+                } else if (type === 'stories' || type === 'stories-base') {
+                    const btnReloadStories = document.createElement('button');
+                    btnReloadStories.className = 'btn-primary';
+                    btnReloadStories.textContent = '🔄 Recarregar Novos Stories';
+                    btnReloadStories.addEventListener('click', handleRecarregarStories);
+                    actionsDiv.appendChild(btnReloadStories);
+                }
             }
 
-            // Define o H2 da página e o título da aba do navegador com o nome decodificado
-            pageTitle.textContent = titleText; 
-            document.title = titleText;
-
-            // Lógica para adicionar botões de ação específicos da página
-            if (type === 'reels') {
-                const btnReloadReels = document.createElement('button');
-                btnReloadReels.className = 'btn-primary';
-                btnReloadReels.textContent = '🔄 Recarregar Novos Reels';
-                btnReloadReels.addEventListener('click', handleRecarregarReels);
-                actionsDiv.appendChild(btnReloadReels);
-            } else if (type === 'stories' || type === 'stories-base') {
-                const btnReloadStories = document.createElement('button');
-                btnReloadStories.className = 'btn-primary';
-                btnReloadStories.textContent = '🔄 Recarregar Novos Stories';
-                btnReloadStories.addEventListener('click', handleRecarregarStories);
-                actionsDiv.appendChild(btnReloadStories);
-            }
+            pageTitle.textContent = titleText;
+            document.title = titleText; // Atualiza o título da aba do navegador
 
             contentDisplayArea.appendChild(headerDiv);
 
-            // Cria o wrapper para os itens de mídia
             mediaItemsWrapper = document.createElement('div');
             mediaItemsWrapper.id = 'media-items-wrapper';
             contentDisplayArea.appendChild(mediaItemsWrapper);
 
-            // Busca os dados
             await fetchData();
         }
         
