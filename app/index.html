@@ -1490,66 +1490,46 @@
             reader.onerror = error => reject(error);
         });
 
-        // --- ROTEAMENTO (NOVO) ---
-        /**
-         * Navega para uma nova rota na aplicação, atualizando o hash da URL.
-         * @param {string} path - O caminho principal (ex: 'media', 'settings').
-         * @param {string[]} params - Parâmetros da rota (ex: ['Carla_Indica', 'reels']).
-         * @param {object} query - Parâmetros de busca (ex: { page: 2 }).
-         */
+        // --- ROTEAMENTO ---
         function navigateTo(path, params = [], query = {}) {
             const hashPath = `#/${path}${params.length > 0 ? '/' + params.map(p => encodeURIComponent(p)).join('/') : ''}`;
-            
             const queryString = new URLSearchParams(query).toString();
+            const newHash = queryString ? `${hashPath}?${queryString}` : hashPath;
 
-            // Atualiza o hash. Isso vai disparar o evento 'hashchange' e o router()
-            window.location.hash = queryString ? `${hashPath}?${queryString}` : hashPath;
+            // CORREÇÃO: Força o recarregamento se o link for o mesmo
+            if (window.location.hash === newHash) {
+                router();
+                return;
+            }
+
+            window.location.hash = newHash;
         }
 
-        /**
-         * O roteador central. Lê o hash da URL e decide qual conteúdo exibir.
-         * É chamado no carregamento da página e toda vez que o hash muda.
-         */
         async function router() {
-            // Extrai o caminho e os parâmetros do hash
             const [hash, queryString] = (window.location.hash || '#/').split('?');
-            const pathParts = hash.slice(2).split('/').filter(p => p); // Remove #/ e partes vazias
+            const pathParts = hash.slice(2).split('/').filter(p => p);
             const mainPath = pathParts[0] || 'media';
             const params = pathParts.slice(1);
             const queryParams = new URLSearchParams(queryString || '');
             
-            // Oculta todas as áreas de conteúdo principal para começar do zero
             [contentDisplayArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
             paginationContainer.style.display = 'none';
 
-            // Define o estado da aplicação com base na URL
             state.currentPage = parseInt(queryParams.get('page') || '1', 10);
 
-            // Roteia para a view correta com base no caminho
             switch (mainPath) {
                 case 'media':
                     const [account, type] = params;
-                    // Define o estado e exibe o conteúdo de mídia
                     await showMediaContent(decodeURIComponent(account || ''), type);
                     break;
                 case 'settings':
                     const subpage = params[0];
-                    // Roteia para a página de configuração correta
                     switch (subpage) {
-                        case 'companies':
-                            await showCompaniesPage();
-                            break;
-                        case 'users':
-                            await showUsersPage();
-                            break;
-                        case 'accounts':
-                            await showSocialAccountsPage();
-                            break;
-                        case 'whatsapp-groups':
-                            await showWhatsappGroupsPage();
-                            break;
+                        case 'companies': await showCompaniesPage(); break;
+                        case 'users': await showUsersPage(); break;
+                        case 'accounts': await showSocialAccountsPage(); break;
+                        case 'whatsapp-groups': await showWhatsappGroupsPage(); break;
                         default:
-                            // Se a subpágina de configurações for inválida, volta para a home
                             if (state.socialAccounts.length > 0) {
                                 navigateTo('media', [state.socialAccounts[0].nome_conta, 'reels']);
                             } else {
@@ -1558,7 +1538,6 @@
                     }
                     break;
                 default:
-                    // Rota padrão/fallback
                     if (state.socialAccounts.length > 0) {
                         const sortedAccounts = [...state.socialAccounts].sort((a, b) => (a.ordenacao ?? 999) - (b.ordenacao ?? 999));
                         navigateTo('media', [sortedAccounts[0].nome_conta, 'reels']);
@@ -1566,8 +1545,6 @@
                         navigateTo('settings', ['accounts']);
                     }
             }
-
-            // Garante que o menu da sidebar reflita o estado atual
             renderSidebarMenu();
         }
 
@@ -1644,12 +1621,10 @@
                 return acc;
             }, {});
 
-            // Mapeia os módulos para as redes sociais
             const moduleMap = { Instagram: 'instagram', Facebook: 'facebook', Threads: 'threads' };
 
             for (const socialMedia in groupedAccounts) {
                 const moduleKey = moduleMap[socialMedia];
-                // Se o módulo para essa rede social não estiver ativo, pula para a próxima
                 if (moduleKey && !activeCompanyModules[moduleKey]) continue;
 
                 const accounts = groupedAccounts[socialMedia];
@@ -1699,7 +1674,6 @@
                         if (state.activeAccount === account.nome_conta && state.activeMediaType === mediaType.key) {
                             li.classList.add('active');
                         }
-                        // NOVO: Navega para a URL correta ao invés de chamar a função diretamente
                         li.addEventListener('click', (e) => {
                             e.stopPropagation();
                             navigateTo('media', [account.nome_conta, mediaType.key]);
@@ -1743,7 +1717,6 @@
                     if (state.activeAccount === 'WhatsApp' && state.activeMediaType === group.group_name) {
                         li.classList.add('active');
                     }
-                    // NOVO: Navega para a URL correta
                     li.addEventListener('click', (e) => {
                         e.stopPropagation();
                         navigateTo('media', ['WhatsApp', group.group_name]);
@@ -1773,7 +1746,6 @@
                 configSubmenu.classList.toggle('collapsed');
             });
             
-            // NOVO: Itens de configuração agora usam a função navigateTo e verificam a classe 'active'
             configSubmenu.innerHTML = `
                 <li class="submenu-item ${currentHash.includes('companies') ? 'active' : ''}" onclick="navigateTo('settings', ['companies'])">Empresas</li>
                 <li class="submenu-item ${currentHash.includes('users') ? 'active' : ''}" onclick="navigateTo('settings', ['users'])">Usuários</li>
@@ -2733,12 +2705,23 @@
             `;
             headerDiv.appendChild(filtersDiv);
 
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'header-actions';
+
+            const refreshBtn = document.createElement('button');
+            refreshBtn.className = 'btn-primary';
+            refreshBtn.textContent = 'Atualizar Lista';
+            refreshBtn.addEventListener('click', fetchData);
+            actionsDiv.appendChild(refreshBtn);
+
             const createBtn = document.createElement('button');
             createBtn.id = 'btn-create-offer';
             createBtn.className = 'btn-primary';
             createBtn.textContent = 'Criar Oferta';
             createBtn.addEventListener('click', handleCreateOfferModal);
-            headerDiv.appendChild(createBtn);
+            actionsDiv.appendChild(createBtn);
+
+            headerDiv.appendChild(actionsDiv);
 
             displayDiv.appendChild(headerDiv);
 
@@ -2878,7 +2861,7 @@
             event.preventDefault();
             
             const id = document.getElementById('editWppId').value;
-            const accountName = state.activeMediaType === 'whatsapp-carla-indica' ? 'Carla Indica' : 'Carla Baby';
+            const accountName = state.activeMediaType; // CORREÇÃO
             
             const payload = {
                 id: id,
@@ -2921,7 +2904,7 @@
             const confirmed = await showConfirm(`Tem certeza que deseja excluir a oferta de WhatsApp ID ${id}?`);
             if (!confirmed) return;
 
-            const accountName = state.activeMediaType === 'whatsapp-carla-indica' ? 'Carla Indica' : 'Carla Baby';
+            const accountName = state.activeMediaType; // CORREÇÃO
 
             showLoading("Excluindo oferta...");
             try {
@@ -2954,7 +2937,7 @@
             const confirmed = await showConfirm(`Tem certeza que deseja POSTAR a oferta de WhatsApp ID ${id}?`);
             if (!confirmed) return;
             
-            const accountName = state.activeMediaType === 'whatsapp-carla-indica' ? 'Carla Indica' : 'Carla Baby';
+            const accountName = state.activeMediaType; // CORREÇÃO
             
             const payload = {
                 id: itemData.id,
@@ -2998,7 +2981,7 @@
         async function handleCreateOfferSubmit(event) {
             event.preventDefault();
 
-            const accountName = state.activeMediaType === 'whatsapp-carla-indica' ? 'Carla Indica' : 'Carla Baby';
+            const accountName = state.activeMediaType; // CORREÇÃO
 
             const payload = {
                 loja: document.getElementById('createWppLoja').value,
@@ -4129,6 +4112,10 @@
                     case 'sidebar-action-reload-stories': handleRecarregarStories(); break;
                     case 'sidebar-action-reload-reels': handleRecarregarReels(); break;
                     case 'sidebar-action-reload-posts': fetchData(); break;
+                }
+                // CORREÇÃO: Fecha o menu no mobile após a ação
+                if (window.innerWidth <= 992) {
+                    document.body.classList.remove('sidebar-collapsed');
                 }
             });
 
