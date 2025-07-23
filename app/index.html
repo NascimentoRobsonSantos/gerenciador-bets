@@ -2316,7 +2316,7 @@
             
             if (state.activeAccount === 'WhatsApp') {
                 baseUrl = url_base + API_URLS.WHATSAPP;
-                params.append('conta_user_instagram', encodeURIComponent(state.activeMediaType));
+                params.append('conta_user_instagram', state.activeMediaType);
             } else {
                 const mediaTypeConfig = MEDIA_TYPES.find(mt => mt.key === state.activeMediaType);
                 if (!mediaTypeConfig) {
@@ -2325,7 +2325,7 @@
                     return;
                 }
                 baseUrl = url_base + mediaTypeConfig.endpoint;
-                params.append('conta_user_instagram', encodeURIComponent(state.activeAccount));
+                params.append('conta_user_instagram', state.activeAccount);
             }
 
             params.append('page', state.currentPage);
