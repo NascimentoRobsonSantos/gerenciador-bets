@@ -1654,7 +1654,7 @@
                 return;
             }
             showLoading("Atualizando Stories...");
-            const updateEndpoint = `${API_URLS.FORCE_UPDATE_STORIES}?conta_user_instagram=${state.activeAccount}`;
+            const updateEndpoint = `${API_URLS.FORCE_UPDATE_STORIES}?conta_user_instagram=${encodeURIComponent(state.activeAccount)}`;
             fetchWithAuth(updateEndpoint)
                 .then(res => {
                     if (!res.ok) throw new Error('Falha na atualização forçada de Stories.');
@@ -1671,7 +1671,7 @@
                 return;
             }
             showLoading("Atualizando Reels...");
-            const updateEndpoint = `${API_URLS.FORCE_UPDATE_REELS}?conta_user_instagram=${state.activeAccount}`;
+            const updateEndpoint = `${API_URLS.FORCE_UPDATE_REELS}?conta_user_instagram=${encodeURIComponent(state.activeAccount)}`;
             fetchWithAuth(updateEndpoint)
                 .then(res => {
                     if (!res.ok) throw new Error('Falha na atualização forçada de Reels.');
@@ -2360,7 +2360,7 @@
                     return;
                 }
                 baseUrl = url_base + mediaTypeConfig.endpoint;
-                params.append('conta_user_instagram', encodeURIComponent(state.activeAccount));
+                params.append('conta_user_instagram', decodeURIComponent(state.activeAccount));
             }
 
             params.append('page', state.currentPage);
@@ -3187,7 +3187,7 @@
             state.activeMediaType = type;
 
             account = encodeURIComponent(account);
-            type = encodeURIComponent(type);
+            type = encodeURIComponent(account);
 
             [dashboardContentArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
             contentDisplayArea.style.display = 'block'; // Garante que a área de mídias está visível
