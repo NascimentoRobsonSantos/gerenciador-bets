@@ -297,13 +297,22 @@
             /* ... outros estilos de botão existentes ... */
         }
 
+        #existingLinksList {
+            max-height: 180px; 
+            overflow-y: auto; 
+            border: 1px solid var(--border-color); 
+            padding: 10px; 
+            border-radius: 4px; 
+            background-color: var(--bg-color); /* USA A VARIÁVEL DE TEMA */
+        }
+
         @media (max-width: 992px) { 
             .main-content { margin-left: 0; }
             .sidebar { transform: translateX(-100%); }
             body.sidebar-collapsed .sidebar {
-                transform: translateX(0); 
+                transform: translateX(0); 
             }
-            .header-actions, .settings-container { display: none; }
+            .settings-container { display: none; }
             .sidebar-actions { display: block; }
             .sidebar-actions ul { flex-direction: column; }
         }
@@ -443,6 +452,10 @@
         .modal-content.modal-lg { max-width: 800px; }
         @media (max-width: 768px) {
             .modal-content.modal-lg {
+                max-height: 85vh;
+                overflow-y: auto;
+            }
+            .modal-content {
                 max-height: 85vh;
                 overflow-y: auto;
             }
@@ -1460,6 +1473,7 @@
             FORCE_UPDATE_REELS: `${url_base}/get_reels_all_instagram_carla`,
             GET_LINKS_POSTAGENS: `${url_base}/get-links-postagens-carla`,
             COPY_LINK_BY_ID: `${url_base}/add-copy-links-postagens-carla`,
+            DELETE_LINK: `${url_base}/delete-link-postagem`,
             GENERATE_AD_FROM_LINK: `${url_base}/generate-ad-from-link`,
         };
 
@@ -2286,27 +2300,66 @@
             return card; 
         } 
         
-        function renderExistingLinks(links) { 
-            existingLinksListDiv.innerHTML = ''; 
-            const validLinks = (links || []).filter(link => link && (link.loja || link.url_production)); 
-            if (validLinks.length === 0) { 
-                existingLinksListDiv.innerHTML = '<p>Nenhum link existente para esta postagem.</p>'; 
-                return; 
-            } 
-            const ul = document.createElement('ul'); 
-            ul.style.listStyleType = 'none'; ul.style.paddingLeft = '0'; 
-            validLinks.forEach(link => { 
-                const li = document.createElement('li'); 
-                li.style.marginBottom = '10px'; li.style.paddingBottom = '10px'; li.style.borderBottom = '1px dashed #eee'; 
-                li.innerHTML = ` 
-                    <strong>ID do Link:</strong> ${link.id || 'N/A'}<br> 
-                    <strong>Loja:</strong> ${link.loja || 'N/A'}<br> 
-                    <strong>Descrição:</strong> ${link.descricao || 'N/A'}<br> 
-                    <strong>Categoria:</strong> ${link.categoria || 'N/A'}<br> 
-                    <strong>URL:</strong> <a href="${link.url_production}" target="_blank">${link.url_production || 'N/A'}</a>`; 
-                ul.appendChild(li); 
-            }); 
-            existingLinksListDiv.appendChild(ul); 
+        function renderExistingLinks(links) {
+            existingLinksListDiv.innerHTML = '';
+            const validLinks = (links || []).filter(link => link && (link.loja || link.url_production));
+            if (validLinks.length === 0) {
+                existingLinksListDiv.innerHTML = '<p>Nenhum link existente para esta postagem.</p>';
+                return;
+            }
+            const ul = document.createElement('ul');
+            ul.style.listStyleType = 'none';
+            ul.style.paddingLeft = '0';
+            validLinks.forEach(link => {
+                const li = document.createElement('li');
+                li.style.marginBottom = '10px';
+                li.style.paddingBottom = '10px';
+                li.style.borderBottom = '1px dashed #eee';
+                
+                // Adiciona um container flex para o botão
+                li.innerHTML = `
+                    <div>
+                        <strong>ID do Link:</strong> ${link.id || 'N/A'}<br>
+                        <strong>Loja:</strong> ${link.loja || 'N/A'}<br>
+                        <strong>Descrição:</strong> ${link.descricao || 'N/A'}<br>
+                        <strong>Categoria:</strong> ${link.categoria || 'N/A'}<br>
+                        <strong>URL:</strong> <a href="${link.url_production}" target="_blank">${link.url_production || 'N/A'}</a>
+                    </div>
+                    <button class="btn-delete btn-delete-link" data-link-id="${link.id}" style="width: auto; margin-top: 8px;">Excluir Link</button>
+                `;
+                ul.appendChild(li);
+            });
+            existingLinksListDiv.appendChild(ul);
+        }
+
+        async function handleDeleteLink(event) {
+            const linkId = event.target.dataset.linkId;
+            if (!linkId) return;
+
+            const confirmed = await showConfirm(`Tem certeza que deseja excluir o Link ID ${linkId}?`);
+            if (!confirmed) return;
+
+            showLoading("Excluindo link...");
+            try {
+                const response = await fetchWithAuth(API_URLS.DELETE_LINK, {
+                    method: 'DELETE',
+                    body: JSON.stringify({ id: linkId })
+                });
+                const responseData = await response.json();
+                if (!response.ok) throw new Error(responseData.message || "Erro ao excluir o link.");
+
+                showAlert("Link excluído com sucesso!");
+                
+                // Recarrega a lista de links no modal
+                const postId = linkFormPostId.value;
+                const type = document.querySelector('input[name="linkFormTipo"]:checked')?.value || 'post';
+                handleOpenLinkModal({ target: { dataset: { id: postId, type: type } } });
+
+            } catch (error) {
+                showAlert(`Erro: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
         }
 
         // --- Funções de API e Handlers ---
@@ -4557,6 +4610,12 @@
                 overlay.addEventListener('click', (event) => {
                     if (event.target === overlay) closeModal(overlay);
                 });
+            });
+
+            existingLinksListDiv.addEventListener('click', (event) => {
+                if (event.target.classList.contains('btn-delete-link')) {
+                    handleDeleteLink(event);
+                }
             });
 
             const savedToken = localStorage.getItem('authToken');
