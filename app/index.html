@@ -1625,8 +1625,7 @@
                     await showDashboardPage();
                     break;
             }
-
-            renderHeaderSettings(); 
+ 
             renderSidebarMenu(); 
         }
 
@@ -3254,22 +3253,23 @@
                 if (type === 'reels') {
                     const btnReloadReels = document.createElement('button');
                     btnReloadReels.className = 'btn-primary';
-                    btnReloadReels.textContent = '🔄 Recarregar Novas Mídias Reels';
-                    btnReloadReels.addEventListener('click', handleRecarregarReelsParaContaAtiva);
+                    btnReloadReels.textContent = '🔄 Recarregar Novos Reels';
+                    btnReloadReels.addEventListener('click', handleRecarregarReels);
                     actionsDiv.appendChild(btnReloadReels);
                 } else if (type === 'stories' || type === 'stories-base') {
                     const btnReloadStories = document.createElement('button');
                     btnReloadStories.className = 'btn-primary';
-                    btnReloadStories.textContent = '🔄 Recarregar Novas Mídias Stories';
-                    btnReloadStories.addEventListener('click', handleRecarregarStoriesParaContaAtiva);
+                    btnReloadStories.textContent = '🔄 Recarregar Novos Stories';
+                    btnReloadStories.addEventListener('click', handleRecarregarStories);
                     actionsDiv.appendChild(btnReloadStories);
-                } else if (type === 'posts') {
-                    const btnReloadPosts = document.createElement('button');
-                    btnReloadPosts.className = 'btn-primary';
-                    btnReloadPosts.textContent = '🔄 Recarregar Novas Postagens Base';
-                    btnReloadPosts.addEventListener('click', handleRecarregarPostsBaseParaContaAtiva);
-                    actionsDiv.appendChild(btnReloadPosts);
-                }
+                } 
+                // else if (type === 'posts') {
+                //     const btnReloadPosts = document.createElement('button');
+                //     btnReloadPosts.className = 'btn-primary';
+                //     btnReloadPosts.textContent = '🔄 Recarregar Novas Postagens Base';
+                //     btnReloadPosts.addEventListener('click', handleRecarregarPosts);
+                //     actionsDiv.appendChild(btnReloadPosts);
+                // }
             }
             
             contentDisplayArea.appendChild(headerDiv);
