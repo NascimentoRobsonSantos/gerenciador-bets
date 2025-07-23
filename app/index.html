@@ -1582,8 +1582,9 @@
             const params = pathParts.slice(1);
             const queryParams = new URLSearchParams(queryString || '');
             
+            // Esconder todos os content areas no início do router
             [dashboardContentArea, contentDisplayArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
-            paginationContainer.style.display = 'none';
+            paginationContainer.style.display = 'none'; // A paginação só aparece com as mídias/tabelas
 
             state.currentPage = parseInt(queryParams.get('page') || '1', 10);
 
@@ -1593,7 +1594,8 @@
                     break;
                 case 'media':
                     const [account, type] = params;
-                    await showMediaContent(decodeURIComponent(account || ''), type);
+                    // Agora showMediaContent vai cuidar do header e do slot de conteúdo
+                    await showMediaContent(decodeURIComponent(account || ''), type); 
                     break;
                 case 'settings':
                     const subpage = params[0];
@@ -1601,14 +1603,23 @@
                         case 'companies': await showCompaniesPage(); break;
                         case 'users': await showUsersPage(); break;
                         case 'accounts': await showSocialAccountsPage(); break;
-                        case 'whatsapp-groups': await showWhatsappGroupsPage(); break;
+                        case 'whatsapp-groups': await showWhatsappGroupsPage(); break; // Chamar showWhatsappGroupsPage
+                        case 'keyword': handleIncluirPalavra(); break; // Este ainda é um modal
                         default: navigateTo('dashboard');
                     }
+                    break;
+                case 'whatsapp-offers': // NOVO: Se você tiver uma rota direta para ofertas WhatsApp
+                    const whatsappGroupType = params[0]; // Nome do grupo WhatsApp
+                    await showWhatsappContentPage(whatsappGroupType); // Chamará a nova função
+                    break;
+                case 'posts_scheduled': // NOVO: Se você tiver uma rota direta para posts agendados
+                    await showScheduledPostsPage(); // Chamará a nova função
                     break;
                 default:
                     navigateTo('dashboard');
             }
-            renderSidebarMenu();
+            renderHeaderSettings(); // Atualiza o menu de configurações do cabeçalho
+            renderSidebarMenu(); // E a sidebar
         }
 
         // --- Handlers de Ações Globais ---
@@ -1866,40 +1877,52 @@
         function renderItems() {
             if (!contentDisplayArea) return;
             contentDisplayArea.className = ''; // Reset class
+
+            const targetContentDiv = document.getElementById('media-items-wrapper');
+            if (!targetContentDiv) {
+                // Isso não deveria acontecer se showMediaContent for chamado corretamente
+                console.error("Erro: Contêiner de itens de mídia (#media-items-wrapper) não encontrado.");
+                return;
+            }
             
             if (state.activeAccount === 'WhatsApp') {
-                renderWhatsappContent();
+                renderWhatsappContent(targetContentDiv);
             } else if (state.activeMediaType === 'scheduled-posts') {
-                renderScheduledPostsPage();
+                renderScheduledPostsPage(targetContentDiv);
             } else {
-                renderCardContent();
+                renderCardContent(targetContentDiv);
             }
         }
 
-        function renderCardContent() {
-             if (state.items.length === 0 && !state.isLoading) {
-                 contentDisplayArea.innerHTML = '<p>Nenhum item encontrado para esta visualização.</p>';
-                 return;
-             }
-             
-             contentDisplayArea.innerHTML = '';
-             const gridContainer = document.createElement('div');
-             gridContainer.className = 'grid-container';
-             
-             state.items.forEach(item => {
-                 let card;
-                 if (state.activeMediaType === 'reels') card = createReelCard(item);
-                 else if (state.activeMediaType === 'posts') card = createPostCard(item);
-                 else if (state.activeMediaType === 'stories') card = createStoryCard(item);
-                 else if (state.activeMediaType === 'stories-base') card = createStoryBaseCard(item);
-                 if (card) gridContainer.appendChild(card);
-             });
-             contentDisplayArea.appendChild(gridContainer);
+        function renderCardContent(targetDiv) {
+            if (!targetDiv) return;
+
+            if (state.items.length === 0 && !state.isLoading) {
+                targetDiv.innerHTML = '<p>Nenhum item encontrado para esta visualização.</p>';
+                return;
+            }
+            
+            targetDiv.innerHTML = ''; // Limpa APENAS o contêiner dos itens (mantendo o header)
+            const gridContainer = document.createElement('div');
+            gridContainer.className = 'grid-container';
+            
+            state.items.forEach(item => {
+                let card;
+                if (state.activeMediaType === 'reels') card = createReelCard(item);
+                else if (state.activeMediaType === 'posts') card = createPostCard(item);
+                else if (state.activeMediaType === 'stories') card = createStoryCard(item);
+                else if (state.activeMediaType === 'stories-base') card = createStoryBaseCard(item);
+                if (card) gridContainer.appendChild(card);
+            });
+            targetDiv.appendChild(gridContainer);
         }
 
-        function renderScheduledPostsPage() {
-            const displayDiv = document.getElementById('contentDisplayArea');
-            displayDiv.innerHTML = ''; // Limpa
+        async function showScheduledPostsPage() { // Renomeado para showScheduledPostsPage
+            // Esconder outras áreas
+            [dashboardContentArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
+            contentDisplayArea.style.display = 'block'; // Usando contentDisplayArea para posts agendados
+            
+            contentDisplayArea.innerHTML = ''; // Limpa a área
 
             const headerDiv = document.createElement('div');
             headerDiv.className = 'page-header';
@@ -1908,25 +1931,37 @@
             const createBtn = document.createElement('button');
             createBtn.className = 'btn-primary';
             createBtn.textContent = 'Criar Postagem';
-            createBtn.addEventListener('click', () => handleOpenScheduledPostModal()); // Abre modal sem dados
+            createBtn.addEventListener('click', () => handleOpenScheduledPostModal()); 
             headerDiv.appendChild(createBtn);
-            displayDiv.appendChild(headerDiv);
+            contentDisplayArea.appendChild(headerDiv);
+
+            const scheduledPostsItemsWrapper = document.createElement('div');
+            scheduledPostsItemsWrapper.id = 'scheduled-posts-items-wrapper';
+            contentDisplayArea.appendChild(scheduledPostsItemsWrapper);
+
+            paginationContainer.style.display = 'flex';
+            await fetchData(); // fetchData irá chamar renderScheduledPostsPage(scheduledPostsItemsWrapper)
+        }
+
+        function renderScheduledPostsPage(targetDiv) {
+            if (!targetDiv) return;
 
             if (state.items.length === 0 && !state.isLoading) {
-                displayDiv.innerHTML += '<p>Nenhum item agendado para postar.</p>';
+                targetDiv.innerHTML = '<p>Nenhum item agendado para postar.</p>';
                 return;
             }
 
+            targetDiv.innerHTML = ''; // Limpa APENAS o contêiner dos itens
             const gridContainer = document.createElement('div');
             gridContainer.className = 'grid-container';
 
             state.items.forEach(item => {
-                if (item && item.id) { // VERIFICAÇÃO ADICIONADA
+                if (item && item.id) {
                     const card = createScheduledPostCard(item);
                     if (card) gridContainer.appendChild(card);
                 }
             });
-            displayDiv.appendChild(gridContainer);
+            targetDiv.appendChild(gridContainer);
         }
 
 
@@ -2757,19 +2792,28 @@
 
         // --- Funções para Ofertas WhatsApp ---
 
-        function renderWhatsappContent() {
-            const displayDiv = document.getElementById('contentDisplayArea');
-            displayDiv.innerHTML = ''; // Limpa o conteúdo anterior
-            displayDiv.className = ''; 
+        async function showWhatsappContentPage() { // Renomeado para evitar conflito com showMediaContent
+            state.activeAccount = 'WhatsApp'; // Garante que a conta ativa é WhatsApp
+            state.activeMediaType = state.activeMediaType; // Mantém o sub-tipo (nome do grupo)
 
+            // Esconder outras áreas de conteúdo
+            [dashboardContentArea, contentDisplayArea, socialAccountsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
+            whatsappGroupsContentArea.style.display = 'block'; // Área correta para WhatsApp
+
+            whatsappGroupsContentArea.innerHTML = ''; // Limpa a área do WhatsApp
+
+            // Cria o cabeçalho e filtros para WhatsApp
             const headerDiv = document.createElement('div');
             headerDiv.className = 'page-header';
 
+            const title = document.createElement('h2');
+            title.textContent = `Ofertas WhatsApp: ${state.activeMediaType}`; // Título específico
+            headerDiv.appendChild(title);
+
             const filtersDiv = document.createElement('div');
             filtersDiv.className = 'filters-container';
-            
+            await fetchWhatsappGroups(); // Garante que os grupos e lojas estão carregados
             const lojasOptions = state.whatsappLojas.map(loja => `<option value="${loja}">${loja}</option>`).join('');
-            
             filtersDiv.innerHTML = `
                 <div>
                     <label for="filter-loja">Filtrar por Loja:</label>
@@ -2784,12 +2828,6 @@
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'header-actions';
 
-            const refreshBtn = document.createElement('button');
-            refreshBtn.className = 'btn-primary';
-            refreshBtn.textContent = 'Atualizar Lista';
-            refreshBtn.addEventListener('click', fetchData);
-            actionsDiv.appendChild(refreshBtn);
-
             const createBtn = document.createElement('button');
             createBtn.id = 'btn-create-offer';
             createBtn.className = 'btn-primary';
@@ -2797,20 +2835,60 @@
             createBtn.addEventListener('click', handleCreateOfferModal);
             actionsDiv.appendChild(createBtn);
 
+            const refreshBtn = document.createElement('button');
+            refreshBtn.className = 'btn-primary';
+            refreshBtn.textContent = 'Atualizar Lista';
+            refreshBtn.addEventListener('click', () => fetchData()); // fetchData já busca o WhatsApp
+            actionsDiv.appendChild(refreshBtn);
+
             headerDiv.appendChild(actionsDiv);
+            whatsappGroupsContentArea.appendChild(headerDiv);
 
-            displayDiv.appendChild(headerDiv);
+            // Cria o contêiner dedicado para a tabela de ofertas do WhatsApp
+            const whatsappTableContainer = document.createElement('div');
+            whatsappTableContainer.id = 'whatsapp-table-display-container'; // Novo ID
+            whatsappGroupsContentArea.appendChild(whatsappTableContainer); // Adiciona ao whatsappGroupsContentArea
 
-            filtersDiv.querySelectorAll('select').forEach(el => {
-                el.addEventListener('change', applyWhatsappFilters);
-            });
+            // Listener para o filtro da loja
+            filtersDiv.querySelector('select').addEventListener('change', applyWhatsappFilters);
 
-            const tableContainer = document.createElement('div');
-            tableContainer.id = 'whatsapp-table-container';
-            tableContainer.className = 'table-container';
-            displayDiv.appendChild(tableContainer);
+            paginationContainer.style.display = 'flex'; // Paginação para o WhatsApp
+            await fetchData(); // Busca as ofertas de WhatsApp (que agora vão para renderWhatsappContent)
+        }
 
-            applyWhatsappFilters();
+        function renderWhatsappContent(targetDiv) {
+            if (!targetDiv) return;
+
+            if (state.filteredItems.length === 0 && !state.isLoading) {
+                targetDiv.innerHTML = '<p style="padding: 20px; text-align: center;">Nenhum item encontrado com os filtros aplicados.</p>';
+                return;
+            }
+
+            targetDiv.innerHTML = ''; // Limpa APENAS o contêiner da tabela
+            const table = document.createElement('table');
+            table.className = 'data-table';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Loja</th>
+                        <th>Grupo</th>
+                        <th>Mensagem</th>
+                        <th>URL</th>
+                        <th>Imagem</th>
+                        <th>Criado em</th>
+                        <th>Modificado em</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${state.filteredItems.map(createWhatsappTableRow).join('')}
+                </tbody>
+            `;
+            targetDiv.appendChild(table);
+
+            table.querySelectorAll('.btn-edit-wpp, .wpp-image-container').forEach(el => el.addEventListener('click', handleEditWhatsappPost));
+            table.querySelectorAll('.btn-delete-wpp').forEach(btn => btn.addEventListener('click', handleDeleteWhatsappPost));
+            table.querySelectorAll('.btn-post-wpp').forEach(btn => btn.addEventListener('click', handlePostWhatsappAd));
         }
 
         function applyWhatsappFilters() {
@@ -3106,40 +3184,44 @@
         async function showMediaContent(account, type) {
             state.activeAccount = account;
             state.activeMediaType = type;
-            
-            // Esconder outros conteúdos
-            [dashboardContentArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
-            contentDisplayArea.style.display = 'block';
-            paginationContainer.style.display = 'flex';
 
-            contentDisplayArea.innerHTML = ''; // Limpa antes de adicionar o header
+            [dashboardContentArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
+            contentDisplayArea.style.display = 'block'; // Garante que a área de mídias está visível
+            
+            contentDisplayArea.innerHTML = ''; 
 
             const headerDiv = document.createElement('div');
             headerDiv.className = 'page-header';
-            headerDiv.innerHTML = `<h2>Mídias: ${account} - ${MEDIA_TYPES.find(mt => mt.key === type)?.label || type}</h2>`;
+            
+            const pageTitle = document.createElement('h2');
+            pageTitle.textContent = `Mídias: ${account} - ${MEDIA_TYPES.find(mt => mt.key === type)?.label || type}`;
+            headerDiv.appendChild(pageTitle);
 
             const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'header-actions'; // Use a classe existente para botões no header
-
-            // Adiciona botões de recarga específicos para o tipo de mídia
+            actionsDiv.className = 'header-actions'; 
+            
             if (type === 'reels') {
                 const btnReloadReels = document.createElement('button');
-                btnReloadReels.className = 'btn-primary'; // Ou uma classe mais específica se tiver
-                btnReloadReels.textContent = '🔄 Recarregar Novos Reels';
-                btnReloadReels.addEventListener('click', handleRecarregarReels);
+                btnReloadReels.className = 'btn-primary';
+                btnReloadReels.textContent = '🔄 Recarregar Novas Mídias Reels';
+                btnReloadReels.addEventListener('click', handleRecarregarReelsParaContaAtiva);
                 actionsDiv.appendChild(btnReloadReels);
-            } else if (type === 'stories') { // Stories (base ou não)
+            } else if (type === 'stories' || type === 'stories-base') {
                 const btnReloadStories = document.createElement('button');
                 btnReloadStories.className = 'btn-primary';
-                btnReloadStories.textContent = '🔄 Recarregar Novas Stories';
-                btnReloadStories.addEventListener('click', handleRecarregarStories);
+                btnReloadStories.textContent = '🔄 Recarregar Novas Mídias Stories';
+                btnReloadStories.addEventListener('click', handleRecarregarStoriesParaContaAtiva);
                 actionsDiv.appendChild(btnReloadStories);
-            }
-            // Para WhatsApp, você já tem o botão de "Atualizar Lista" na showWhatsappContent()
-            // Se tiver 'scheduled-posts' ou outros tipos, adicione aqui também.
+            } 
 
             headerDiv.appendChild(actionsDiv);
-            contentDisplayArea.appendChild(headerDiv); // Adiciona o header
+            contentDisplayArea.appendChild(headerDiv); // Adiciona o cabeçalho ao contentDisplayArea
+
+            const mediaItemsWrapper = document.createElement('div');
+            mediaItemsWrapper.id = 'media-items-wrapper'; // Dê um ID para fácil acesso
+            contentDisplayArea.appendChild(mediaItemsWrapper); // Adiciona este contêiner APÓS o cabeçalho
+
+            paginationContainer.style.display = 'flex'; 
 
             await fetchData();
         }
