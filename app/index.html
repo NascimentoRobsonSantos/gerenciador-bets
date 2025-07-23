@@ -1654,7 +1654,7 @@
                 return;
             }
             showLoading("Atualizando Stories...");
-            const updateEndpoint = `${API_URLS.FORCE_UPDATE_STORIES}?conta_user_instagram=${encodeURIComponent(state.activeAccount)}`;
+            const updateEndpoint = `${API_URLS.FORCE_UPDATE_STORIES}?conta_user_instagram=${state.activeAccount}`;
             fetchWithAuth(updateEndpoint)
                 .then(res => {
                     if (!res.ok) throw new Error('Falha na atualização forçada de Stories.');
@@ -1671,7 +1671,7 @@
                 return;
             }
             showLoading("Atualizando Reels...");
-            const updateEndpoint = `${API_URLS.FORCE_UPDATE_REELS}?conta_user_instagram=${encodeURIComponent(state.activeAccount)}`;
+            const updateEndpoint = `${API_URLS.FORCE_UPDATE_REELS}?conta_user_instagram=${state.activeAccount}`;
             fetchWithAuth(updateEndpoint)
                 .then(res => {
                     if (!res.ok) throw new Error('Falha na atualização forçada de Reels.');
