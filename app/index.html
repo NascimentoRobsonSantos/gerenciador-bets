@@ -1159,20 +1159,17 @@
                                 <option value="Amazon">Amazon</option>
                             </select>
                         </div>
-                         <div>
-                            <label for="createWppGrupo">Grupo:</label>
-                            <select id="createWppGrupo" required>
-                                <option value="">Selecione um grupo</option>
-                                <!-- Options will be populated by JS -->
-                            </select>
-                        </div>
                         <div>
                             <label for="createWppMessage">Mensagem:</label>
-                            <textarea id="createWppMessage" rows="9" required></textarea>
+                            <textarea id="createWppMessage" rows="12" required></textarea>
                         </div>
                         <div>
                             <label for="createWppUrl">URL do Anúncio:</label>
-                            <input type="url" id="createWppUrl" required>
+                            <div style="display: flex; gap: 5px; align-items: center;">
+                                <input type="url" id="createWppUrl" required style="flex-grow: 1; margin-bottom: 0;">
+                                <button type="button" id="btnGenerateAd" class="btn-primary" style="padding: 5px 10px; font-size: 0.8rem; flex-shrink: 0;">Gerar</button>
+                                <button type="button" id="btnOpenAdUrl" class="btn-link" style="padding: 5px 10px; font-size: 0.8rem; flex-shrink: 0;">Abrir</button>
+                            </div>
                         </div>
                     </div>
                     <div class="edit-modal-preview">
@@ -1392,6 +1389,7 @@
             FORCE_UPDATE_REELS: `${url_base}/get_reels_all_instagram_carla`,
             GET_LINKS_POSTAGENS: `${url_base}/get-links-postagens-carla`,
             COPY_LINK_BY_ID: `${url_base}/add-copy-links-postagens-carla`,
+            GENERATE_AD_FROM_LINK: `${url_base}/generate-ad-from-link`, // NOVO
         };
 
         const MEDIA_TYPES = [
@@ -2005,7 +2003,7 @@
             if (contaUser && contaUser.toLowerCase().includes("baby")) {
                 descriptionNew = `💛 Gostou comenta "${comenta}" para receber o LINK no direct 🔥\n\nAnúncio N.º: ${ordenacao}\nConfira sua aba de ‘solicitações’ no direct, pois a mensagem será enviada automaticamente.\n\n✨ Marque uma mamãe que vai adorar essa novidade!\n🚨 Stories disponíveis por 24 horas\n🎀Siga @carlababyofertas para não perder nenhuma oferta e novidade!\n#dicasmaternidade #maternidadereal #maternidade #amordemãe #maedemenino #maedemenina #brinquedosdebebe #brinquedosdidaticos #brincar #diversao #diversaoemfamília ${post.hashtags || ''}`;
             } else { // Default para "indica" ou qualquer outra conta
-                descriptionNew = `💛 Gostou comenta "${comenta}" para LINK no direct 🔥\n\nAnúncio N.º: ${ordenacao}\nNos Stories de hoje �\nNo Grupo de Ofertas-Link na Bio 🔥\nSiga @carlaindicaofertas para mais achadinhos como esse!\n#utilidades #maquiagem #feminina #feminino #mulher #importado #roupa #girl #chique ${post.hashtags || ''}`;
+                descriptionNew = `💛 Gostou comenta "${comenta}" para LINK no direct 🔥\n\nAnúncio N.º: ${ordenacao}\nNos Stories de hoje 🔥\nNo Grupo de Ofertas-Link na Bio 🔥\nSiga @carlaindicaofertas para mais achadinhos como esse!\n#utilidades #maquiagem #feminina #feminino #mulher #importado #roupa #girl #chique ${post.hashtags || ''}`;
             }
             return descriptionNew;
         }
@@ -2993,9 +2991,7 @@
             document.getElementById('createWppImagePreview').src = 'https://placehold.co/200x200/cccccc/ffffff?text=Sem+Imagem';
             
             await fetchWhatsappGroups(); // Garante que os grupos estão carregados
-            const grupoSelect = document.getElementById('createWppGrupo');
-            populateGroupSelect(grupoSelect, state.whatsappGroups);
-
+            
             openModal(modalCreateWhatsapp);
         }
 
@@ -3006,7 +3002,6 @@
 
             const payload = {
                 loja: document.getElementById('createWppLoja').value,
-                grupo: document.getElementById('createWppGrupo').value,
                 message_parte1: document.getElementById('createWppMessage').value,
                 url_production: document.getElementById('createWppUrl').value,
                 image_base64: state.newImageBase64,
@@ -3999,6 +3994,46 @@
             }
         }
 
+        // NOVO: Função para gerar anúncio a partir de um link
+        async function handleGenerateAdFromLink() {
+            const urlInput = document.getElementById('createWppUrl');
+            const url = urlInput.value.trim();
+            if (!url) {
+                showAlert("Por favor, insira uma URL para gerar o anúncio.");
+                return;
+            }
+
+            showLoading("Gerando dados do anúncio...");
+            try {
+                const response = await fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, {
+                    method: 'POST',
+                    body: JSON.stringify({ url: url })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || "Não foi possível buscar os dados do link.");
+
+                // Popula os campos com os dados retornados
+                if (data.message) {
+                    document.getElementById('createWppMessage').value = data.message;
+                }
+                if (data.image_base64) {
+                    state.newImageBase64 = data.image_base64;
+                    document.getElementById('createWppImagePreview').src = `data:image/jpeg;base64,${data.image_base64}`;
+                }
+                 if (data.loja) {
+                    document.getElementById('createWppLoja').value = data.loja;
+                }
+
+                showAlert("Dados do anúncio gerados com sucesso!");
+
+            } catch (error) {
+                console.error("Erro ao gerar anúncio do link:", error);
+                showAlert(`Erro: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+
 
         function setupEventListeners() {
              if (contentDisplayArea && scrollTopBtn) {
@@ -4156,6 +4191,24 @@
             document.getElementById('formEditCompanyModules').addEventListener('submit', handleSaveCompanyModules);
             document.getElementById('formEditCompany').addEventListener('submit', handleSaveCompanyData);
             document.getElementById('formUser').addEventListener('submit', handleUserFormSubmit);
+
+            // Listeners para os novos botões no modal de criar oferta
+            const btnGenerateAd = document.getElementById('btnGenerateAd');
+            if (btnGenerateAd) {
+                btnGenerateAd.addEventListener('click', handleGenerateAdFromLink);
+            }
+
+            const btnOpenAdUrl = document.getElementById('btnOpenAdUrl');
+            if (btnOpenAdUrl) {
+                btnOpenAdUrl.addEventListener('click', () => {
+                    const url = document.getElementById('createWppUrl').value.trim();
+                    if (url) {
+                        window.open(url, '_blank');
+                    } else {
+                        showAlert("Nenhuma URL para abrir.");
+                    }
+                });
+            }
         }
 
         // --- Ponto de Entrada da Aplicação ---
