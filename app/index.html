@@ -640,12 +640,14 @@
             margin-bottom: 10px;
             object-fit: contain;
         }
-        @media (max-width: 768px) { /* ATUALIZADO: Aplicado a 768px para melhor responsividade */
-            .edit-modal-body { flex-direction: column; }
-        }
 
         /* Estilos responsivos para a tabela do WhatsApp */
         @media (max-width: 768px) {
+            .page-header .header-actions {
+                display: flex;
+                justify-content: flex-end; /* Alinha o(s) botão(ões) à direita */
+            }
+            .edit-modal-body { flex-direction: column; }
             .list-item-stats {
                 grid-template-columns: repeat(3, 1fr);
             }
@@ -1065,7 +1067,7 @@
             <h3>Incluir Links</h3>
             <div id="existingLinksListContainer" style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
                 <h4>Links Existentes para esta Postagem:</h4>
-                <div id="existingLinksList" style="max-height: 180px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; background-color: #fcfcfc;">
+                <div id="existingLinksList">
                     <p>Carregando links...</p>
                 </div>
             </div>
@@ -2313,20 +2315,23 @@
             ul.style.paddingLeft = '0';
             validLinks.forEach(link => {
                 const li = document.createElement('li');
+                // Estilos para alinhar o conteúdo e o botão
+                li.style.display = 'flex';
+                li.style.justifyContent = 'space-between';
+                li.style.alignItems = 'center'; // Alinha verticalmente
                 li.style.marginBottom = '10px';
                 li.style.paddingBottom = '10px';
-                li.style.borderBottom = '1px dashed #eee';
+                li.style.borderBottom = '1px dashed var(--border-color)';
                 
-                // Adiciona um container flex para o botão
                 li.innerHTML = `
                     <div>
                         <strong>ID do Link:</strong> ${link.id || 'N/A'}<br>
                         <strong>Loja:</strong> ${link.loja || 'N/A'}<br>
                         <strong>Descrição:</strong> ${link.descricao || 'N/A'}<br>
                         <strong>Categoria:</strong> ${link.categoria || 'N/A'}<br>
-                        <strong>URL:</strong> <a href="${link.url_production}" target="_blank">${link.url_production || 'N/A'}</a>
+                        <strong>URL:</strong> <a href="${link.url_production}" target="_blank" style="color: var(--active-menu-text);">${link.url_production || 'N/A'}</a>
                     </div>
-                    <button class="btn-delete btn-delete-link" data-link-id="${link.id}" style="width: auto; margin-top: 8px;">Excluir Link</button>
+                    <button class="btn-delete btn-delete-link" data-link-id="${link.id}" style="width: auto; flex-shrink: 0; margin-left: 10px;">Excluir</button>
                 `;
                 ul.appendChild(li);
             });
