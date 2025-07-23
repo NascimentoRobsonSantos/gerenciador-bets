@@ -3186,16 +3186,20 @@
 
         // --- Funções de Gerenciamento de Contas ---
         async function showMediaContent(account, type) {
-            state.activeAccount = account;
+            state.activeAccount = account; // Salva a versão codificada no state para a API
             state.activeMediaType = type;
 
-            const decodedAccountName = decodeURIComponent(account);
+            const decodedAccountName = decodeURIComponent(account); // Decodifica o nome para exibição
 
+            // Oculta todas as outras áreas de conteúdo principal
             [dashboardContentArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
-            contentDisplayArea.style.display = 'block'; // Garante que a área de mídias está visível
+            
+            contentDisplayArea.style.display = 'block'; // Mostra a área de conteúdo principal
+            paginationContainer.style.display = 'flex'; // Garante que a paginação apareça
             
             contentDisplayArea.innerHTML = ''; 
 
+            // Cria o cabeçalho da página
             const headerDiv = document.createElement('div');
             headerDiv.className = 'page-header';
             const pageTitle = document.createElement('h2');
@@ -3203,98 +3207,44 @@
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'header-actions';
             headerDiv.appendChild(actionsDiv);
-
+            
             let titleText = ''; // Variável para o texto do título
 
             if (decodedAccountName === 'WhatsApp') {
-                titleText = `Ofertas - ${decodedAccountName}`;
-            } else if (type === 'scheduled-posts') {
-                titleText = `Posts Agendados (${decodedAccountName})`;
+                const groupName = decodeURIComponent(type);
+                titleText = `Ofertas - ${groupName}`;
             } else {
                 const mediaLabel = MEDIA_TYPES.find(mt => mt.key === type)?.label || type;
                 titleText = `${decodedAccountName} - ${mediaLabel}`;
             }
 
-            pageTitle.textContent = titleText; // Define o H2 da página
+            // Define o H2 da página e o título da aba do navegador com o nome decodificado
+            pageTitle.textContent = titleText; 
             document.title = titleText;
-            
-            if (account === 'WhatsApp') {
-                const filtersDiv = document.createElement('div');
-                filtersDiv.className = 'filters-container';
-                await fetchWhatsappGroups(); // Garante que os grupos e lojas estão carregados
-                const lojasOptions = state.whatsappLojas.map(loja => `<option value="${loja}">${loja}</option>`).join('');
-                filtersDiv.innerHTML = `
-                    <div>
-                        <label for="filter-loja">Filtrar por Loja:</label>
-                        <select id="filter-loja">
-                            <option value="">Todas as Lojas</option>
-                            ${lojasOptions}
-                        </select>
-                    </div>
-                `;
-                // Adiciona filtersDiv ao headerDiv, antes dos botões, se preferir
-                headerDiv.insertBefore(filtersDiv, actionsDiv); 
 
-                // Botões para WhatsApp
-                const createOfferBtn = document.createElement('button');
-                createOfferBtn.id = 'btn-create-offer';
-                createOfferBtn.className = 'btn-primary';
-                createOfferBtn.textContent = 'Criar Oferta';
-                createOfferBtn.addEventListener('click', handleCreateOfferModal);
-                actionsDiv.appendChild(createOfferBtn);
-
-                const refreshWhatsappBtn = document.createElement('button');
-                refreshWhatsappBtn.className = 'btn-primary';
-                refreshWhatsappBtn.textContent = 'Atualizar Lista';
-                refreshWhatsappBtn.addEventListener('click', fetchData);
-                actionsDiv.appendChild(refreshWhatsappBtn);
-
-                // Adiciona listener para o filtro da loja APÓS ele ser adicionado ao DOM
-                const filterLojaSelect = filtersDiv.querySelector('#filter-loja');
-                if (filterLojaSelect) {
-                    filterLojaSelect.addEventListener('change', applyWhatsappFilters);
-                }
-
-            } else if (type === 'scheduled-posts') {
-                pageTitle.textContent = `Posts Agendados (${account})`; // Título para posts agendados
-                const createBtn = document.createElement('button');
-                createBtn.className = 'btn-primary';
-                createBtn.textContent = 'Criar Postagem';
-                createBtn.addEventListener('click', () => handleOpenScheduledPostModal());
-                actionsDiv.appendChild(createBtn);
-
-            } else { // Tipos de mídia do Instagram (Reels, Stories, Posts Base, Stories Base)
-                pageTitle.textContent = `${account} - ${MEDIA_TYPES.find(mt => mt.key === type)?.label || type}`;
-                
-                // Botões de recarregar específicos para Instagram
-                if (type === 'reels') {
-                    const btnReloadReels = document.createElement('button');
-                    btnReloadReels.className = 'btn-primary';
-                    btnReloadReels.textContent = '🔄 Recarregar Novos Reels';
-                    btnReloadReels.addEventListener('click', handleRecarregarReels);
-                    actionsDiv.appendChild(btnReloadReels);
-                } else if (type === 'stories' || type === 'stories-base') {
-                    const btnReloadStories = document.createElement('button');
-                    btnReloadStories.className = 'btn-primary';
-                    btnReloadStories.textContent = '🔄 Recarregar Novos Stories';
-                    btnReloadStories.addEventListener('click', handleRecarregarStories);
-                    actionsDiv.appendChild(btnReloadStories);
-                } 
-                // else if (type === 'posts') {
-                //     const btnReloadPosts = document.createElement('button');
-                //     btnReloadPosts.className = 'btn-primary';
-                //     btnReloadPosts.textContent = '🔄 Recarregar Novas Postagens Base';
-                //     btnReloadPosts.addEventListener('click', handleRecarregarPosts);
-                //     actionsDiv.appendChild(btnReloadPosts);
-                // }
+            // Lógica para adicionar botões de ação específicos da página
+            if (type === 'reels') {
+                const btnReloadReels = document.createElement('button');
+                btnReloadReels.className = 'btn-primary';
+                btnReloadReels.textContent = '🔄 Recarregar Novos Reels';
+                btnReloadReels.addEventListener('click', handleRecarregarReels);
+                actionsDiv.appendChild(btnReloadReels);
+            } else if (type === 'stories' || type === 'stories-base') {
+                const btnReloadStories = document.createElement('button');
+                btnReloadStories.className = 'btn-primary';
+                btnReloadStories.textContent = '🔄 Recarregar Novos Stories';
+                btnReloadStories.addEventListener('click', handleRecarregarStories);
+                actionsDiv.appendChild(btnReloadStories);
             }
-            
+
             contentDisplayArea.appendChild(headerDiv);
 
+            // Cria o wrapper para os itens de mídia
             mediaItemsWrapper = document.createElement('div');
-            mediaItemsWrapper.id = 'media-items-wrapper'; // ID para fácil acesso
-            contentDisplayArea.appendChild(mediaItemsWrapper); // Adiciona ao contentDisplayArea
+            mediaItemsWrapper.id = 'media-items-wrapper';
+            contentDisplayArea.appendChild(mediaItemsWrapper);
 
+            // Busca os dados
             await fetchData();
         }
         
@@ -3861,6 +3811,7 @@
 
         async function showUsersPage() {
             usersContentArea.style.display = 'block';
+            paginationContainer.style.display = 'flex';
             await fetchUsers();
             renderUsersPage();
         }
