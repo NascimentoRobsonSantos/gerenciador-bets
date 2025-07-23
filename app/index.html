@@ -1592,34 +1592,37 @@
         async function router() {
             const [hash, queryString] = (window.location.hash || '#/dashboard').split('?');
             const pathParts = hash.slice(2).split('/').filter(p => p);
-            const newMainPath = pathParts[0] || 'dashboard';
-            const newParams = pathParts.slice(1);
+            const mainPath = pathParts[0] || 'dashboard';
+            const params = pathParts.slice(1);
+
+            // **CORREÇÃO:** A variável 'queryParams' precisa ser definida aqui, antes de ser usada.
+            const queryParams = new URLSearchParams(queryString || '');
             const newPage = parseInt(queryParams.get('page') || '1', 10);
 
             // Verifica se a navegação é apenas uma troca de página na mesma tela
-            const isJustPagination = newMainPath === 'media' &&
+            const isJustPagination = mainPath === 'media' &&
                 state.currentView === 'media' &&
-                newParams[0] === state.activeAccount &&
-                newParams[1] === state.activeMediaType &&
+                params[0] === state.activeAccount &&
+                params[1] === state.activeMediaType &&
                 newPage !== state.currentPage;
 
+            // Se for apenas paginação, não redesenha a página inteira
             if (isJustPagination) {
                 state.currentPage = newPage;
-                // Apenas busca os novos dados e rola para o topo, sem redesenhar a página
                 const mainContentEl = document.querySelector('.main-content');
                 if (mainContentEl) mainContentEl.scrollTo({ top: 0, behavior: 'smooth' });
-                await fetchData();
+                await fetchData(); // Apenas busca os novos dados
                 return; // Sai da função para evitar o redesenho completo
             }
 
-            // Lógica para redesenho completo da página (quando muda de seção)
-            [dashboardContentArea, contentDisplayArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
-            paginationContainer.style.display = 'none';
+            // --- Lógica para redesenho completo da página (quando muda de seção) ---
+            [dashboardContentArea, contentDisplayArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => {
+                if(el) el.style.display = 'none';
+            });
+            if(paginationContainer) paginationContainer.style.display = 'none';
 
             state.currentPage = newPage;
-            state.currentView = newMainPath;
-            const mainPath = newMainPath; // Para manter compatibilidade com o switch
-            const params = newParams;   // Para manter compatibilidade com o switch
+            state.currentView = mainPath;
 
             switch (mainPath) {
                 case 'dashboard':
