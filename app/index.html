@@ -3186,6 +3186,8 @@
             state.activeAccount = account;
             state.activeMediaType = type;
 
+            account = decodeURIComponent(account);
+
             [dashboardContentArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
             contentDisplayArea.style.display = 'block'; // Garante que a área de mídias está visível
             
