@@ -1836,6 +1836,7 @@
             configGroup.appendChild(configSubmenu);
             menuContainer.appendChild(configGroup);
             
+            /*
             const actionsGroup = document.createElement('div');
             actionsGroup.className = 'menu-group sidebar-actions';
             const actionsParent = document.createElement('div');
@@ -1857,6 +1858,7 @@
             actionsGroup.appendChild(actionsParent);
             actionsGroup.appendChild(actionsSubmenu);
             menuContainer.appendChild(actionsGroup);
+            */
 
             sidebar.appendChild(menuContainer);
         }
@@ -2080,12 +2082,12 @@
             formDiv.innerHTML = `
                 <label>ID: ${reel.id}</label>
                 <div class="list-item-stats">
-                    <p><strong>👁️ Views:</strong> ${reel.views || 0}</p>
-                    <p><strong>❤️ Likes:</strong> ${reel.likes || 0}</p>
-                    <p><strong>💬 Coment.:</strong> ${reel.comments || 0}</p>
-                    <p><strong>🎯 Alcance:</strong> ${reel.reach || 0}</p>
-                    <p><strong>💾 Salvos:</strong> ${reel.saved || 0}</p>
-                    <p><strong>↪️ Compart.:</strong> ${reel.shares || 0}</p>
+                    <p><strong>👁️ Views:  </strong> ${reel.views || 0}</p>
+                    <p><strong>❤️ Likes:  </strong> ${reel.likes || 0}</p>
+                    <p><strong>💬 Coment.:  </strong> ${reel.comments || 0}</p>
+                    <p><strong>🎯 Alcance:  </strong> ${reel.reach || 0}</p>
+                    <p><strong>💾 Salvos:  </strong> ${reel.saved || 0}</p>
+                    <p><strong>↪️ Compart.:  </strong> ${reel.shares || 0}</p>
                 </div>
                 <label for="caption-${reel.id}">Descrição: <span style="font-weight:normal; font-size:0.8em;">(${formattedDateTime})</span></label>
                 <textarea id="caption-${reel.id}">${reel.caption || ''}</textarea>
@@ -3105,8 +3107,39 @@
             state.activeAccount = account;
             state.activeMediaType = type;
             
+            // Esconder outros conteúdos
+            [dashboardContentArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
             contentDisplayArea.style.display = 'block';
             paginationContainer.style.display = 'flex';
+
+            contentDisplayArea.innerHTML = ''; // Limpa antes de adicionar o header
+
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'page-header';
+            headerDiv.innerHTML = `<h2>Mídias: ${account} - ${MEDIA_TYPES.find(mt => mt.key === type)?.label || type}</h2>`;
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'header-actions'; // Use a classe existente para botões no header
+
+            // Adiciona botões de recarga específicos para o tipo de mídia
+            if (type === 'reels') {
+                const btnReloadReels = document.createElement('button');
+                btnReloadReels.className = 'btn-primary'; // Ou uma classe mais específica se tiver
+                btnReloadReels.textContent = '🔄 Recarregar Novos Reels';
+                btnReloadReels.addEventListener('click', handleRecarregarReels);
+                actionsDiv.appendChild(btnReloadReels);
+            } else if (type === 'stories') { // Stories (base ou não)
+                const btnReloadStories = document.createElement('button');
+                btnReloadStories.className = 'btn-primary';
+                btnReloadStories.textContent = '🔄 Recarregar Novas Stories';
+                btnReloadStories.addEventListener('click', handleRecarregarStories);
+                actionsDiv.appendChild(btnReloadStories);
+            }
+            // Para WhatsApp, você já tem o botão de "Atualizar Lista" na showWhatsappContent()
+            // Se tiver 'scheduled-posts' ou outros tipos, adicione aqui também.
+
+            headerDiv.appendChild(actionsDiv);
+            contentDisplayArea.appendChild(headerDiv); // Adiciona o header
 
             await fetchData();
         }
@@ -4236,6 +4269,7 @@
             });
             formUser.addEventListener('submit', handleUserFormSubmit);
 
+            /*
             sidebar.addEventListener('click', (e) => {
                 if (!e.target.matches('.sidebar-actions .submenu-item')) return;
                 
@@ -4249,6 +4283,7 @@
                     document.body.classList.add('sidebar-collapsed');
                 }
             });
+            */
 
 
             document.getElementById('btnPasteLink').addEventListener('click', async () => {
