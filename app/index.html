@@ -46,12 +46,16 @@
             padding: 0;
         }
 
+        html, body {
+            height: 100%;
+            overflow: hidden; /* Previne scroll no body */
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             line-height: 1.6;
-            overflow-x: hidden;
             transition: background-color 0.3s, color 0.3s;
         }
 
@@ -131,6 +135,10 @@
             align-items: center;
             gap: 15px;
         }
+        .header-left a {
+            text-decoration: none;
+            color: inherit;
+        }
         .header-right {
             display: flex;
             align-items: center;
@@ -168,6 +176,7 @@
             flex-grow: 1;
             margin-top: 60px; /* Altura do header */
             height: calc(100vh - 60px);
+            overflow: hidden; /* Previne scroll duplo */
         }
 
         .sidebar {
@@ -254,7 +263,9 @@
             padding: 20px;
             margin-left: 280px;
             overflow-y: auto;
+            height: 100%;
             transition: margin-left 0.3s ease-in-out;
+            -webkit-overflow-scrolling: touch; /* Melhora scroll no iOS */
         }
         
         body.sidebar-collapsed .main-content {
@@ -309,8 +320,8 @@
 
         textarea { min-height: 100px; resize: vertical; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.85rem; }
-        #contentDisplayArea, #socialAccountsContentArea, #whatsappGroupsContentArea, #companiesContentArea, #usersContentArea { min-height: 400px; }
-        #socialAccountsContentArea, #whatsappGroupsContentArea, #companiesContentArea, #usersContentArea { display: none; } /* Oculto por padrão */
+        #contentDisplayArea, #socialAccountsContentArea, #whatsappGroupsContentArea, #companiesContentArea, #usersContentArea, #dashboardContentArea { min-height: 400px; }
+        #socialAccountsContentArea, #whatsappGroupsContentArea, #companiesContentArea, #usersContentArea, #dashboardContentArea { display: none; } /* Oculto por padrão */
 
         .grid-container, .stats-grid-container {
             display: grid;
@@ -756,6 +767,34 @@
             line-height: 1;
         }
 
+        /* --- ESTILOS DO DASHBOARD --- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .stat-card {
+            background-color: var(--card-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: var(--active-menu-text);
+        }
+        .stat-card .label {
+            font-size: 1rem;
+            color: var(--text-color);
+            margin-top: 5px;
+        }
+
     </style>
 </head>
 
@@ -812,7 +851,7 @@
                 <button id="menuToggleBtn" class="menu-toggle-btn" title="Alternar menu">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"></path></svg>
                 </button>
-                <h1>Gerenciador de Posts</h1>
+                <a href="#/dashboard"><h1>Gerenciador de Posts</h1></a>
             </div>
             <div class="header-right">
                 <button id="themeToggle" title="Alterar Tema"><div class="toggle-circle"></div></button>
@@ -822,6 +861,7 @@
             <aside id="sidebar" class="sidebar">
             </aside>
             <main class="main-content">
+                <div id="dashboardContentArea"></div>
                 <div id="contentDisplayArea"></div>
                 <div id="socialAccountsContentArea"></div>
                 <div id="whatsappGroupsContentArea"></div>
@@ -1367,6 +1407,9 @@
             COMPANIES_CRUD: `${url_base}/companies`,
             COMPANIES_MODULES_CRUD: `${url_base}/companies_modules`,
             USERS_CRUD: `${url_base}/users`,
+            
+            // Dashboard
+            GET_DASHBOARD_METRICS: `${url_base}/dashboard-metrics`,
 
             // Outros Endpoints
             LOGIN: `${url_base}/login`,
@@ -1389,7 +1432,7 @@
             FORCE_UPDATE_REELS: `${url_base}/get_reels_all_instagram_carla`,
             GET_LINKS_POSTAGENS: `${url_base}/get-links-postagens-carla`,
             COPY_LINK_BY_ID: `${url_base}/add-copy-links-postagens-carla`,
-            GENERATE_AD_FROM_LINK: `${url_base}/generate-ad-from-link`, // NOVO
+            GENERATE_AD_FROM_LINK: `${url_base}/generate-ad-from-link`,
         };
 
         const MEDIA_TYPES = [
@@ -1423,7 +1466,7 @@
         };
 
         // --- Seletores de Elementos do DOM ---
-        let loginContainer, registerContainer, appContainer, sidebar, contentDisplayArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea, paginationContainer, loadingOverlay, scrollTopBtn;
+        let loginContainer, registerContainer, appContainer, sidebar, contentDisplayArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea, paginationContainer, loadingOverlay, scrollTopBtn, dashboardContentArea;
         
         const loginForm = document.getElementById('login-form');
         const registerForm = document.getElementById('register-form');
@@ -1496,7 +1539,6 @@
             const queryString = new URLSearchParams(query).toString();
             const newHash = queryString ? `${hashPath}?${queryString}` : hashPath;
 
-            // CORREÇÃO: Força o recarregamento se o link for o mesmo
             if (window.location.hash === newHash) {
                 router();
                 return;
@@ -1506,18 +1548,21 @@
         }
 
         async function router() {
-            const [hash, queryString] = (window.location.hash || '#/').split('?');
+            const [hash, queryString] = (window.location.hash || '#/dashboard').split('?');
             const pathParts = hash.slice(2).split('/').filter(p => p);
-            const mainPath = pathParts[0] || 'media';
+            const mainPath = pathParts[0] || 'dashboard';
             const params = pathParts.slice(1);
             const queryParams = new URLSearchParams(queryString || '');
             
-            [contentDisplayArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
+            [dashboardContentArea, contentDisplayArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
             paginationContainer.style.display = 'none';
 
             state.currentPage = parseInt(queryParams.get('page') || '1', 10);
 
             switch (mainPath) {
+                case 'dashboard':
+                    await showDashboardPage();
+                    break;
                 case 'media':
                     const [account, type] = params;
                     await showMediaContent(decodeURIComponent(account || ''), type);
@@ -1529,21 +1574,11 @@
                         case 'users': await showUsersPage(); break;
                         case 'accounts': await showSocialAccountsPage(); break;
                         case 'whatsapp-groups': await showWhatsappGroupsPage(); break;
-                        default:
-                            if (state.socialAccounts.length > 0) {
-                                navigateTo('media', [state.socialAccounts[0].nome_conta, 'reels']);
-                            } else {
-                                navigateTo('settings', ['accounts']);
-                            }
+                        default: navigateTo('dashboard');
                     }
                     break;
                 default:
-                    if (state.socialAccounts.length > 0) {
-                        const sortedAccounts = [...state.socialAccounts].sort((a, b) => (a.ordenacao ?? 999) - (b.ordenacao ?? 999));
-                        navigateTo('media', [sortedAccounts[0].nome_conta, 'reels']);
-                    } else {
-                        navigateTo('settings', ['accounts']);
-                    }
+                    navigateTo('dashboard');
             }
             renderSidebarMenu();
         }
@@ -1677,6 +1712,9 @@
                         li.addEventListener('click', (e) => {
                             e.stopPropagation();
                             navigateTo('media', [account.nome_conta, mediaType.key]);
+                            if (window.innerWidth <= 992) {
+                                document.body.classList.add('sidebar-collapsed');
+                            }
                         });
                         accountSubmenu.appendChild(li);
                     });
@@ -1720,6 +1758,9 @@
                     li.addEventListener('click', (e) => {
                         e.stopPropagation();
                         navigateTo('media', ['WhatsApp', group.group_name]);
+                         if (window.innerWidth <= 992) {
+                            document.body.classList.add('sidebar-collapsed');
+                        }
                     });
                     whatsappSubmenu.appendChild(li);
                 });
@@ -3832,6 +3873,7 @@
                     localStorage.setItem('companyId', responseData.company_id);
                     localStorage.setItem('currentUser', JSON.stringify(responseData.user));
 
+                    window.location.hash = '#/dashboard'; // Redireciona para o dashboard
                     window.location.reload();
                 } else {
                     loginError.textContent = responseData.message || 'E-mail ou senha inválidos.';
@@ -3882,6 +3924,7 @@
 
         async function initMainApp() {
             sidebar = document.getElementById('sidebar');
+            dashboardContentArea = document.getElementById('dashboardContentArea');
             contentDisplayArea = document.getElementById('contentDisplayArea');
             socialAccountsContentArea = document.getElementById('socialAccountsContentArea');
             whatsappGroupsContentArea = document.getElementById('whatsappGroupsContentArea');
@@ -4017,6 +4060,76 @@
             }
         }
 
+        // --- Funções do Dashboard ---
+        async function showDashboardPage() {
+            dashboardContentArea.style.display = 'block';
+            await fetchDashboardMetrics();
+        }
+
+        async function fetchDashboardMetrics() {
+            showLoading("Carregando métricas...");
+            try {
+                // Simulação de chamada de API
+                // const response = await fetchWithAuth(API_URLS.GET_DASHBOARD_METRICS);
+                // if (!response.ok) throw new Error("Não foi possível carregar as métricas.");
+                // const metrics = await response.json();
+                
+                // Dados mocados para demonstração
+                const mockMetrics = {
+                    postsToday: 5,
+                    reelsWeek: 12,
+                    storiesMonth: 89,
+                    postsWeek: 21,
+                    reelsMonth: 45,
+                    storiesToday: 15
+                };
+                
+                renderDashboard(mockMetrics);
+
+            } catch (error) {
+                if (error.message !== "Sessão expirada.") {
+                    showAlert(`Erro ao carregar métricas: ${error.message}`);
+                }
+                dashboardContentArea.innerHTML = '<p>Não foi possível carregar as métricas do dashboard.</p>';
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function renderDashboard(metrics) {
+            dashboardContentArea.innerHTML = `
+                <div class="page-header">
+                    <h2>Dashboard de Métricas (Instagram)</h2>
+                </div>
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <div class="value">${metrics.postsToday}</div>
+                        <div class="label">Posts Hoje</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value">${metrics.storiesToday}</div>
+                        <div class="label">Stories Hoje</div>
+                    </div>
+                     <div class="stat-card">
+                        <div class="value">${metrics.reelsWeek}</div>
+                        <div class="label">Reels na Semana</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value">${metrics.postsWeek}</div>
+                        <div class="label">Posts na Semana</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value">${metrics.storiesMonth}</div>
+                        <div class="label">Stories no Mês</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value">${metrics.reelsMonth}</div>
+                        <div class="label">Reels no Mês</div>
+                    </div>
+                </div>
+            `;
+        }
+
 
         function setupEventListeners() {
              if (contentDisplayArea && scrollTopBtn) {
@@ -4041,7 +4154,6 @@
                 document.getElementById('themeToggle').querySelector('.toggle-circle').style.transform = isDark ? 'translateX(24px)' : 'translateX(2px)';
 
                 if (state.authToken && state.currentUser && state.currentUser.id) {
-                    showLoading("Salvando tema...");
                     try {
                         const payload = {
                             id: state.currentUser.id,
@@ -4055,14 +4167,11 @@
 
                         state.currentUser.dark_theme = isDark;
                         localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
-                        // showAlert("Tema salvo automaticamente!");
                     } catch (error) {
                         console.error("Erro ao salvar tema:", error);
                         showAlert(`Erro ao salvar tema: ${error.message}`);
                         document.body.classList.toggle('dark-theme');
                         document.getElementById('themeToggle').querySelector('.toggle-circle').style.transform = isDark ? 'translateX(2px)' : 'translateX(24px)';
-                    } finally {
-                        hideLoading();
                     }
                 }
             });
@@ -4115,7 +4224,7 @@
                 }
                 // CORREÇÃO: Fecha o menu no mobile após a ação
                 if (window.innerWidth <= 992) {
-                    document.body.classList.remove('sidebar-collapsed');
+                    document.body.classList.add('sidebar-collapsed');
                 }
             });
 
