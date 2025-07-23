@@ -4066,7 +4066,7 @@
             // }
             fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, { method: "POST", body: JSON.stringify({ url: url }) })
                 .then(async response => { if (!response.ok) throw new Error(await response.text()); return response.json(); })
-                .then(() => { showAlert('Anúncio criado com sucesso!'); closeModal(modalEditWhatsapp); fetchData(); })
+                .then(() => { showAlert('Anúncio criado com sucesso!'); closeModal(modalCreateWhatsapp); fetchData(); })
                 .catch(error => { 
                     if (error.message !== "Sessão expirada.") {
                         console.error("Erro:", error); showAlert(`Erro: ${error.message}`); 
