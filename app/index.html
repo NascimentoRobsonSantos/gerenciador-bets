@@ -505,6 +505,12 @@
             flex-wrap: wrap;
             gap: 15px;
         }
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
         .filters-container {
             background-color: var(--card-bg-color);
             padding: 15px;
@@ -4060,7 +4066,7 @@
             // }
             fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, { method: "POST", body: JSON.stringify({ url: url }) })
                 .then(async response => { if (!response.ok) throw new Error(await response.text()); return response.json(); })
-                .then(() => { showAlert('Dados do anúncio gerados com sucesso!'); fetchData(); })
+                .then(() => { showAlert('Anúncio criado com sucesso!'); closeModal(urlInput); fetchData(); })
                 .catch(error => { 
                     if (error.message !== "Sessão expirada.") {
                         console.error("Erro:", error); showAlert(`Erro: ${error.message}`); 
