@@ -1368,7 +1368,7 @@
 
             // Endpoints de Empresa e Usuários
             COMPANIES_CRUD: `${url_base}/companies`,
-            COMPANIES_MODULES_CRUD: `${url_base}/companies_modules`, // NOVO: Para gerenciar módulos da empresa
+            COMPANIES_MODULES_CRUD: `${url_base}/companies_modules`,
             USERS_CRUD: `${url_base}/users`,
 
             // Outros Endpoints
@@ -1404,11 +1404,10 @@
         
         let state = {
             authToken: null,
-            companyId: null, // NOVO
+            companyId: null,
             socialAccounts: [],
             activeAccount: null, 
             activeMediaType: null, 
-            currentView: 'login', 
             items: [],
             filteredItems: [],
             totalItems: 0,
@@ -1418,11 +1417,10 @@
             itemsPerPage: 10,
             whatsappLojas: [],
             whatsappGroups: [],
-            companies: [], // NOVO
-            users: [], // NOVO
+            companies: [],
+            users: [],
             newImageBase64: null,
             scheduledPostFiles: [],
-            companies: [],
             currentUser: null,
         };
 
@@ -1494,6 +1492,87 @@
             reader.onerror = error => reject(error);
         });
 
+        // --- ROTEAMENTO (NOVO) ---
+        /**
+         * Navega para uma nova rota na aplicação, atualizando o hash da URL.
+         * @param {string} path - O caminho principal (ex: 'media', 'settings').
+         * @param {string[]} params - Parâmetros da rota (ex: ['Carla_Indica', 'reels']).
+         * @param {object} query - Parâmetros de busca (ex: { page: 2 }).
+         */
+        function navigateTo(path, params = [], query = {}) {
+            const hashPath = `#/${path}${params.length > 0 ? '/' + params.map(p => encodeURIComponent(p)).join('/') : ''}`;
+            
+            const queryString = new URLSearchParams(query).toString();
+
+            // Atualiza o hash. Isso vai disparar o evento 'hashchange' e o router()
+            window.location.hash = queryString ? `${hashPath}?${queryString}` : hashPath;
+        }
+
+        /**
+         * O roteador central. Lê o hash da URL e decide qual conteúdo exibir.
+         * É chamado no carregamento da página e toda vez que o hash muda.
+         */
+        async function router() {
+            // Extrai o caminho e os parâmetros do hash
+            const [hash, queryString] = (window.location.hash || '#/').split('?');
+            const pathParts = hash.slice(2).split('/').filter(p => p); // Remove #/ e partes vazias
+            const mainPath = pathParts[0] || 'media';
+            const params = pathParts.slice(1);
+            const queryParams = new URLSearchParams(queryString || '');
+            
+            // Oculta todas as áreas de conteúdo principal para começar do zero
+            [contentDisplayArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
+            paginationContainer.style.display = 'none';
+
+            // Define o estado da aplicação com base na URL
+            state.currentPage = parseInt(queryParams.get('page') || '1', 10);
+
+            // Roteia para a view correta com base no caminho
+            switch (mainPath) {
+                case 'media':
+                    const [account, type] = params;
+                    // Define o estado e exibe o conteúdo de mídia
+                    await showMediaContent(decodeURIComponent(account || ''), type);
+                    break;
+                case 'settings':
+                    const subpage = params[0];
+                    // Roteia para a página de configuração correta
+                    switch (subpage) {
+                        case 'companies':
+                            await showCompaniesPage();
+                            break;
+                        case 'users':
+                            await showUsersPage();
+                            break;
+                        case 'accounts':
+                            await showSocialAccountsPage();
+                            break;
+                        case 'whatsapp-groups':
+                            await showWhatsappGroupsPage();
+                            break;
+                        default:
+                            // Se a subpágina de configurações for inválida, volta para a home
+                            if (state.socialAccounts.length > 0) {
+                                navigateTo('media', [state.socialAccounts[0].nome_conta, 'reels']);
+                            } else {
+                                navigateTo('settings', ['accounts']);
+                            }
+                    }
+                    break;
+                default:
+                    // Rota padrão/fallback
+                    if (state.socialAccounts.length > 0) {
+                        const sortedAccounts = [...state.socialAccounts].sort((a, b) => (a.ordenacao ?? 999) - (b.ordenacao ?? 999));
+                        navigateTo('media', [sortedAccounts[0].nome_conta, 'reels']);
+                    } else {
+                        navigateTo('settings', ['accounts']);
+                    }
+            }
+
+            // Garante que o menu da sidebar reflita o estado atual
+            renderSidebarMenu();
+        }
+
         // --- Handlers de Ações Globais ---
         async function handleIncluirPalavra() {
             showLoading("Buscando palavras...");
@@ -1555,105 +1634,86 @@
             const menuContainer = document.createElement('div');
             menuContainer.className = 'sidebar-menu';
 
-            // Módulos ativos para a empresa do usuário logado
-            // const currentUserCompany = state.companies.find(c => c.id === state.companyId);
-            // const activeCompanyModules = currentUserCompany ? currentUserCompany.modules : {};
             const currentUserCompany = state.companies.find(c => String(c.id) === String(state.companyId));
             const activeCompanyModules = currentUserCompany ? currentUserCompany.modules : {};
 
-            const sortedAccounts = [...state.socialAccounts].sort((a, b) => {
-                const orderA = a.ordenacao !== null && a.ordenacao !== undefined ? a.ordenacao : 999;
-                const orderB = b.ordenacao !== null && b.ordenacao !== undefined ? b.ordenacao : 999;
-                return orderA - orderB;
-            });
-
+            const sortedAccounts = [...state.socialAccounts].sort((a, b) => (a.ordenacao ?? 999) - (b.ordenacao ?? 999));
+            
             const groupedAccounts = sortedAccounts.reduce((acc, account) => {
                 const media = account.social_media || 'Outros';
-                if (!acc[media]) {
-                    acc[media] = [];
-                }
+                if (!acc[media]) acc[media] = [];
                 acc[media].push(account);
                 return acc;
             }, {});
 
-            // Grupos de Redes Sociais (Dinâmico) - Exibir apenas se o módulo correspondente estiver ativo
+            // Mapeia os módulos para as redes sociais
+            const moduleMap = { Instagram: 'instagram', Facebook: 'facebook', Threads: 'threads' };
+
             for (const socialMedia in groupedAccounts) {
+                const moduleKey = moduleMap[socialMedia];
+                // Se o módulo para essa rede social não estiver ativo, pula para a próxima
+                if (moduleKey && !activeCompanyModules[moduleKey]) continue;
+
                 const accounts = groupedAccounts[socialMedia];
-                let shouldDisplaySocialMediaGroup = false;
+                const mediaGroup = document.createElement('div');
+                mediaGroup.className = 'menu-group';
+                const mediaParent = document.createElement('div');
+                mediaParent.className = 'menu-parent';
+                mediaParent.textContent = socialMedia;
+                const mediaSubmenu = document.createElement('ul');
 
-                // Verifica se o módulo está ativo para esta rede social
-                if (socialMedia === 'Instagram' && activeCompanyModules.instagram) {
-                    shouldDisplaySocialMediaGroup = true;
-                } else if (socialMedia === 'Facebook' && activeCompanyModules.facebook) {
-                    shouldDisplaySocialMediaGroup = true;
-                } else if (socialMedia === 'Threads' && activeCompanyModules.threads) {
-                    shouldDisplaySocialMediaGroup = true;
+                const isMediaGroupActive = accounts.some(acc => acc.nome_conta === state.activeAccount);
+                if (!isMediaGroupActive) {
+                    mediaParent.classList.add('collapsed');
+                    mediaSubmenu.classList.add('collapsed');
                 }
-                // Adicione mais verificações para outras redes sociais aqui
 
-                if (shouldDisplaySocialMediaGroup) {
-                    const mediaGroup = document.createElement('div');
-                    mediaGroup.className = 'menu-group';
-                    const mediaParent = document.createElement('div');
-                    mediaParent.className = 'menu-parent';
-                    mediaParent.textContent = socialMedia;
-                    const mediaSubmenu = document.createElement('ul');
+                mediaParent.addEventListener('click', () => {
+                    mediaParent.classList.toggle('collapsed');
+                    mediaSubmenu.classList.toggle('collapsed');
+                });
 
-                    const isMediaGroupActive = accounts.some(acc => acc.nome_conta === state.activeAccount);
-                    if (!isMediaGroupActive) {
-                        mediaParent.classList.add('collapsed');
-                        mediaSubmenu.classList.add('collapsed');
+                mediaGroup.appendChild(mediaParent);
+                mediaGroup.appendChild(mediaSubmenu);
+
+                accounts.forEach(account => {
+                    const accountParent = document.createElement('div');
+                    accountParent.className = 'menu-parent submenu-item';
+                    accountParent.textContent = account.nome_conta;
+                    accountParent.style.paddingLeft = '15px';
+                    const accountSubmenu = document.createElement('ul');
+
+                    if (state.activeAccount !== account.nome_conta) {
+                        accountParent.classList.add('collapsed');
+                        accountSubmenu.classList.add('collapsed');
                     }
 
-                    mediaParent.addEventListener('click', () => {
-                        mediaParent.classList.toggle('collapsed');
-                        mediaSubmenu.classList.toggle('collapsed');
+                    accountParent.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        accountParent.classList.toggle('collapsed');
+                        accountSubmenu.classList.toggle('collapsed');
                     });
 
-                    mediaGroup.appendChild(mediaParent);
-                    mediaGroup.appendChild(mediaSubmenu);
-
-                    accounts.forEach(account => {
-                        const accountParent = document.createElement('div');
-                        accountParent.className = 'menu-parent submenu-item';
-                        accountParent.textContent = account.nome_conta;
-                        accountParent.style.paddingLeft = '15px';
-
-                        const accountSubmenu = document.createElement('ul');
-
-                        if (state.activeAccount !== account.nome_conta) {
-                            accountParent.classList.add('collapsed');
-                            accountSubmenu.classList.add('collapsed');
+                    MEDIA_TYPES.forEach(mediaType => {
+                        const li = document.createElement('li');
+                        li.className = 'submenu-item';
+                        li.textContent = mediaType.label;
+                        if (state.activeAccount === account.nome_conta && state.activeMediaType === mediaType.key) {
+                            li.classList.add('active');
                         }
-
-                        accountParent.addEventListener('click', (e) => {
+                        // NOVO: Navega para a URL correta ao invés de chamar a função diretamente
+                        li.addEventListener('click', (e) => {
                             e.stopPropagation();
-                            accountParent.classList.toggle('collapsed');
-                            accountSubmenu.classList.toggle('collapsed');
+                            navigateTo('media', [account.nome_conta, mediaType.key]);
                         });
-
-                        MEDIA_TYPES.forEach(mediaType => {
-                            const li = document.createElement('li');
-                            li.className = 'submenu-item';
-                            li.textContent = mediaType.label;
-                            if (state.activeAccount === account.nome_conta && state.activeMediaType === mediaType.key) {
-                                li.classList.add('active');
-                            }
-                            li.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                trocarAba(account.nome_conta, mediaType.key);
-                            });
-                            accountSubmenu.appendChild(li);
-                        });
-
-                        mediaSubmenu.appendChild(accountParent);
-                        mediaSubmenu.appendChild(accountSubmenu);
+                        accountSubmenu.appendChild(li);
                     });
-                    menuContainer.appendChild(mediaGroup);
-                }
+                    mediaSubmenu.appendChild(accountParent);
+                    mediaSubmenu.appendChild(accountSubmenu);
+                });
+                menuContainer.appendChild(mediaGroup);
             }
 
-            // Grupo WhatsApp Dinâmico - Exibir apenas se o módulo WhatsApp estiver ativo
             if (activeCompanyModules.whatsapp) {
                 const whatsappGroup = document.createElement('div');
                 whatsappGroup.className = 'menu-group';
@@ -1661,7 +1721,7 @@
                 whatsappParent.className = 'menu-parent';
                 whatsappParent.textContent = 'WhatsApp';
                 const whatsappSubmenu = document.createElement('ul');
-
+                
                 const isWhatsappActive = state.activeAccount === 'WhatsApp';
                 if (!isWhatsappActive) {
                     whatsappParent.classList.add('collapsed');
@@ -1685,24 +1745,26 @@
                     if (state.activeAccount === 'WhatsApp' && state.activeMediaType === group.group_name) {
                         li.classList.add('active');
                     }
+                    // NOVO: Navega para a URL correta
                     li.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        trocarAba('WhatsApp', group.group_name);
+                        navigateTo('media', ['WhatsApp', group.group_name]);
                     });
                     whatsappSubmenu.appendChild(li);
                 });
                 menuContainer.appendChild(whatsappGroup);
             }
 
-            // Grupo Configurações
             const configGroup = document.createElement('div');
             configGroup.className = 'menu-group';
             const configParent = document.createElement('div');
             configParent.className = 'menu-parent';
             configParent.textContent = 'Configurações';
             const configSubmenu = document.createElement('ul');
-
-            const isConfigActive = ['accounts', 'whatsapp-groups', 'companies', 'users'].includes(state.currentView);
+            
+            const currentHash = window.location.hash;
+            const isConfigActive = currentHash.includes('#/settings');
+            
             if (!isConfigActive) {
                 configParent.classList.add('collapsed');
                 configSubmenu.classList.add('collapsed');
@@ -1712,20 +1774,17 @@
                 configParent.classList.toggle('collapsed');
                 configSubmenu.classList.toggle('collapsed');
             });
-
+            
+            // NOVO: Itens de configuração agora usam a função navigateTo e verificam a classe 'active'
             configSubmenu.innerHTML = `
-                <li class="submenu-item" id="menu-companies">Empresas</li>
-                <li class="submenu-item" id="menu-users">Usuários</li>
-                <li class="submenu-item" id="menu-accounts">Redes Sociais</li>
-                <li class="submenu-item" id="menu-whatsapp-groups">Grupos WhatsApp</li>
+                <li class="submenu-item ${currentHash.includes('companies') ? 'active' : ''}" onclick="navigateTo('settings', ['companies'])">Empresas</li>
+                <li class="submenu-item ${currentHash.includes('users') ? 'active' : ''}" onclick="navigateTo('settings', ['users'])">Usuários</li>
+                <li class="submenu-item ${currentHash.includes('accounts') ? 'active' : ''}" onclick="navigateTo('settings', ['accounts'])">Redes Sociais</li>
+                <li class="submenu-item ${currentHash.includes('whatsapp-groups') ? 'active' : ''}" onclick="navigateTo('settings', ['whatsapp-groups'])">Grupos WhatsApp</li>
                 <li class="submenu-item" id="menu-keyword">Palavra Chave</li>
                 <li class="submenu-item" id="menu-logout">Logout</li>
             `;
 
-            configSubmenu.querySelector('#menu-companies').addEventListener('click', showCompaniesPage);
-            configSubmenu.querySelector('#menu-users').addEventListener('click', showUsersPage);
-            configSubmenu.querySelector('#menu-accounts').addEventListener('click', showSocialAccountsPage);
-            configSubmenu.querySelector('#menu-whatsapp-groups').addEventListener('click', showWhatsappGroupsPage);
             configSubmenu.querySelector('#menu-keyword').addEventListener('click', handleIncluirPalavra);
             configSubmenu.querySelector('#menu-logout').addEventListener('click', handleLogout);
 
@@ -1733,7 +1792,6 @@
             configGroup.appendChild(configSubmenu);
             menuContainer.appendChild(configGroup);
             
-            // Ações Rápidas (Mobile)
             const actionsGroup = document.createElement('div');
             actionsGroup.className = 'menu-group sidebar-actions';
             const actionsParent = document.createElement('div');
@@ -1741,14 +1799,13 @@
             actionsParent.textContent = 'Ações Rápidas';
             const actionsSubmenu = document.createElement('ul');
             actionsSubmenu.className = 'submenu collapsed';
-
             actionsSubmenu.innerHTML = `
                 <li class="submenu-item" id="sidebar-action-reload-stories">🔄 Recarregar Mídias Stories</li>
                 <li class="submenu-item" id="sidebar-action-reload-reels">🔄 Recarregar Mídias Reels</li>
                 <li class="submenu-item" id="sidebar-action-reload-posts">🔄 Recarregar Posts Base</li>
             `;
             
-            actionsParent.addEventListener('click', (e) => {
+            actionsParent.addEventListener('click', () => {
                 actionsParent.classList.toggle('collapsed');
                 actionsSubmenu.classList.toggle('collapsed');
             });
@@ -1762,11 +1819,8 @@
 
         function renderItems() {
             if (!contentDisplayArea) return;
-            
-            if (state.currentView !== 'main') return;
             contentDisplayArea.className = ''; // Reset class
             
-            // ROTEAMENTO DE CONTEÚDO
             if (state.activeAccount === 'WhatsApp') {
                 renderWhatsappContent();
             } else if (state.activeMediaType === 'scheduled-posts') {
@@ -1777,13 +1831,12 @@
         }
 
         function renderCardContent() {
-             const displayDiv = document.getElementById('contentDisplayArea');
              if (state.items.length === 0 && !state.isLoading) {
-                 displayDiv.innerHTML = '<p>Nenhum item encontrado para esta visualização.</p>';
+                 contentDisplayArea.innerHTML = '<p>Nenhum item encontrado para esta visualização.</p>';
                  return;
              }
              
-             displayDiv.innerHTML = ''; // Limpa o conteúdo antes de adicionar
+             contentDisplayArea.innerHTML = '';
              const gridContainer = document.createElement('div');
              gridContainer.className = 'grid-container';
              
@@ -1795,7 +1848,7 @@
                  else if (state.activeMediaType === 'stories-base') card = createStoryBaseCard(item);
                  if (card) gridContainer.appendChild(card);
              });
-             displayDiv.appendChild(gridContainer);
+             contentDisplayArea.appendChild(gridContainer);
         }
 
         function renderScheduledPostsPage() {
@@ -1835,10 +1888,6 @@
             if (!paginationContainer) return;
             paginationContainer.innerHTML = '';
             
-            if (state.currentView !== 'main') { // Não renderiza paginação em outras telas
-                return;
-            }
-
             const totalPages = Math.ceil(state.totalItems / state.itemsPerPage);
             if (totalPages <= 1) return;
 
@@ -1901,9 +1950,9 @@
             if (item.media_type === 'IMAGE' || item.media_type === 'CAROUSEL_ALBUM') {
                 const primaryImg = item.story_thumbnail || item.media_url;
                  if (primaryImg) {
-                    mediaContainer.innerHTML = `<img src="${primaryImg}" onerror="this.onerror=null; this.src='${placeholder}';" alt="Mídia do post">`;
+                     mediaContainer.innerHTML = `<img src="${primaryImg}" onerror="this.onerror=null; this.src='${placeholder}';" alt="Mídia do post">`;
                 } else {
-                    mediaContainer.innerHTML = `<span>Imagem indisponível</span>`;
+                     mediaContainer.innerHTML = `<span>Imagem indisponível</span>`;
                 }
             } 
             else if (item.media_type === 'VIDEO') {
@@ -1932,15 +1981,15 @@
             }
             else {
                  const singleUrl = item.s3_url_video || item.media_url;
-                 if(singleUrl){
-                     if (singleUrl.toLowerCase().includes('.mp4') || singleUrl.toLowerCase().includes('.mov') || singleUrl.toLowerCase().includes('video')) {
-                         mediaContainer.innerHTML = `<video src="${singleUrl}" controls></video>`;
-                     } else {
-                         mediaContainer.innerHTML = `<img src="${singleUrl}" alt="Mídia do post">`;
-                     }
-                 } else {
-                    mediaContainer.innerHTML = '<span>Mídia indisponível</span>';
-                 }
+                  if(singleUrl){
+                       if (singleUrl.toLowerCase().includes('.mp4') || singleUrl.toLowerCase().includes('.mov') || singleUrl.toLowerCase().includes('video')) {
+                            mediaContainer.innerHTML = `<video src="${singleUrl}" controls></video>`;
+                       } else {
+                            mediaContainer.innerHTML = `<img src="${singleUrl}" alt="Mídia do post">`;
+                       }
+                  } else {
+                     mediaContainer.innerHTML = '<span>Mídia indisponível</span>';
+                  }
             }
             return mediaContainer;
         }
@@ -1956,7 +2005,7 @@
             if (contaUser && contaUser.toLowerCase().includes("baby")) {
                 descriptionNew = `💛 Gostou comenta "${comenta}" para receber o LINK no direct 🔥\n\nAnúncio N.º: ${ordenacao}\nConfira sua aba de ‘solicitações’ no direct, pois a mensagem será enviada automaticamente.\n\n✨ Marque uma mamãe que vai adorar essa novidade!\n🚨 Stories disponíveis por 24 horas\n🎀Siga @carlababyofertas para não perder nenhuma oferta e novidade!\n#dicasmaternidade #maternidadereal #maternidade #amordemãe #maedemenino #maedemenina #brinquedosdebebe #brinquedosdidaticos #brincar #diversao #diversaoemfamília ${post.hashtags || ''}`;
             } else { // Default para "indica" ou qualquer outra conta
-                descriptionNew = `💛 Gostou comenta "${comenta}" para LINK no direct 🔥\n\nAnúncio N.º: ${ordenacao}\nNos Stories de hoje 🔥\nNo Grupo de Ofertas-Link na Bio 🔥\nSiga @carlaindicaofertas para mais achadinhos como esse!\n#utilidades #maquiagem #feminina #feminino #mulher #importado #roupa #girl #chique ${post.hashtags || ''}`;
+                descriptionNew = `💛 Gostou comenta "${comenta}" para LINK no direct 🔥\n\nAnúncio N.º: ${ordenacao}\nNos Stories de hoje �\nNo Grupo de Ofertas-Link na Bio 🔥\nSiga @carlaindicaofertas para mais achadinhos como esse!\n#utilidades #maquiagem #feminina #feminino #mulher #importado #roupa #girl #chique ${post.hashtags || ''}`;
             }
             return descriptionNew;
         }
@@ -2172,7 +2221,6 @@
                 headers['Authorization'] = `Basic ${state.authToken}`;
             }
 
-            // Adiciona company_id a todas as requisições
             if (state.companyId) {
                 if (options.body && typeof options.body === 'string' && options.method !== 'GET') {
                     try {
@@ -2200,7 +2248,7 @@
                 const response = await fetch(url, fetchOptions);
 
                 if (response.status === 401) { 
-                    showAlert("Sua sessão expirou ou é inválida. Por favor, faça o login novamente.");
+                    showAlert("A sua sessão expirou ou é inválida. Por favor, faça o login novamente.");
                     handleLogout(); 
                     throw new Error("Sessão expirada.");
                 }
@@ -2213,7 +2261,11 @@
         }
 
         async function fetchData() {
-            showLoading("Carregando dados...");
+            if (!state.activeAccount || !state.activeMediaType) {
+                console.log("Nenhuma conta ou tipo de mídia ativo. A saltar a busca de dados.");
+                return;
+            }
+            showLoading("A carregar dados...");
             
             let baseUrl = '';
             const params = new URLSearchParams();
@@ -2234,7 +2286,6 @@
 
             params.append('page', state.currentPage);
             params.append('limit', state.itemsPerPage);
-            // company_id será adicionado pelo fetchWithAuth
 
             let url = `${baseUrl}?${params.toString()}`;
 
@@ -2278,46 +2329,11 @@
                 renderPaginationControls();
             }
         }
-
-        // Função para salvar o estado atual no localStorage
-        function saveAppState() {
-            const appState = {
-                activeAccount: state.activeAccount,
-                activeMediaType: state.activeMediaType,
-                currentPage: state.currentPage
-            };
-            localStorage.setItem('appState', JSON.stringify(appState));
-            console.log("Estado da aplicação salvo:", appState); // Para depuração
-        }
         
-        function trocarAba(account, type) {
-            state.activeAccount = account;
-            state.activeMediaType = type;
-            state.currentPage = 1;
-
-            // Salva o novo estado no localStorage
-            saveAppState();
-
-            showMainContent();
-            renderSidebarMenu();
-            const mainContentEl = document.querySelector('.main-content');
-            if (mainContentEl) mainContentEl.scrollTo({ top: 0, behavior: 'smooth' });
-            fetchData();
-            
-            if (window.innerWidth <= 992) {
-                document.body.classList.remove('sidebar-collapsed');
-            }
-        }
-
         function changePage(page) {
             state.currentPage = page;
-
-            // Salva o novo estado no localStorage
-            saveAppState();
-
-            const mainContentEl = document.querySelector('.main-content');
-            if (mainContentEl) mainContentEl.scrollTo({ top: 0, behavior: 'smooth' });
-            fetchData();
+            const currentHash = window.location.hash.split('?')[0];
+            navigateTo(currentHash.slice(2).split('/')[0], currentHash.slice(2).split('/').slice(1), { page });
         }
 
         // --- Handlers de Ações (Salvar, Excluir, etc) ---
@@ -2664,33 +2680,33 @@
                 type: tipoDoLinkOriginal 
             }; 
             showLoading("Copiando link por ID..."); 
-                try { 
-                    const response = await fetchWithAuth(API_URLS.COPY_LINK_BY_ID, { 
-                        method: "POST", 
-                        body: JSON.stringify(payload) 
-                    }); 
-                    const responseText = await response.text(); 
-                    if (!response.ok) { 
-                        throw new Error(`Erro HTTP ao copiar link: ${response.status} - ${responseText}`); 
-                    } 
-                    let resultMessage = responseText; 
-                    try { 
-                        const jsonResult = JSON.parse(responseText); 
-                        resultMessage = jsonResult.message || responseText; 
-                    } catch (e) { 
-                        // Deixar resultMessage como responseText 
-                    } 
-                    showAlert(resultMessage || "✅ Link copiado com sucesso!"); 
-                    closeModal(modalCopyLinkById); 
-                    if (modalAddLinks.style.display === 'flex' && linkFormPostId.value) { 
-                        handleOpenLinkModal({ target: { dataset: { id: linkFormPostId.value, type: tipoDoLinkOriginal } } }); 
-                    } 
-                } catch (error) { 
-                    console.error("Erro ao copiar link por ID:", error); 
-                    showAlert(`Erro ao copiar link: ${error.message}`); 
-                } finally { 
-                    hideLoading(); 
-                } 
+                 try { 
+                     const response = await fetchWithAuth(API_URLS.COPY_LINK_BY_ID, { 
+                         method: "POST", 
+                         body: JSON.stringify(payload) 
+                     }); 
+                     const responseText = await response.text(); 
+                     if (!response.ok) { 
+                         throw new Error(`Erro HTTP ao copiar link: ${response.status} - ${responseText}`); 
+                     } 
+                     let resultMessage = responseText; 
+                     try { 
+                         const jsonResult = JSON.parse(responseText); 
+                         resultMessage = jsonResult.message || responseText; 
+                     } catch (e) { 
+                         // Deixar resultMessage como responseText 
+                     } 
+                     showAlert(resultMessage || "✅ Link copiado com sucesso!"); 
+                     closeModal(modalCopyLinkById); 
+                     if (modalAddLinks.style.display === 'flex' && linkFormPostId.value) { 
+                         handleOpenLinkModal({ target: { dataset: { id: linkFormPostId.value, type: tipoDoLinkOriginal } } }); 
+                     } 
+                 } catch (error) { 
+                     console.error("Erro ao copiar link por ID:", error); 
+                     showAlert(`Erro ao copiar link: ${error.message}`); 
+                 } finally { 
+                     hideLoading(); 
+                 } 
             });
 
         // --- Funções para Ofertas WhatsApp ---
@@ -2793,8 +2809,8 @@
             if (imageUrl) {
                 const src = imageUrl.startsWith('http') ? imageUrl : `data:image/jpeg;base64,${imageUrl}`;
                 imageHtml = `<div class="wpp-image-container" data-id="${item.id}" title="Ver/Editar Imagem">
-                                    <img src="${src}" class="table-image-preview" alt="Preview">
-                                 </div>`;
+                                     <img src="${src}" class="table-image-preview" alt="Preview">
+                                   </div>`;
             }
 
             return `
@@ -3033,26 +3049,18 @@
         }
 
         // --- Funções de Gerenciamento de Contas ---
-        function showMainContent() {
-            state.currentView = 'main';
+        async function showMediaContent(account, type) {
+            state.activeAccount = account;
+            state.activeMediaType = type;
+            
             contentDisplayArea.style.display = 'block';
-            socialAccountsContentArea.style.display = 'none';
-            whatsappGroupsContentArea.style.display = 'none';
-            companiesContentArea.style.display = 'none';
-            usersContentArea.style.display = 'none';
             paginationContainer.style.display = 'flex';
-            renderItems();
-            renderPaginationControls();
+
+            await fetchData();
         }
         
         async function showSocialAccountsPage() {
-            state.currentView = 'accounts';
-            contentDisplayArea.style.display = 'none';
             socialAccountsContentArea.style.display = 'block';
-            whatsappGroupsContentArea.style.display = 'none';
-            companiesContentArea.style.display = 'none';
-            usersContentArea.style.display = 'none';
-            paginationContainer.style.display = 'none';
             await fetchSocialAccounts();
             renderSocialAccountsPage();
         }
@@ -3253,13 +3261,7 @@
         
         // --- Funções para Gerenciamento de Grupos WhatsApp ---
         async function showWhatsappGroupsPage() {
-            state.currentView = 'whatsapp-groups';
-            contentDisplayArea.style.display = 'none';
-            socialAccountsContentArea.style.display = 'none';
             whatsappGroupsContentArea.style.display = 'block';
-            companiesContentArea.style.display = 'none';
-            usersContentArea.style.display = 'none';
-            paginationContainer.style.display = 'none';
             await fetchWhatsappGroups();
             renderWhatsappGroupsPage();
         }
@@ -3427,15 +3429,9 @@
 
         // --- Funções de Admin (Empresas e Usuários) ---
         async function showCompaniesPage() {
-            state.currentView = 'companies';
-            contentDisplayArea.style.display = 'none';
-            socialAccountsContentArea.style.display = 'none';
-            whatsappGroupsContentArea.style.display = 'none';
-            companiesContentArea.style.display = 'block'; // Mostra a área de empresas
-            usersContentArea.style.display = 'none';
-            paginationContainer.style.display = 'none';
-            await fetchCompanies(); // Busca as empresas
-            renderCompaniesPage(); // Renderiza a página de empresas
+            companiesContentArea.style.display = 'block';
+            await fetchCompanies();
+            renderCompaniesPage();
         }
 
         function handleEditCompanyDataModal(company) {
@@ -3470,7 +3466,7 @@
 
                 showAlert("Dados da empresa atualizados com sucesso!");
                 closeModal(document.getElementById('modalEditCompany'));
-                await fetchCompanies(); // Recarrega as empresas para atualizar a tabela
+                await fetchCompanies();
                 renderCompaniesPage();
             } catch (error) {
                 showAlert(`Erro ao salvar dados da empresa: ${error.message}`);
@@ -3482,16 +3478,10 @@
         async function fetchCompanies() {
             showLoading("Carregando empresas...");
             try {
-                // A requisição para /companies precisa do company_id do usuário logado
-                // Mas para um admin gerenciar *todas* as empresas, talvez a API precise de um endpoint diferente
-                // Ou o endpoint atual lista todas as empresas visíveis ao admin.
-                // Vou assumir que o fetchWithAuth já injeta o company_id do usuário logado,
-                // e que o backend retornará as empresas que este usuário pode ver/gerenciar.
                 const response = await fetchWithAuth(API_URLS.COMPANIES_CRUD);
                 if (!response.ok) throw new Error("Não foi possível carregar as empresas.");
                 const result = await response.json();
                 state.companies = Array.isArray(result.data) ? result.data : [];
-                console.log("Empresas carregadas:", state.companies);
             } catch (error) {
                 if (error.message !== "Sessão expirada.") {
                     showAlert(`Erro ao carregar empresas: ${error.message}`);
@@ -3507,14 +3497,6 @@
             const headerDiv = document.createElement('div');
             headerDiv.className = 'page-header';
             headerDiv.innerHTML = `<h2>Gerenciamento de Empresas</h2>`;
-
-            // Botão para criar empresa (se houver essa funcionalidade para o admin)
-            // const createBtn = document.createElement('button');
-            // createBtn.className = 'btn-primary';
-            // createBtn.textContent = 'Criar Nova Empresa';
-            // createBtn.addEventListener('click', () => { /* Abrir modal de criação de empresa */ });
-            // headerDiv.appendChild(createBtn);
-
             companiesContentArea.appendChild(headerDiv);
 
             if (state.companies.length === 0) {
@@ -3556,8 +3538,7 @@
             tableContainer.appendChild(table);
             companiesContentArea.appendChild(tableContainer);
 
-            // Adiciona listeners aos botões
-            table.querySelectorAll('.btn-edit-company-data').forEach(btn => { // NOVO: Listener para editar dados da empresa
+            table.querySelectorAll('.btn-edit-company-data').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const companyId = e.target.closest('tr').dataset.companyId;
                     const company = state.companies.find(c => c.id == companyId);
@@ -3569,7 +3550,6 @@
                 });
             });
 
-            // Adiciona listeners aos botões de gerenciar módulos
             table.querySelectorAll('.btn-edit-company-modules').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const companyId = e.target.closest('tr').dataset.companyId;
@@ -3598,7 +3578,6 @@
             document.getElementById('editCompanyModulesId').value = company.id;
             document.getElementById('editCompanyModulesName').textContent = company.name;
 
-            // Preenche os checkboxes com base nos módulos atuais da empresa
             document.getElementById('moduleInstagram').checked = company.modules?.instagram || false;
             document.getElementById('moduleFacebook').checked = company.modules?.facebook || false;
             document.getElementById('moduleThreads').checked = company.modules?.threads || false;
@@ -3631,9 +3610,9 @@
 
                 showAlert("Módulos da empresa atualizados com sucesso!");
                 closeModal(document.getElementById('modalEditCompanyModules'));
-                await fetchCompanies(); // Recarrega as empresas para atualizar a tabela
+                await fetchCompanies();
                 renderCompaniesPage();
-                renderSidebarMenu(); // Atualiza a sidebar com base nos novos módulos (próximo passo)
+                renderSidebarMenu();
             } catch (error) {
                 showAlert(`Erro ao salvar módulos: ${error.message}`);
             } finally {
@@ -3642,13 +3621,7 @@
         }
 
         async function showUsersPage() {
-            state.currentView = 'users';
-            contentDisplayArea.style.display = 'none';
-            socialAccountsContentArea.style.display = 'none';
-            whatsappGroupsContentArea.style.display = 'none';
-            companiesContentArea.style.display = 'none';
             usersContentArea.style.display = 'block';
-            paginationContainer.style.display = 'none';
             await fetchUsers();
             renderUsersPage();
         }
@@ -3684,13 +3657,12 @@
                 document.getElementById('userId').value = ''; // Limpa o ID para criação
                 document.getElementById('userModalTitle').textContent = 'Criar Novo Login';
                 userPasswordField.style.display = 'block'; // Mostra o campo de senha na criação
-                // Define valores padrão para criação
                 userNameInput.value = '';
                 document.getElementById('userEmail').value = '';
                 document.getElementById('userPassword').value = '';
-                userIsActiveCheckbox.checked = true; // Novo usuário geralmente ativo por padrão
+                userIsActiveCheckbox.checked = true;
                 userAdminCheckbox.checked = false;
-                userDarkThemeCheckbox.checked = false; // Tema padrão claro
+                userDarkThemeCheckbox.checked = false;
                 openModal(modalUser);
             });
             headerDiv.appendChild(createBtn);
@@ -3737,7 +3709,6 @@
             tableContainer.appendChild(table);
             usersContentArea.appendChild(tableContainer);
 
-            // Adicione os listeners para os novos botões "Editar" na tabela de usuários
             table.querySelectorAll('.btn-edit-user').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const userId = e.target.closest('tr').dataset.userId;
@@ -3756,8 +3727,8 @@
             document.getElementById('userId').value = user.id;
             userNameInput.value = user.name || '';
             document.getElementById('userEmail').value = user.email || '';
-            userPasswordField.style.display = 'none'; // Esconde o campo de senha na edição
-            document.getElementById('userPassword').removeAttribute('required'); // Remove a validação 'required'
+            userPasswordField.style.display = 'none';
+            document.getElementById('userPassword').removeAttribute('required');
             userIsActiveCheckbox.checked = user.is_active || false;
             userAdminCheckbox.checked = user.admin || false;
             userDarkThemeCheckbox.checked = user.dark_theme || false;
@@ -3767,7 +3738,7 @@
         
         async function handleUserFormSubmit(event) {
             event.preventDefault();
-            const userId = document.getElementById('userId').value; // Se houver ID, é edição
+            const userId = document.getElementById('userId').value;
             const isEditing = !!userId;
 
             const payload = {
@@ -3775,8 +3746,8 @@
                 email: document.getElementById('userEmail').value.trim(),
                 is_active: userIsActiveCheckbox.checked,
                 admin: userAdminCheckbox.checked,
-                dark_theme: userDarkThemeCheckbox.checked, // Adiciona o dark_theme aqui também
-                company_id: state.companyId // Garante que o company_id é enviado
+                dark_theme: userDarkThemeCheckbox.checked,
+                company_id: state.companyId
             };
 
             let method = 'POST';
@@ -3785,12 +3756,7 @@
             if (isEditing) {
                 payload.id = userId;
                 method = 'PUT';
-                // A senha não deve ser enviada se não for explicitamente alterada,
-                // seu backend deve lidar com isso (ignorar senha vazia em PUTs)
-                // Ou você pode ter um campo de "Nova Senha" separado que só é enviado se preenchido.
-                // Por simplicidade, se for edição, não enviamos a senha a menos que haja um campo separado para isso.
-                // Se você tiver um campo "Nova Senha", adicione a lógica aqui.
-            } else { // Criação
+            } else {
                 payload.password = document.getElementById('userPassword').value;
                 if (!payload.password) {
                     showAlert("A senha é obrigatória para novos logins.");
@@ -3809,13 +3775,12 @@
 
                 showAlert(isEditing ? "Login atualizado com sucesso!" : "Login criado com sucesso!");
                 closeModal(modalUser);
-                await fetchUsers(); // Recarrega os usuários para atualizar a tabela
+                await fetchUsers();
                 renderUsersPage();
             } catch (error) {
                 showAlert(`Erro: ${error.message}`);
             } finally {
                 hideLoading();
-                // Restaura a validação 'required' para o campo de senha para a próxima vez que o modal for aberto para CRIAÇÃO
                 document.getElementById('userPassword').setAttribute('required', 'true');
             }
         }
@@ -3854,7 +3819,9 @@
             state.companyId = null;
             localStorage.removeItem('authToken');
             localStorage.removeItem('companyId');
+            localStorage.removeItem('currentUser');
             
+            window.location.hash = ''; // Limpa o hash para voltar à página de login
             window.location.reload();
         }
 
@@ -3882,14 +3849,12 @@
                     message: `Erro no servidor: ${response.statusText}`
                 }));
 
-                // Verifica se a resposta foi bem-sucedida e contém os dados necessários
                 if (response.ok && responseData.token && responseData.company_id && responseData.user) {
                     localStorage.setItem('authToken', responseData.token);
                     localStorage.setItem('companyId', responseData.company_id);
-                    // Salva o objeto completo do usuário, incluindo a preferência de tema
                     localStorage.setItem('currentUser', JSON.stringify(responseData.user));
 
-                    window.location.reload(); // Recarrega para aplicar as configurações e inicializar o app
+                    window.location.reload();
                 } else {
                     loginError.textContent = responseData.message || 'E-mail ou senha inválidos.';
                 }
@@ -3938,7 +3903,6 @@
         }
 
         async function initMainApp() {
-            state.currentView = 'main';
             sidebar = document.getElementById('sidebar');
             contentDisplayArea = document.getElementById('contentDisplayArea');
             socialAccountsContentArea = document.getElementById('socialAccountsContentArea');
@@ -3955,25 +3919,8 @@
                 fetchCompanies()
             ]);
             
-            if (state.socialAccounts.length > 0) {
-                const sortedAccounts = [...state.socialAccounts].sort((a, b) => (a.ordenacao || 999) - (b.ordenacao || 999));
-                state.activeAccount = sortedAccounts[0].nome_conta;
-                state.activeMediaType = 'reels'; 
-            } else if (state.whatsappGroups.length > 0) {
-                const sortedGroups = [...state.whatsappGroups].sort((a, b) => (a.ordenacao || 999) - (b.ordenacao || 999));
-                state.activeAccount = 'WhatsApp';
-                state.activeMediaType = sortedGroups[0].group_name;
-            }
-            else {
-                showSocialAccountsPage();
-            }
-
-            renderSidebarMenu();
-            if(state.currentView === 'main') {
-                await fetchData();
-            }
-
             setupEventListeners();
+            await router(); // Chama o roteador para carregar a view inicial
         }
 
         // --- Funções para o modal de post agendado ---
@@ -4073,30 +4020,27 @@
 
             document.getElementById('themeToggle').addEventListener('click', async () => {
                 const isDark = document.body.classList.toggle('dark-theme');
-                // Atualiza a posição do círculo do toggle
                 document.getElementById('themeToggle').querySelector('.toggle-circle').style.transform = isDark ? 'translateX(24px)' : 'translateX(2px)';
 
                 if (state.authToken && state.currentUser && state.currentUser.id) {
                     showLoading("Salvando tema...");
                     try {
                         const payload = {
-                            id: state.currentUser.id, // ID do usuário logado
+                            id: state.currentUser.id,
                             dark_theme: isDark
                         };
-                        const response = await fetchWithAuth(API_URLS.USERS_CRUD, { // Usando USERS_CRUD para atualização
+                        const response = await fetchWithAuth(API_URLS.USERS_CRUD, {
                             method: 'PUT',
                             body: JSON.stringify(payload)
                         });
                         if (!response.ok) throw new Error(await response.text());
 
-                        // Atualiza o estado local do usuário e o localStorage
                         state.currentUser.dark_theme = isDark;
                         localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
                         showAlert("Tema salvo automaticamente!");
                     } catch (error) {
                         console.error("Erro ao salvar tema:", error);
                         showAlert(`Erro ao salvar tema: ${error.message}`);
-                        // Reverte a UI se o salvamento falhar
                         document.body.classList.toggle('dark-theme');
                         document.getElementById('themeToggle').querySelector('.toggle-circle').style.transform = isDark ? 'translateX(2px)' : 'translateX(24px)';
                     } finally {
@@ -4209,15 +4153,9 @@
                 });
             });
 
-            // Listener para o formulário de edição de módulos da empresa
             document.getElementById('formEditCompanyModules').addEventListener('submit', handleSaveCompanyModules);
-
-            // Listener para o formulário de edição de dados da empresa
             document.getElementById('formEditCompany').addEventListener('submit', handleSaveCompanyData);
-
-            // Listener para o formulário de criação/edição de usuário
             document.getElementById('formUser').addEventListener('submit', handleUserFormSubmit);
-
         }
 
         // --- Ponto de Entrada da Aplicação ---
@@ -4241,7 +4179,6 @@
                 registerContainer.style.display = 'none';
             });
 
-            // CORREÇÃO: Listeners dos modais devem ser registrados sempre
             document.querySelectorAll('.modal-close-btn, .modal-close-btn-alternative').forEach(btn => {
                 btn.addEventListener('click', (event) => {
                     const modalId = event.target.dataset.modalId;
@@ -4280,9 +4217,7 @@
                         isLoggedIn = true;
                     } catch (e) {
                         console.error("Erro ao parsear 'currentUser' do localStorage. Limpando dados de login.", e);
-                        localStorage.removeItem('authToken');
-                        localStorage.removeItem('companyId');
-                        localStorage.removeItem('currentUser');
+                        handleLogout(); // Limpa tudo se os dados estiverem corrompidos
                     }
                 }
             }
@@ -4291,25 +4226,10 @@
                 loginContainer.style.display = 'none';
                 registerContainer.style.display = 'none';
                 appContainer.style.display = 'flex';
+                
+                // Adiciona o listener para mudanças no hash (botões de voltar/avançar do navegador)
+                window.addEventListener('hashchange', router);
 
-                // NOVO: Tenta carregar o estado da aplicação do localStorage
-                const savedAppState = localStorage.getItem('appState');
-                if (savedAppState) {
-                    try {
-                        const appState = JSON.parse(savedAppState);
-
-                        state.activeAccount = appState.activeAccount || state.activeAccount;
-                        state.activeMediaType = appState.activeMediaType || state.activeMediaType;
-                        state.currentPage = appState.currentPage || 1;
-                        console.log("Estado da aplicação carregado:", appState); // Para depuração
-
-                    } catch (e) {
-                        console.error("Erro ao parsear 'appState' do localStorage. Usando estado padrão.", e);
-                        localStorage.removeItem('appState'); // Limpa estado corrompido
-                    }
-                }
-
-                // Inicializa o aplicativo principal após tentar carregar o estado
                 initMainApp();
             } else {
                 loginContainer.style.display = 'flex';
