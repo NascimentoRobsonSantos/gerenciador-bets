@@ -48,7 +48,6 @@
 
         html, body {
             height: 100%;
-            overflow: hidden; /* Previne scroll no body */
         }
 
         body {
@@ -176,7 +175,7 @@
             flex-grow: 1;
             margin-top: 60px; /* Altura do header */
             height: calc(100vh - 60px);
-            overflow: hidden; /* Previne scroll duplo */
+            /* overflow: hidden; Previne scroll duplo */
         }
 
         .sidebar {
@@ -273,7 +272,29 @@
         }
         
         .sidebar-actions {
-            display: none;
+            margin-top: 20px; /* Adiciona algum espaçamento */
+            /* display: block; ou display: flex; flex-direction: column; para vertical */
+            display: block; /* Torna o grupo visível sempre */
+            padding: 10px; /* Adicione padding para o grupo se precisar */
+            border: 1px solid var(--border-color); /* Para visualização */
+            border-radius: 8px; /* Para visualização */
+            background-color: var(--card-bg-color); /* Para visualização */
+        }
+
+        .sidebar-actions ul {
+            display: flex;
+            flex-wrap: wrap; /* Permite quebrar linha em telas menores */
+            gap: 10px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-actions .submenu-item {
+            flex-grow: 1; /* Permite que os itens preencham o espaço */
+            text-align: center;
+            padding: 8px 12px; /* Ajuste o padding para botões */
+            /* ... outros estilos de botão existentes ... */
         }
 
         @media (max-width: 992px) { 
@@ -284,6 +305,7 @@
             }
             .header-actions, .settings-container { display: none; }
             .sidebar-actions { display: block; }
+            .sidebar-actions ul { flex-direction: column; }
         }
 
         button {
@@ -1642,6 +1664,12 @@
                 .finally(hideLoading);
         }
 
+        // Função auxiliar para fechar a sidebar no mobile
+        function closeSidebarIfMobile() {
+            if (window.innerWidth <= 992) {
+                document.body.classList.add('sidebar-collapsed'); // Garante que fecha
+            }
+        }
 
         // --- Funções de Renderização ---
         function renderSidebarMenu() {
@@ -1718,9 +1746,7 @@
                         li.addEventListener('click', (e) => {
                             e.stopPropagation();
                             navigateTo('media', [account.nome_conta, mediaType.key]);
-                            if (window.innerWidth <= 992) {
-                                document.body.classList.add('sidebar-collapsed');
-                            }
+                            closeSidebarIfMobile();
                         });
                         accountSubmenu.appendChild(li);
                     });
@@ -1764,9 +1790,7 @@
                     li.addEventListener('click', (e) => {
                         e.stopPropagation();
                         navigateTo('media', ['WhatsApp', group.group_name]);
-                         if (window.innerWidth <= 992) {
-                            document.body.classList.add('sidebar-collapsed');
-                        }
+                        closeSidebarIfMobile();
                     });
                     whatsappSubmenu.appendChild(li);
                 });
@@ -1794,16 +1818,19 @@
             });
             
             configSubmenu.innerHTML = `
-                <li class="submenu-item ${currentHash.includes('companies') ? 'active' : ''}" onclick="navigateTo('settings', ['companies'])">Empresas</li>
-                <li class="submenu-item ${currentHash.includes('users') ? 'active' : ''}" onclick="navigateTo('settings', ['users'])">Usuários</li>
-                <li class="submenu-item ${currentHash.includes('accounts') ? 'active' : ''}" onclick="navigateTo('settings', ['accounts'])">Redes Sociais</li>
-                <li class="submenu-item ${currentHash.includes('whatsapp-groups') ? 'active' : ''}" onclick="navigateTo('settings', ['whatsapp-groups'])">Grupos WhatsApp</li>
-                <li class="submenu-item" id="menu-keyword">Palavra Chave</li>
+                <li class="submenu-item" id="menu-companies">Empresas</li>
+                <li class="submenu-item" id="menu-users">Usuários</li>
+                <li class="submenu-item" id="menu-accounts">Redes Sociais</li>
+                <li class="submenu-item" id="menu-whatsapp-groups-config">Grupos WhatsApp</li> <li class="submenu-item" id="menu-keyword">Palavra Chave</li>
                 <li class="submenu-item" id="menu-logout">Logout</li>
             `;
 
-            configSubmenu.querySelector('#menu-keyword').addEventListener('click', handleIncluirPalavra);
-            configSubmenu.querySelector('#menu-logout').addEventListener('click', handleLogout);
+            configSubmenu.querySelector('#menu-companies').addEventListener('click', () => { navigateTo('settings', ['companies']); closeSidebarIfMobile(); });
+            configSubmenu.querySelector('#menu-users').addEventListener('click', () => { navigateTo('settings', ['users']); closeSidebarIfMobile(); });
+            configSubmenu.querySelector('#menu-accounts').addEventListener('click', () => { navigateTo('settings', ['accounts']); closeSidebarIfMobile(); });
+            configSubmenu.querySelector('#menu-whatsapp-groups-config').addEventListener('click', () => { navigateTo('settings', ['whatsapp-groups']); closeSidebarIfMobile(); }); // Usar o novo ID
+            configSubmenu.querySelector('#menu-keyword').addEventListener('click', () => { handleIncluirPalavra(); closeSidebarIfMobile(); });
+            configSubmenu.querySelector('#menu-logout').addEventListener('click', handleLogout); // Logout já pode fechar sozinho ou recarregar
 
             configGroup.appendChild(configParent);
             configGroup.appendChild(configSubmenu);
@@ -2289,7 +2316,7 @@
             
             if (state.activeAccount === 'WhatsApp') {
                 baseUrl = url_base + API_URLS.WHATSAPP;
-                params.append('conta_user_instagram', state.activeMediaType);
+                params.append('conta_user_instagram', encodeURIComponent(state.activeMediaType));
             } else {
                 const mediaTypeConfig = MEDIA_TYPES.find(mt => mt.key === state.activeMediaType);
                 if (!mediaTypeConfig) {
@@ -2298,7 +2325,7 @@
                     return;
                 }
                 baseUrl = url_base + mediaTypeConfig.endpoint;
-                params.append('conta_user_instagram', state.activeAccount);
+                params.append('conta_user_instagram', encodeURIComponent(state.activeAccount));
             }
 
             params.append('page', state.currentPage);
@@ -4036,34 +4063,6 @@
             }
 
             showLoading("Gerando anúncio...");
-            // try {
-            //     const response = await fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, {
-            //         method: 'POST',
-            //         body: JSON.stringify({ url: url })
-            //     });
-            //     const data = await response.json();
-            //     if (!response.ok) throw new Error(data.message || "Não foi possível buscar os dados do link.");
-
-            //     // Popula os campos com os dados retornados
-            //     if (data.message) {
-            //         document.getElementById('createWppMessage').value = data.message;
-            //     }
-            //     if (data.image_base64) {
-            //         state.newImageBase64 = data.image_base64;
-            //         document.getElementById('createWppImagePreview').src = `data:image/jpeg;base64,${data.image_base64}`;
-            //     }
-            //      if (data.loja) {
-            //         document.getElementById('createWppLoja').value = data.loja;
-            //     }
-
-            //     showAlert("Dados do anúncio gerados com sucesso!");
-            //     closeModal(btnGenerateAd); 
-            // } catch (error) {
-            //     console.error("Erro ao gerar anúncio do link:", error);
-            //     showAlert(`Erro: ${error.message}`);
-            // } finally {
-            //     hideLoading();
-            // }
             fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, { method: "POST", body: JSON.stringify({ url: url }) })
                 .then(async response => { if (!response.ok) throw new Error(await response.text()); return response.json(); })
                 .then(() => { showAlert('Anúncio criado com sucesso!'); closeModal(modalCreateWhatsapp); fetchData(); })
@@ -4162,7 +4161,14 @@
              }
 
             document.getElementById('menuToggleBtn').addEventListener('click', () => {
-                document.body.classList.toggle('sidebar-collapsed');
+                document.body.classList.toggle('sidebar-collapsed'); // Este alterna
+            });
+
+            document.querySelector('.app-body').addEventListener('click', (e) => {
+                // Se a sidebar não está colapsada (está aberta) E o clique não foi dentro da sidebar
+                if (!document.body.classList.contains('sidebar-collapsed') && !sidebar.contains(e.target) && !document.getElementById('menuToggleBtn').contains(e.target)) {
+                    closeSidebarIfMobile();
+                }
             });
 
             document.getElementById('themeToggle').addEventListener('click', async () => {
