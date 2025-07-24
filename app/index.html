@@ -2603,8 +2603,14 @@
                 const data = await res.json();
 
                 if (state.currentView === 'media') {
-                    state.items = data.items || [];
-                    state.totalItems = data.total_items || 0;
+                    // A API retorna um array contendo um objeto com 'data' e 'totalItems'
+                    if (Array.isArray(data) && data.length > 0 && data[0]) {
+                        state.items = data[0].data || [];
+                        state.totalItems = data[0].totalItems || 0;
+                    } else {
+                        state.items = [];
+                        state.totalItems = 0;
+                    }
                 } else if (state.currentView === 'settings') {
                     const settingsView = window.location.hash.split('/')[2];
                     switch(settingsView) {
