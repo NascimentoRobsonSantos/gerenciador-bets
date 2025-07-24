@@ -1,14 +1,26 @@
-name: Deploy to VPS via Portainer
+name: Deploy automático para VPS
 
 on:
   push:
     branches:
-      - main
+      - main  # ou outra branch principal
 
 jobs:
   deploy:
+    name: Deploy via SSH
     runs-on: ubuntu-latest
+
     steps:
-      - name: Trigger Portainer webhook
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Configurar chave SSH
         run: |
-          curl -X POST https://portainer.storeprodigital.site/api/stacks/webhooks/97965a1d-cba7-420c-bbab-4a35047c763e
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Rodar script remoto via SSH
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "bash /root/gerenciador-post/deploy.sh"

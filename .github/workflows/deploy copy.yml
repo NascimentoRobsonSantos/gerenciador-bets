@@ -1,0 +1,14 @@
+name: Deploy to VPS via Portainer
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Portainer webhook
+        run: |
+          curl -X POST https://portainer.storeprodigital.site/api/stacks/webhooks/97965a1d-cba7-420c-bbab-4a35047c763e
