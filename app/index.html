@@ -1197,13 +1197,6 @@
                             </select>
                         </div>
                         <div>
-                            <label for="editWppGrupo">Grupo:</label>
-                            <select id="editWppGrupo" required>
-                                <option value="">Selecione um grupo</option>
-                                <!-- Options will be populated by JS -->
-                            </select>
-                        </div>
-                        <div>
                             <label for="editWppMessage">Mensagem:</label>
                             <textarea id="editWppMessage" rows="9" required></textarea>
                         </div>
@@ -3110,7 +3103,6 @@
             const payload = {
                 id: id,
                 loja: document.getElementById('editWppLoja').value,
-                grupo: document.getElementById('editWppGrupo').value,
                 message_parte1: document.getElementById('editWppMessage').value,
                 url_production: document.getElementById('editWppUrl').value,
                 conta_user_instagram: accountName
@@ -3178,7 +3170,7 @@
             const itemData = state.filteredItems.find(item => item.id == id);
             if (!itemData) return;
 
-            const confirmed = await showConfirm(`Tem certeza que deseja POSTAR a oferta de WhatsApp ID ${id}?`);
+            const confirmed = await showConfirm(`Tem certeza que deseja POSTAR a oferta?`);
             if (!confirmed) return;
             
             const accountName = decodeURIComponent(state.activeMediaType); // CORREÇÃO
@@ -3225,7 +3217,7 @@
         async function handleCreateOfferSubmit(event) {
             event.preventDefault();
 
-            const accountName = state.activeMediaType; // CORREÇÃO
+            const accountName = decodeURIComponent(state.activeMediaType); // CORREÇÃO
 
             const payload = {
                 loja: document.getElementById('createWppLoja').value,
