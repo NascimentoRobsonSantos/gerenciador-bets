@@ -3030,8 +3030,7 @@
                 <thead>
                     <tr>
                         <th>Loja</th>
-                        <th>Grupo</th>
-                        <th>Mensagem</th>
+                        <th>Comissão</th> <th>Mensagem</th>
                         <th>URL</th>
                         <th>Imagem</th>
                         <th>Criado em</th>
@@ -3084,16 +3083,10 @@
             const id = event.currentTarget.dataset.id;
             const itemData = state.filteredItems.find(item => item.id == id);
             if (!itemData) return;
-            state.newImageBase64 = null; // Limpa a imagem anterior
-
-            await fetchWhatsappGroups(); // Garante que os grupos estão carregados
+            state.newImageBase64 = null;
 
             document.getElementById('editWppId').value = itemData.id;
             document.getElementById('editWppLoja').value = itemData.loja || '';
-            
-            const grupoSelect = document.getElementById('editWppGrupo');
-            populateGroupSelect(grupoSelect, state.whatsappGroups, itemData.grupo);
-            
             document.getElementById('editWppMessage').value = itemData.message_parte1 || '';
             document.getElementById('editWppUrl').value = itemData.url_production || '';
             
@@ -3102,13 +3095,13 @@
             let originalImageUrl = '';
 
             if (itemData.image_base64 && itemData.image_base64.startsWith('http')) {
-                 originalImageUrl = itemData.image_base64;
-                 preview.src = originalImageUrl;
+                originalImageUrl = itemData.image_base64;
+                preview.src = originalImageUrl;
             } else if (itemData.image_base64) {
-                 originalImageUrl = `data:image/jpeg;base64,${itemData.image_base64}`;
-                 preview.src = originalImageUrl;
+                originalImageUrl = `data:image/jpeg;base64,${itemData.image_base64}`;
+                preview.src = originalImageUrl;
             } else {
-                 preview.src = 'https://placehold.co/200x200/cccccc/ffffff?text=Sem+Imagem';
+                preview.src = 'https://placehold.co/200x200/cccccc/ffffff?text=Sem+Imagem';
             }
 
             if (originalImageUrl) {
@@ -3119,7 +3112,6 @@
             }
             
             document.getElementById('editWppNewImage').value = '';
-
             openModal(modalEditWhatsapp);
         }
 
