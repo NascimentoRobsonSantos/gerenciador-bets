@@ -2567,7 +2567,7 @@
                 } else {
                     const mediaTypeConfig = MEDIA_TYPES.find(m => m.key === state.activeMediaType);
                     if (mediaTypeConfig) {
-                        endpoint = `${url_base}${mediaTypeConfig.endpoint}?conta_user_10_instagram=${encodeURIComponent(state.activeAccount)}&page=${state.currentPage}&limit=${state.itemsPerPage}`;
+                        endpoint = `${url_base}${mediaTypeConfig.endpoint}?conta_user_1_instagram=${encodeURIComponent(state.activeAccount)}&page=${state.currentPage}&limit=${state.itemsPerPage}`;
                     }
                 }
             } else if (state.currentView === 'settings') {
