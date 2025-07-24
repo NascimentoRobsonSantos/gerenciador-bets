@@ -2089,8 +2089,9 @@
 
             if (item.media_type === 'IMAGE' || item.media_type === 'CAROUSEL_ALBUM') {
                 const primaryImg = item.story_thumbnail || item.media_url;
+                const primaryImg2 = item.media_url;
                  if (primaryImg) {
-                     mediaContainer.innerHTML = `<img src="${primaryImg}" onerror="this.onerror=null; this.src='${placeholder}';" alt="Mídia do post">`;
+                     mediaContainer.innerHTML = `<img src="${primaryImg}" onerror="this.onerror=null; this.src='${primaryImg2}';" alt="Mídia do post">`;
                 } else {
                      mediaContainer.innerHTML = `<span>Imagem indisponível</span>`;
                 }
