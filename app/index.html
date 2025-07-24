@@ -2544,7 +2544,7 @@
 
             // Esconde a paginação e limpa a área de itens para uma transição mais suave
             if (paginationContainer) paginationContainer.style.display = 'none';
-            if (mediaItemsWrapper && state.currentView === 'media') {
+            if (mediaItemsWrapper && state.currentView === 'media' && state.activeAccount !== 'WhatsApp') {
                 mediaItemsWrapper.innerHTML = '';
             }
 
@@ -2605,6 +2605,17 @@
                 if (state.currentView === 'media') {
                     if (state.activeAccount === 'WhatsApp') {
                         // WhatsApp API retorna um objeto com 'data', 'totalItems' e 'lojas'
+                        if (data && data.data && Array.isArray(data.data)) {
+                            state.items = data.data;
+                            state.totalItems = data.totalItems || 0;
+                            state.whatsappLojas = data.lojas || [];
+                        } else {
+                            state.items = [];
+                            state.totalItems = 0;
+                            state.whatsappLojas = [];
+                        }
+                    } else {
+                        // Outras mídias (Reels, etc) retornam um objeto com 'data' e 'totalItems'
                         if (data && data.data && Array.isArray(data.data)) {
                             state.items = data.data;
                             state.totalItems = data.totalItems || 0;
@@ -3108,12 +3119,25 @@
 
         function renderWhatsappContent(targetDiv) {
             if (!targetDiv) return;
-            targetDiv.innerHTML = ''; // Limpa APENAS o contêiner da tabela
+            targetDiv.innerHTML = '';
 
-            // Filters e botões já foram criados em showMediaContent.
-            // Apenas renderize a tabela aqui.
-            if (state.filteredItems.length === 0 && !state.isLoading) {
-                targetDiv.innerHTML = '<p style="padding: 20px; text-align: center;">Nenhum item encontrado com os filtros aplicados.</p>';
+            // Popula o filtro de lojas ANTES de fazer qualquer outra coisa
+            const lojaFilter = document.getElementById('wppLojaFilter');
+            if (lojaFilter) {
+                const currentVal = lojaFilter.value; // Salva o valor selecionado
+                lojaFilter.innerHTML = '<option value="">Todas as Lojas</option>';
+                (state.whatsappLojas || []).forEach(loja => {
+                    const option = document.createElement('option');
+                    option.value = loja;
+                    option.textContent = loja;
+                    lojaFilter.appendChild(option);
+                });
+                lojaFilter.value = currentVal; // Restaura o valor selecionado
+            }
+            
+            // Os itens já vêm filtrados do backend, então apenas renderizamos state.items
+            if (!state.items || state.items.length === 0) {
+                targetDiv.innerHTML += '<p>Nenhum item encontrado com os filtros aplicados.</p>';
                 return;
             }
 
@@ -3122,26 +3146,47 @@
             table.innerHTML = `
                 <thead>
                     <tr>
+                        <th>ID</th>
                         <th>Loja</th>
-                        <th>Grupo</th>
-                        <th>Mensagem</th>
-                        <th>URL</th>
                         <th>Imagem</th>
-                        <th>Criado em</th>
-                        <th>Modificado em</th>
-                        <th>Ação</th>
+                        <th>Mensagem</th>
+                        <th>Ações</th>
                     </tr>
                 </thead>
-                <tbody>
-                    ${state.filteredItems.map(createWhatsappTableRow).join('')}
-                </tbody>
+                <tbody></tbody>
             `;
+            const tbody = table.querySelector('tbody');
+
+            state.items.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td data-label="ID">${item.id}</td>
+                    <td data-label="Loja">${item.loja}</td>
+                    <td data-label="Imagem">
+                        <div class="wpp-image-container" data-img-url="${item.image_base64}">
+                            <img src="${item.image_base64}" alt="Oferta" class="table-image-preview" onerror="this.style.display='none'">
+                        </div>
+                    </td>
+                    <td data-label="Mensagem" style="white-space: pre-wrap; max-width: 400px;">${item.message_parte1 || ''}<br><a href="${item.url_production}" target="_blank" rel="noopener noreferrer">${item.url_production}</a></td>
+                    <td data-label="Ações">
+                         <div class="action-buttons">
+                            <button class="btn-primary btn-edit-wpp" data-id="${item.id}">Editar</button>
+                            <button class="btn-delete btn-delete-wpp" data-id="${item.id}">Excluir</button>
+                         </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
             targetDiv.appendChild(table);
 
-            // Event listeners para a tabela do WhatsApp
-            table.querySelectorAll('.btn-edit-wpp, .wpp-image-container').forEach(el => el.addEventListener('click', handleEditWhatsappPost));
-            table.querySelectorAll('.btn-delete-wpp').forEach(btn => btn.addEventListener('click', handleDeleteWhatsappPost));
-            table.querySelectorAll('.btn-post-wpp').forEach(btn => btn.addEventListener('click', handlePostWhatsappAd));
+            // Adiciona listeners para os botões da tabela
+            targetDiv.querySelectorAll('.btn-edit-wpp').forEach(btn => btn.addEventListener('click', (e) => handleOpenEditWhatsappModal(e.currentTarget.dataset.id)));
+            targetDiv.querySelectorAll('.btn-delete-wpp').forEach(btn => btn.addEventListener('click', (e) => handleDeleteWhatsappOffer(e.currentTarget.dataset.id)));
+            targetDiv.querySelectorAll('.wpp-image-container').forEach(container => container.addEventListener('click', (e) => {
+                const imgUrl = e.currentTarget.dataset.imgUrl;
+                if (imgUrl) window.open(imgUrl, '_blank');
+            }));
         }
 
         function applyWhatsappFilters() {
