@@ -2563,11 +2563,11 @@
                     return;
                 }
                 if (state.activeAccount === 'WhatsApp') {
-                    endpoint = `${API_URLS.WHATSAPP}?group_name=${decodeURIComponent(state.activeMediaType)}&page=${state.currentPage}&limit=${state.itemsPerPage}`;
+                    endpoint = `${API_URLS.WHATSAPP}?group_name=${encodeURIComponent(state.activeMediaType)}&page=${state.currentPage}&limit=${state.itemsPerPage}`;
                 } else {
                     const mediaTypeConfig = MEDIA_TYPES.find(m => m.key === state.activeMediaType);
                     if (mediaTypeConfig) {
-                        endpoint = `${url_base}${mediaTypeConfig.endpoint}?conta_user_instagram=${decodeURIComponent(state.activeAccount)}&page=${state.currentPage}&limit=${state.itemsPerPage}`;
+                        endpoint = `${url_base}${mediaTypeConfig.endpoint}?conta_user_10_instagram=${encodeURIComponent(state.activeAccount)}&page=${state.currentPage}&limit=${state.itemsPerPage}`;
                     }
                 }
             } else if (state.currentView === 'settings') {
