@@ -363,7 +363,7 @@
         @media (max-width: 1600px) { .grid-container, .stats-grid-container { grid-template-columns: repeat(4, 1fr); } }
         @media (max-width: 1300px) { .grid-container, .stats-grid-container { grid-template-columns: repeat(3, 1fr); } }
         @media (max-width: 1100px) { .grid-container, .stats-grid-container { grid-template-columns: repeat(2, 1fr); } }
-        /* @media (max-width: 768px) { .grid-container, .stats-grid-container { grid-template-columns: 1fr; } } */
+        @media (max-width: 768px) { .grid-container, .stats-grid-container { grid-template-columns: 1fr; } }
 
         .card {
             background-color: var(--card-bg-color);
@@ -1750,7 +1750,7 @@
 
         // Função auxiliar para fechar a sidebar no mobile
         function closeSidebarIfMobile() {
-            if (window.innerWidth <= 992) {
+            if (window.innerWidth <= 992) { // Só executa em telas menores que 992px
                 document.body.classList.remove('sidebar-collapsed');
             }
         }
@@ -2437,7 +2437,7 @@
                 // Estilos para alinhar o conteúdo e o botão
                 li.style.display = 'flex';
                 li.style.justifyContent = 'space-between';
-                li.style.alignItems = 'center'; // Alinha verticalmente
+                li.style.alignItems = 'center';
                 li.style.marginBottom = '10px';
                 li.style.paddingBottom = '10px';
                 li.style.borderBottom = '1px dashed var(--border-color)';
@@ -2448,7 +2448,7 @@
                         <strong>Loja:</strong> ${link.loja || 'N/A'}<br>
                         <strong>Descrição:</strong> ${link.descricao || 'N/A'}<br>
                         <strong>Categoria:</strong> ${link.categoria || 'N/A'}<br>
-                        <strong>URL:</strong> <a href="${link.url_production}" target="_blank" style="color: var(--active-menu-text);">${link.url_production || 'N/A'}</a>
+                        <strong>URL:</strong> <a href="${link.url_production}" target="_blank" style="color: var(--active-menu-text); word-break: break-all;">${link.url_production || 'N/A'}</a>
                     </div>
                     <button class="btn-delete btn-delete-link" data-link-id="${link.id}" style="width: auto; flex-shrink: 0; margin-left: 10px;">Excluir</button>
                 `;
@@ -3119,74 +3119,41 @@
 
         function renderWhatsappContent(targetDiv) {
             if (!targetDiv) return;
-            targetDiv.innerHTML = '';
+            targetDiv.innerHTML = ''; 
 
-            // Popula o filtro de lojas ANTES de fazer qualquer outra coisa
-            const lojaFilter = document.getElementById('wppLojaFilter');
-            if (lojaFilter) {
-                const currentVal = lojaFilter.value; // Salva o valor selecionado
-                lojaFilter.innerHTML = '<option value="">Todas as Lojas</option>';
-                (state.whatsappLojas || []).forEach(loja => {
-                    const option = document.createElement('option');
-                    option.value = loja;
-                    option.textContent = loja;
-                    lojaFilter.appendChild(option);
-                });
-                lojaFilter.value = currentVal; // Restaura o valor selecionado
-            }
-            
-            // Os itens já vêm filtrados do backend, então apenas renderizamos state.items
-            if (!state.items || state.items.length === 0) {
-                targetDiv.innerHTML += '<p>Nenhum item encontrado com os filtros aplicados.</p>';
+            if (state.items.length === 0 && !state.isLoading) {
+                targetDiv.innerHTML = '<p style="padding: 20px; text-align: center;">Nenhum item encontrado.</p>';
                 return;
             }
 
+            const tableContainer = document.createElement('div');
+            tableContainer.className = 'table-container';
             const table = document.createElement('table');
             table.className = 'data-table';
             table.innerHTML = `
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Loja</th>
-                        <th>Imagem</th>
+                        <th>Comissão</th>
                         <th>Mensagem</th>
-                        <th>Ações</th>
+                        <th>URL</th>
+                        <th>Imagem</th>
+                        <th>Criado em</th>
+                        <th>Modificado em</th>
+                        <th>Ação</th>
                     </tr>
                 </thead>
-                <tbody></tbody>
+                <tbody>
+                    ${state.items.map(createWhatsappTableRow).join('')}
+                </tbody>
             `;
-            const tbody = table.querySelector('tbody');
+            tableContainer.appendChild(table);
+            targetDiv.appendChild(tableContainer);
 
-            state.items.forEach(item => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td data-label="ID">${item.id}</td>
-                    <td data-label="Loja">${item.loja}</td>
-                    <td data-label="Imagem">
-                        <div class="wpp-image-container" data-img-url="${item.image_base64}">
-                            <img src="${item.image_base64}" alt="Oferta" class="table-image-preview" onerror="this.style.display='none'">
-                        </div>
-                    </td>
-                    <td data-label="Mensagem" style="white-space: pre-wrap; max-width: 400px;">${item.message_parte1 || ''}<br><a href="${item.url_production}" target="_blank" rel="noopener noreferrer">${item.url_production}</a></td>
-                    <td data-label="Ações">
-                         <div class="action-buttons">
-                            <button class="btn-primary btn-edit-wpp" data-id="${item.id}">Editar</button>
-                            <button class="btn-delete btn-delete-wpp" data-id="${item.id}">Excluir</button>
-                         </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            targetDiv.appendChild(table);
-
-            // Adiciona listeners para os botões da tabela
-            targetDiv.querySelectorAll('.btn-edit-wpp').forEach(btn => btn.addEventListener('click', (e) => handleOpenEditWhatsappModal(e.currentTarget.dataset.id)));
-            targetDiv.querySelectorAll('.btn-delete-wpp').forEach(btn => btn.addEventListener('click', (e) => handleDeleteWhatsappOffer(e.currentTarget.dataset.id)));
-            targetDiv.querySelectorAll('.wpp-image-container').forEach(container => container.addEventListener('click', (e) => {
-                const imgUrl = e.currentTarget.dataset.imgUrl;
-                if (imgUrl) window.open(imgUrl, '_blank');
-            }));
+            // Adiciona os event listeners corretamente após a tabela ser inserida no DOM
+            table.querySelectorAll('.btn-edit-wpp').forEach(btn => btn.addEventListener('click', (e) => handleEditWhatsappPost(e)));
+            table.querySelectorAll('.btn-delete-wpp').forEach(btn => btn.addEventListener('click', handleDeleteWhatsappPost));
+            table.querySelectorAll('.btn-post-wpp').forEach(btn => btn.addEventListener('click', handlePostWhatsappAd));
         }
 
         function applyWhatsappFilters() {
@@ -3415,8 +3382,12 @@
         }
 
         async function handleGenerateAdFromLink(event) {
-            event.preventDefault();
-            const urlInput = document.getElementById('generateFromLinkUrl'); // <<-- ID CORRIGIDO
+            // Se o evento vier de um submit de formulário, previna o comportamento padrão
+            if (event && typeof event.preventDefault === 'function') {
+                event.preventDefault();
+            }
+            
+            const urlInput = document.getElementById('generateFromLinkUrl');
             const url = urlInput.value.trim();
             if (!url) {
                 showAlert("Por favor, insira uma URL para gerar o anúncio.");
@@ -3440,7 +3411,7 @@
             } finally {
                 hideLoading();
             }
-            }
+        }
 
         async function handleCreateOfferSubmit(event) {
             event.preventDefault();
