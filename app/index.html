@@ -310,7 +310,7 @@
             .main-content { margin-left: 0; }
             .sidebar { transform: translateX(-100%); }
             body.sidebar-collapsed .sidebar {
-                transform: translateX(0); 
+                transform: translateX(0);
             }
             .settings-container { display: none; }
             .sidebar-actions { display: block; }
@@ -1745,7 +1745,7 @@
 
         // Função auxiliar para fechar a sidebar no mobile
         function closeSidebarIfMobile() {
-            if (window.innerWidth <= 992) {
+            if (window.matchMedia('(max-width: 992px)').matches) {
                 document.body.classList.remove('sidebar-collapsed');
             }
         }
@@ -1940,6 +1940,90 @@
             */
 
             sidebar.appendChild(menuContainer);
+
+            const modalOfferTypeChoice = document.getElementById('modalOfferTypeChoice');
+            const btnCreateOfferFromLink = document.getElementById('btnCreateOfferFromLink');
+            const btnCreateOfferManually = document.getElementById('btnCreateOfferManually');
+            const modalGenerateFromLink = document.getElementById('modalGenerateFromLink');
+            const formGenerateFromLink = document.getElementById('formGenerateFromLink');
+
+            if (btnCreateOfferFromLink) {
+                btnCreateOfferFromLink.addEventListener('click', () => {
+                    closeModal(modalOfferTypeChoice);
+                    openModal(modalGenerateFromLink);
+                });
+            }
+
+            if (btnCreateOfferManually) {
+                btnCreateOfferManually.addEventListener('click', () => {
+                    closeModal(modalOfferTypeChoice);
+                    handleOpenCreateWhatsappModal();
+                });
+            }
+            
+            if (formGenerateFromLink) {
+                formGenerateFromLink.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const url = document.getElementById('generateFromLinkUrl').value;
+                    if (!url) {
+                        showAlert("Por favor, insira um link.");
+                        return;
+                    }
+
+                    showLoading("Gerando dados do anúncio...");
+                    try {
+                        const response = await fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: url })
+                        });
+
+                        if (!response.ok) {
+                            const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido.' }));
+                            throw new Error(`Falha ao gerar dados: ${errorData.message}`);
+                        }
+
+                        const data = await response.json();
+                        
+                        document.getElementById('createWppLoja').value = data.loja || '';
+                        document.getElementById('createWppMessage').value = data.descricao || '';
+                        document.getElementById('createWppUrl').value = data.url_anuncio || url;
+                        const previewImg = document.getElementById('createWppImagePreview');
+                        if(data.imagem_url) {
+                           previewImg.src = data.imagem_url;
+                           if(data.imagem_base64) {
+                               state.newImageBase64 = data.imagem_base64;
+                           }
+                        } else {
+                           previewImg.src = 'https://placehold.co/200x200/cccccc/ffffff?text=Sem+Imagem';
+                        }
+                        
+                        closeModal(modalGenerateFromLink);
+                        openModal(modalCreateWhatsapp);
+
+                    } catch (error) {
+                        console.error('Erro ao gerar anúncio pelo link:', error);
+                        showAlert(`Erro: ${error.message}`);
+                    } finally {
+                        hideLoading();
+                    }
+                });
+            }
+            
+            const btnPasteAndGenerate = document.getElementById('btnPasteAndGenerate');
+            if(btnPasteAndGenerate) {
+                btnPasteAndGenerate.addEventListener('click', async () => {
+                    try {
+                        const text = await navigator.clipboard.readText();
+                        document.getElementById('generateFromLinkUrl').value = text;
+                        if (formGenerateFromLink) {
+                           formGenerateFromLink.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                        }
+                    } catch (err) {
+                        showAlert('Falha ao colar da área de transferência.');
+                    }
+                });
+            }
         }
 
         function renderItems() {
@@ -2144,7 +2228,7 @@
 
             // Mantém a lógica original, mas agora baseada na conta ativa
             if (contaUser && contaUser.toLowerCase().includes("baby")) {
-                descriptionNew = `💛 Gostou comenta "${comenta}" para receber o LINK no direct 🔥\n\nAnúncio N.º: ${ordenacao}\nConfira sua aba de ‘solicitações’ no direct, pois a mensagem será enviada automaticamente.\n\n✨ Marque uma mamãe que vai adorar essa novidade!\n🚨 Stories disponíveis por 24 horas\n🎀Siga @carlababyofertas para não perder nenhuma oferta e novidade!\n#dicasmaternidade #maternidadereal #maternidade #amordemãe #maedemenino #maedemenina #brinquedosdebebe #brinquedosdidaticos #brincar #diversao #diversaoemfamília ${post.hashtags || ''}`;
+                descriptionNew = `💛 Gostou comenta "${comenta}" para receber o LINK no direct 🔥\n\nAnúncio N.º: ${ordenacao}\nConfira sua aba de 'solicitações' no direct, pois a mensagem será enviada automaticamente.\n\n✨ Marque uma mamãe que vai adorar essa novidade!\n🚨 Stories disponíveis por 24 horas\n🎀Siga @carlababyofertas para não perder nenhuma oferta e novidade!\n#dicasmaternidade #maternidadereal #maternidade #amordemãe #maedemenino #maedemenina #brinquedosdebebe #brinquedosdidaticos #brincar #diversao #diversaoemfamília ${post.hashtags || ''}`;
             } else { // Default para "indica" ou qualquer outra conta
                 descriptionNew = `💛 Gostou comenta "${comenta}" para LINK no direct 🔥\n\nAnúncio N.º: ${ordenacao}\nNos Stories de hoje 🔥\nNo Grupo de Ofertas-Link na Bio 🔥\nSiga @carlaindicaofertas para mais achadinhos como esse!\n#utilidades #maquiagem #feminina #feminino #mulher #importado #roupa #girl #chique ${post.hashtags || ''}`;
             }
