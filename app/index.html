@@ -691,9 +691,9 @@
             }
             .data-table td .action-buttons {
                 width: 100%;
-                display: flex; /* Garante que é um container flex */
+                display: flex;
                 justify-content: flex-end; /* Alinha os botões à direita */
-                gap: 8px; /* Adiciona espaço entre eles */
+                gap: 8px;
                 padding-top: 10px;
             }
             .data-table td[data-label="Mensagem"], .data-table td[data-label="Webhook"] {
@@ -1918,12 +1918,12 @@
                 <li class="submenu-item" id="menu-logout">Logout</li>
             `;
 
-            configSubmenu.querySelector('#menu-companies').addEventListener('click', () => { navigateTo('settings', ['companies']); closeSidebarIfMobile(); });
-            configSubmenu.querySelector('#menu-users').addEventListener('click', () => { navigateTo('settings', ['users']); closeSidebarIfMobile(); });
-            configSubmenu.querySelector('#menu-accounts').addEventListener('click', () => { navigateTo('settings', ['accounts']); closeSidebarIfMobile(); });
-            configSubmenu.querySelector('#menu-whatsapp-groups-config').addEventListener('click', () => { navigateTo('settings', ['whatsapp-groups']); closeSidebarIfMobile(); }); // Usar o novo ID
-            configSubmenu.querySelector('#menu-keyword').addEventListener('click', () => { handleIncluirPalavra(); closeSidebarIfMobile(); });
-            configSubmenu.querySelector('#menu-logout').addEventListener('click', handleLogout); // Logout já pode fechar sozinho ou recarregar
+            configSubmenu.querySelector('#menu-companies').addEventListener('click', () => { navigateTo('settings', ['companies']); });
+            configSubmenu.querySelector('#menu-users').addEventListener('click', () => { navigateTo('settings', ['users']); });
+            configSubmenu.querySelector('#menu-accounts').addEventListener('click', () => { navigateTo('settings', ['accounts']); });
+            configSubmenu.querySelector('#menu-whatsapp-groups-config').addEventListener('click', () => { navigateTo('settings', ['whatsapp-groups']); });
+            configSubmenu.querySelector('#menu-keyword').addEventListener('click', () => { handleIncluirPalavra(); closeSidebarIfMobile(); }); // Mantenha aqui pois abre um modal
+            configSubmenu.querySelector('#menu-logout').addEventListener('click', handleLogout);
 
             configGroup.appendChild(configParent);
             configGroup.appendChild(configSubmenu);
@@ -2549,115 +2549,67 @@
 
         async function fetchData() {
             if (state.isLoading) return;
-            showLoading();
-
-            // Esconde a paginação e limpa a área de itens para uma transição mais suave
+            showLoading("Carregando dados...");
             if (paginationContainer) paginationContainer.style.display = 'none';
-            if (mediaItemsWrapper && state.currentView === 'media') {
-                mediaItemsWrapper.innerHTML = '';
-            }
-
-            if (!state.currentView) {
-                console.warn("Visualização atual não definida, pulando a busca.");
-                hideLoading();
-                return;
-            }
 
             let endpoint = '';
-            
+            const params = new URLSearchParams({
+                page: state.currentPage,
+                limit: state.itemsPerPage
+            });
+
             if (state.currentView === 'media') {
-                 if (!state.activeAccount || !state.activeMediaType) {
-                    console.warn("Conta ou tipo de mídia não definidos para a visualização de mídia.");
+                if (!state.activeAccount || !state.activeMediaType) {
                     hideLoading();
                     return;
                 }
                 if (state.activeAccount === 'WhatsApp') {
-                    endpoint = `${url_base}${API_URLS.WHATSAPP}?conta_user_instagram=${decodeURIComponent(state.activeMediaType)}&page=${state.currentPage}&limit=${state.itemsPerPage}`;
+                    const mediaTypeConfig = MEDIA_TYPES.find(m => m.key === 'whatsapp');
+                    endpoint = `${url_base}${API_URLS.WHATSAPP}?conta_user_instagram=${decodeURIComponent(state.activeMediaType)}&${params.toString()}`;
                 } else {
                     const mediaTypeConfig = MEDIA_TYPES.find(m => m.key === state.activeMediaType);
                     if (mediaTypeConfig) {
-                        endpoint = `${url_base}${mediaTypeConfig.endpoint}?conta_user_instagram=${decodeURIComponent(state.activeAccount)}&page=${state.currentPage}&limit=${state.itemsPerPage}`;
+                        endpoint = `${url_base}${mediaTypeConfig.endpoint}?conta_user_instagram=${decodeURIComponent(state.activeAccount)}&${params.toString()}`;
                     }
                 }
             } else if (state.currentView === 'settings') {
-                const settingsView = window.location.hash.split('/')[2];
+                const settingsView = window.location.hash.split('/')[2].split('?')[0];
                 switch(settingsView) {
                     case 'accounts': endpoint = API_URLS.GET_ACCOUNTS; break;
                     case 'whatsapp-groups': endpoint = API_URLS.WHATSAPP_GROUPS_CRUD; break;
                     case 'companies': endpoint = API_URLS.COMPANIES_CRUD; break;
                     case 'users': endpoint = API_URLS.USERS_CRUD; break;
                 }
-            } else if (state.currentView === 'dashboard') {
-                endpoint = API_URLS.GET_DASHBOARD_METRICS;
             }
 
-
             if (!endpoint) {
-                console.warn("Nenhum endpoint definido para a visualização atual:", state.currentView, state.activeAccount, state.activeMediaType);
                 hideLoading();
                 return;
             }
 
             try {
                 const res = await fetchWithAuth(endpoint);
-                if (!res.ok) {
-                    if (res.status === 401) {
-                        handleLogout(); // Desloga se o token for inválido
-                        throw new Error("Sessão expirada. Por favor, faça login novamente.");
-                    }
-                    const errorText = await res.text();
-                    throw new Error(`Erro ${res.status}: ${errorText}`);
-                }
-                
+                if (!res.ok) throw new Error(await res.text());
                 const data = await res.json();
 
+                // Atualiza o estado com base nos dados recebidos
                 if (state.currentView === 'media') {
-                    if (state.activeAccount === 'WhatsApp') {
-                        // WhatsApp API retorna um objeto com 'data', 'totalItems' e 'lojas'
-                        if (data && data.data && Array.isArray(data.data)) {
-                            state.items = data.data;
-                            state.totalItems = data.totalItems || 0;
-                            state.whatsappLojas = data.lojas || [];
-                        } else {
-                            state.items = [];
-                            state.totalItems = 0;
-                            state.whatsappLojas = [];
-                        }
-                    } else {
-                        // Outras mídias (Reels, etc) retornam um objeto com 'data' e 'totalItems'
-                        if (data && data.data && Array.isArray(data.data)) {
-                            state.items = data.data;
-                            state.totalItems = data.totalItems || 0;
-                        } else {
-                            state.items = [];
-                            state.totalItems = 0;
-                        }
-                    }
+                    state.items = data.data || [];
+                    state.totalItems = data.totalItems || 0;
+                    if (state.activeAccount === 'WhatsApp') state.whatsappLojas = data.lojas || [];
+                    renderItems(); // Renderiza os cards ou a tabela de ofertas
                 } else if (state.currentView === 'settings') {
-                    const settingsView = window.location.hash.split('/')[2];
-                    switch(settingsView) {
-                        case 'accounts': state.socialAccounts = data; renderSocialAccountsTable(); break;
-                        case 'whatsapp-groups': state.whatsappGroups = data; renderWhatsappGroupsTable(); break;
-                        case 'companies': state.companies = data; renderCompaniesTable(); break;
-                        case 'users': state.users = data; renderUsersTable(); break;
-                    }
-                } else if (state.currentView === 'dashboard') {
-                    renderDashboard(data);
+                    const settingsView = window.location.hash.split('/')[2].split('?')[0];
+                    if (settingsView === 'accounts') { state.socialAccounts = data.data || []; renderSocialAccountsPage(); }
+                    if (settingsView === 'whatsapp-groups') { state.whatsappGroups = data.data || []; renderWhatsappGroupsPage(); }
+                    if (settingsView === 'companies') { state.companies = data.data || []; renderCompaniesPage(); }
+                    if (settingsView === 'users') { state.users = data.data || []; renderUsersPage(); }
                 }
-
             } catch (error) {
-                console.error("Erro ao buscar dados:", error);
-                showAlert(error.message, "Erro de Conexão");
-                if (mediaItemsWrapper) {
-                     mediaItemsWrapper.innerHTML = `<p style="text-align:center; color: #dc3545;">${error.message}</p>`;
-                }
+                showAlert(`Erro ao carregar dados: ${error.message}`);
             } finally {
                 hideLoading();
-                // A renderização agora é mais centralizada
-                if(state.currentView === 'media') {
-                    renderItems();
-                    renderPaginationControls();
-                }
+                renderPaginationControls();
             }
         }
 
@@ -3551,93 +3503,30 @@
         }
         
         async function showSocialAccountsPage() {
-            state.currentView = 'settings';
-            [dashboardContentArea, contentDisplayArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
             socialAccountsContentArea.style.display = 'block';
-            paginationContainer.style.display = 'none';
-            await fetchData();
+            renderSocialAccountsPage(); // Renderiza a estrutura da página
+            await fetchData(); // Busca os dados para preencher a tabela
         }
 
-        function renderSocialAccountsPage() {
-            socialAccountsContentArea.innerHTML = '';
-            const headerDiv = document.createElement('div');
-            headerDiv.className = 'page-header';
-            headerDiv.innerHTML = `<h2>Contas de Redes Sociais</h2>`;
+        function renderSocialAccountsPage() { // Renomeado para renderizar a ESTRUTURA
+            socialAccountsContentArea.innerHTML = `
+                <div class="page-header">
+                    <h2>Contas de Redes Sociais</h2>
+                    <div class="header-actions">
+                        <button id="btn-create-account" class="btn-primary">Criar Rede Social</button>
+                    </div>
+                </div>
+                <div class="table-container" id="social-accounts-table-container">
+                    <p>Carregando contas...</p>
+                </div>`;
             
-            const createBtn = document.createElement('button');
-            createBtn.className = 'btn-primary';
-            createBtn.textContent = 'Criar Rede Social';
-            createBtn.addEventListener('click', () => {
+            document.getElementById('btn-create-account').addEventListener('click', () => {
                 formCreateSocialAccount.reset();
                 openModal(modalCreateSocialAccount);
             });
-            headerDiv.appendChild(createBtn);
-            socialAccountsContentArea.appendChild(headerDiv);
             
-            const sortedAccounts = [...state.socialAccounts].sort((a, b) => {
-                const orderA = a.ordenacao !== null && a.ordenacao !== undefined ? a.ordenacao : 999;
-                const orderB = b.ordenacao !== null && b.ordenacao !== undefined ? b.ordenacao : 999;
-                return orderA - orderB;
-            });
-
-            if (sortedAccounts.length === 0) {
-                const noAccountsMessage = document.createElement('p');
-                noAccountsMessage.textContent = 'Nenhuma conta social cadastrada.';
-                socialAccountsContentArea.appendChild(noAccountsMessage);
-                return;
-            }
-
-            const tableContainer = document.createElement('div');
-            tableContainer.className = 'table-container';
-            const table = document.createElement('table');
-            table.className = 'data-table';
-            table.innerHTML = `
-                <thead>
-                    <tr>
-                        <th>Ordenação</th>
-                        <th>Nome da Conta</th>
-                        <th>Rede Social</th>
-                        <th>Webhook</th>
-                        <th>Validada</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${sortedAccounts.map(acc => `
-                        <tr data-account-id="${acc.id || acc.nome_conta}">
-                            <td data-label="Ordenação">${acc.ordenacao || 'N/A'}</td>
-                            <td data-label="Nome">${acc.nome_conta}</td>
-                            <td data-label="Rede Social">${acc.social_media}</td>
-                            <td data-label="Webhook" style="word-break: break-all;">${acc.webhook || 'N/A'}</td>
-                            <td data-label="Validada" class="validated-icon">${acc.validated ? '✔️' : '❌'}</td>
-                            <td data-label="Ações">
-                                <div class="action-buttons">
-                                    <button class="btn-edit-account">Editar</button>
-                                    <button class="btn-delete-account btn-delete">Excluir</button>
-                                </div>
-                            </td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            `;
-            tableContainer.appendChild(table);
-            socialAccountsContentArea.appendChild(tableContainer);
-        }
-
-        async function fetchSocialAccounts() {
-            showLoading("Carregando contas...");
-            try {
-                const response = await fetchWithAuth(API_URLS.GET_ACCOUNTS);
-                if (!response.ok) throw new Error("Não foi possível carregar as contas.");
-                const result = await response.json();
-                state.socialAccounts = result && Array.isArray(result.data) ? result.data : [];
-            } catch (error) {
-                if (error.message !== "Sessão expirada.") {
-                    showAlert(`Erro ao carregar contas: ${error.message}`);
-                }
-                state.socialAccounts = [];
-            } finally {
-                hideLoading();
+            if (state.socialAccounts.length > 0) {
+                renderSocialAccountsTable();
             }
         }
 
@@ -3752,82 +3641,31 @@
             }
         }
         
-        // --- Funções para Gerenciamento de Grupos WhatsApp ---
         async function showWhatsappGroupsPage() {
-            state.currentView = 'settings';
-            [dashboardContentArea, contentDisplayArea, socialAccountsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
             whatsappGroupsContentArea.style.display = 'block';
-            paginationContainer.style.display = 'none';
-            await fetchData();
-        }
-
-        async function fetchWhatsappGroups() {
-            try {
-                const response = await fetchWithAuth(API_URLS.WHATSAPP_GROUPS_CRUD);
-                if (!response.ok) throw new Error("Não foi possível carregar os grupos.");
-                const result = await response.json();
-                state.whatsappGroups = result && Array.isArray(result.data) ? result.data : [];
-            } catch (error) {
-                if (error.message !== "Sessão expirada.") {
-                    showAlert(`Erro ao carregar grupos do WhatsApp: ${error.message}`);
-                }
-                state.whatsappGroups = [];
-            }
+            renderWhatsappGroupsPage(); // Renderiza a estrutura
+            await fetchData(); // Busca os dados
         }
 
         function renderWhatsappGroupsPage() {
-            whatsappGroupsContentArea.innerHTML = '';
-            const headerDiv = document.createElement('div');
-            headerDiv.className = 'page-header';
-            headerDiv.innerHTML = `<h2>Grupos do WhatsApp</h2>`;
-            
-            const createBtn = document.createElement('button');
-            createBtn.className = 'btn-primary';
-            createBtn.textContent = 'Criar Grupo';
-            createBtn.addEventListener('click', () => {
+            whatsappGroupsContentArea.innerHTML = `
+                <div class="page-header">
+                    <h2>Grupos do WhatsApp</h2>
+                    <div class="header-actions">
+                        <button id="btn-create-group" class="btn-primary">Criar Grupo</button>
+                    </div>
+                </div>
+                <div class="table-container" id="whatsapp-groups-table-container">
+                    <p>Carregando grupos...</p>
+                </div>`;
+            document.getElementById('btn-create-group').addEventListener('click', () => {
                 formWhatsappGroup.reset();
                 document.getElementById('whatsappGroupModalTitle').textContent = 'Criar Novo Grupo';
                 openModal(modalWhatsappGroup);
             });
-            headerDiv.appendChild(createBtn);
-            whatsappGroupsContentArea.appendChild(headerDiv);
-
-            if (state.whatsappGroups.length === 0) {
-                whatsappGroupsContentArea.innerHTML += '<p>Nenhum grupo cadastrado.</p>';
-                return;
+            if(state.whatsappGroups.length > 0) {
+                renderWhatsappGroupsTable();
             }
-            
-            const sortedGroups = [...state.whatsappGroups].sort((a, b) => (a.ordenacao || 999) - (b.ordenacao || 999));
-
-            const tableContainer = document.createElement('div');
-            tableContainer.className = 'table-container';
-            const table = document.createElement('table');
-            table.className = 'data-table';
-            table.innerHTML = `
-                <thead>
-                    <tr>
-                        <th>Ordenação</th>
-                        <th>Nome do Grupo</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${sortedGroups.map(group => `
-                        <tr data-group-id="${group.id}">
-                            <td data-label="Ordenação">${group.ordenacao || 'N/A'}</td>
-                            <td data-label="Nome">${group.group_name}</td>
-                            <td data-label="Ações">
-                                <div class="action-buttons">
-                                    <button class="btn-edit-wpp-group">Editar</button>
-                                    <button class="btn-delete-wpp-group btn-delete">Excluir</button>
-                                </div>
-                            </td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            `;
-            tableContainer.appendChild(table);
-            whatsappGroupsContentArea.appendChild(tableContainer);
         }
 
         async function handleWhatsappGroupFormSubmit(event) {
@@ -3922,13 +3760,10 @@
             }
         }
 
-        // --- Funções de Admin (Empresas e Usuários) ---
         async function showCompaniesPage() {
-            state.currentView = 'settings';
-            [dashboardContentArea, contentDisplayArea, socialAccountsContentArea, whatsappGroupsContentArea, usersContentArea].forEach(el => el.style.display = 'none');
             companiesContentArea.style.display = 'block';
-            paginationContainer.style.display = 'none';
-            await fetchData();
+            renderCompaniesPage(); // Renderiza a estrutura
+            await fetchData(); // Busca os dados
         }
 
         function handleEditCompanyDataModal(company) {
@@ -3963,7 +3798,6 @@
 
                 showAlert("Dados da empresa atualizados com sucesso!");
                 closeModal(document.getElementById('modalEditCompany'));
-                await fetchCompanies();
                 renderCompaniesPage();
             } catch (error) {
                 showAlert(`Erro ao salvar dados da empresa: ${error.message}`);
@@ -3972,92 +3806,17 @@
             }
         }
 
-        async function fetchCompanies() {
-            showLoading("Carregando empresas...");
-            try {
-                const response = await fetchWithAuth(API_URLS.COMPANIES_CRUD);
-                if (!response.ok) throw new Error("Não foi possível carregar as empresas.");
-                const result = await response.json();
-                state.companies = Array.isArray(result.data) ? result.data : [];
-            } catch (error) {
-                if (error.message !== "Sessão expirada.") {
-                    showAlert(`Erro ao carregar empresas: ${error.message}`);
-                }
-                state.companies = [];
-            } finally {
-                hideLoading();
-            }
-        }
-
         function renderCompaniesPage() {
-            companiesContentArea.innerHTML = '';
-            const headerDiv = document.createElement('div');
-            headerDiv.className = 'page-header';
-            headerDiv.innerHTML = `<h2>Gerenciamento de Empresas</h2>`;
-            companiesContentArea.appendChild(headerDiv);
-
-            if (state.companies.length === 0) {
-                companiesContentArea.innerHTML += '<p>Nenhuma empresa cadastrada ou disponível para gerenciamento.</p>';
-                return;
+            companiesContentArea.innerHTML = `
+                <div class="page-header">
+                    <h2>Gerenciamento de Empresas</h2>
+                </div>
+                <div class="table-container" id="companies-table-container">
+                    <p>Carregando empresas...</p>
+                </div>`;
+            if(state.companies.length > 0) {
+                renderCompaniesTable();
             }
-
-            const tableContainer = document.createElement('div');
-            tableContainer.className = 'table-container';
-            const table = document.createElement('table');
-            table.className = 'data-table';
-            table.innerHTML = `
-                <thead>
-                    <tr>
-                        <th>Nome da Empresa</th>
-                        <th>CNPJ/CPF</th>
-                        <th>E-mail</th>
-                        <th>Módulos Ativos</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${state.companies.map(company => `
-                        <tr data-company-id="${company.id}">
-                            <td data-label="Nome">${company.name}</td>
-                            <td data-label="CNPJ/CPF">${company.cnpj_cpf || 'N/A'}</td>
-                            <td data-label="E-mail">${company.email || 'N/A'}</td>
-                            <td data-label="Módulos">${formatCompanyModules(company.modules)}</td>
-                            <td data-label="Ações">
-                                <div class="action-buttons">
-                                    <button class="btn-primary btn-edit-company-data">Editar Dados</button>
-                                    <button class="btn-primary btn-edit-company-modules">Gerenciar Módulos</button>
-                                    </div>
-                            </td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            `;
-            tableContainer.appendChild(table);
-            companiesContentArea.appendChild(tableContainer);
-
-            table.querySelectorAll('.btn-edit-company-data').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const companyId = e.target.closest('tr').dataset.companyId;
-                    const company = state.companies.find(c => c.id == companyId);
-                    if (company) {
-                        handleEditCompanyDataModal(company);
-                    } else {
-                        showAlert("Empresa não encontrada para edição.");
-                    }
-                });
-            });
-
-            table.querySelectorAll('.btn-edit-company-modules').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const companyId = e.target.closest('tr').dataset.companyId;
-                    const company = state.companies.find(c => c.id == companyId);
-                    if (company) {
-                        handleEditCompanyModulesModal(company);
-                    } else {
-                        showAlert("Empresa não encontrada para edição.");
-                    }
-                });
-            });
         }
 
         function formatCompanyModules(modules) {
@@ -4118,107 +3877,32 @@
         }
 
         async function showUsersPage() {
-            state.currentView = 'settings';
-            [dashboardContentArea, contentDisplayArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea].forEach(el => el.style.display = 'none');
             usersContentArea.style.display = 'block';
-            paginationContainer.style.display = 'none';
-            await fetchData();
-        }
-
-        async function fetchUsers() {
-             showLoading("Carregando usuários...");
-            try {
-                const response = await fetchWithAuth(API_URLS.USERS_CRUD);
-                if (!response.ok) throw new Error("Não foi possível carregar os usuários.");
-                const result = await response.json();
-                state.users = result && Array.isArray(result.data) ? result.data : [];
-            } catch (error) {
-                if (error.message !== "Sessão expirada.") {
-                    showAlert(`Erro ao carregar usuários: ${error.message}`);
-                }
-                state.users = [];
-            } finally {
-                hideLoading();
-            }
+            renderUsersPage(); // Renderiza a estrutura
+            await fetchData(); // Busca os dados
         }
 
         function renderUsersPage() {
-            usersContentArea.innerHTML = '';
-            const headerDiv = document.createElement('div');
-            headerDiv.className = 'page-header';
-            headerDiv.innerHTML = `<h2>Logins de Usuários</h2>`;
-
-            const createBtn = document.createElement('button');
-            createBtn.className = 'btn-primary';
-            createBtn.textContent = 'Criar Login';
-            createBtn.addEventListener('click', () => {
+            usersContentArea.innerHTML = `
+                <div class="page-header">
+                    <h2>Logins de Usuários</h2>
+                    <div class="header-actions">
+                        <button id="btn-create-user" class="btn-primary">Criar Login</button>
+                    </div>
+                </div>
+                <div class="table-container" id="users-table-container">
+                    <p>Carregando usuários...</p>
+                </div>`;
+            document.getElementById('btn-create-user').addEventListener('click', () => {
                 formUser.reset();
-                document.getElementById('userId').value = ''; // Limpa o ID para criação
+                document.getElementById('userId').value = '';
                 document.getElementById('userModalTitle').textContent = 'Criar Novo Login';
-                userPasswordField.style.display = 'block'; // Mostra o campo de senha na criação
-                userNameInput.value = '';
-                document.getElementById('userEmail').value = '';
-                document.getElementById('userPassword').value = '';
-                userIsActiveCheckbox.checked = true;
-                userAdminCheckbox.checked = false;
-                userDarkThemeCheckbox.checked = false;
+                document.getElementById('userPasswordField').style.display = 'block';
                 openModal(modalUser);
             });
-            headerDiv.appendChild(createBtn);
-            usersContentArea.appendChild(headerDiv);
-
-            if (state.users.length === 0) {
-                usersContentArea.innerHTML += '<p>Nenhum login cadastrado.</p>';
-                return;
+            if(state.users.length > 0) {
+                renderUsersTable();
             }
-
-            const tableContainer = document.createElement('div');
-            tableContainer.className = 'table-container';
-            const table = document.createElement('table');
-            table.className = 'data-table';
-            table.innerHTML = `
-                <thead>
-                    <tr>
-                        <th>Nome</th>
-                        <th>E-mail</th>
-                        <th>Ativo</th>
-                        <th>Admin</th>
-                        <th>Tema Escuro</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${state.users.map(user => `
-                        <tr data-user-id="${user.id}">
-                            <td data-label="Nome">${user.name || 'N/A'}</td>
-                            <td data-label="Email">${user.email}</td>
-                            <td data-label="Ativo">${user.is_active ? '✔️' : '❌'}</td>
-                            <td data-label="Admin">${user.admin ? '✔️' : '❌'}</td>
-                            <td data-label="Tema Escuro">${user.dark_theme ? '✔️' : '❌'}</td>
-                            <td data-label="Ações">
-                                <div class="action-buttons">
-                                    <button class="btn-primary btn-edit-user">Editar</button>
-                                    <button class="btn-delete-user btn-delete">Excluir</button>
-                                </div>
-                            </td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            `;
-            tableContainer.appendChild(table);
-            usersContentArea.appendChild(tableContainer);
-
-            table.querySelectorAll('.btn-edit-user').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const userId = e.target.closest('tr').dataset.userId;
-                    const user = state.users.find(u => u.id == userId);
-                    if (user) {
-                        handleEditUserModal(user);
-                    } else {
-                        showAlert("Usuário não encontrado para edição.");
-                    }
-                });
-            });
         }
 
         function handleEditUserModal(user) {
@@ -4274,7 +3958,6 @@
 
                 showAlert(isEditing ? "Login atualizado com sucesso!" : "Login criado com sucesso!");
                 closeModal(modalUser);
-                await fetchUsers();
                 renderUsersPage();
             } catch (error) {
                 showAlert(`Erro: ${error.message}`);
@@ -4297,7 +3980,6 @@
                 if (!response.ok) throw new Error(await response.text());
                 
                 showAlert("Login excluído com sucesso!");
-                await fetchUsers();
                 renderUsersPage();
             } catch (error) {
                 showAlert(`Erro ao excluir: ${error.message}`);
