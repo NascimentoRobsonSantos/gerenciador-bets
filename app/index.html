@@ -670,6 +670,8 @@
                 text-align: right;
                 border-bottom: 1px solid var(--hover-bg-color);
                 padding: 10px 5px;
+                overflow-wrap: break-word; /* Adicione esta linha */
+                word-break: break-all;     /* Adicione esta linha */
             }
             .data-table td:last-child {
                 border-bottom: none;
@@ -3338,6 +3340,7 @@
             if (event && typeof event.preventDefault === 'function') {
                 event.preventDefault();
             }
+            
             const urlInput = document.getElementById('generateFromLinkUrl');
             const url = urlInput.value.trim();
             if (!url) {
@@ -3351,15 +3354,16 @@
                     method: "POST",
                     body: JSON.stringify({ url: url, conta_user_instagram: decodeURIComponent(state.activeMediaType) })
                 });
+                
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ message: 'Erro ao gerar anúncio.' }));
                     throw new Error(errorData.message);
                 }
-                await response.json(); // Apenas para consumir a resposta
+                await response.json();
                 
-                showAlert('Oferta gerada com sucesso a partir do link! A lista será atualizada.');
+                showAlert('Oferta gerada com sucesso! A lista será atualizada.');
                 closeModal(document.getElementById('modalGenerateFromLink'));
-                await fetchData(); // Atualiza a lista de ofertas
+                await fetchData(); // Espera a busca de dados terminar
             } catch (error) {
                 showAlert(`Erro: ${error.message}`);
             } finally {
@@ -4140,7 +4144,7 @@
                             <td data-label="Validada" class="validated-icon">${acc.validated ? '✔️' : '❌'}</td>
                             <td data-label="Ações">
                                 <div class="action-buttons">
-                                    <button class="btn-edit-account">Editar</button>
+                                    <button class="btn-primary btn-edit-account">Editar</button>
                                     <button class="btn-delete-account btn-delete">Excluir</button>
                                 </div>
                             </td>
@@ -4187,6 +4191,7 @@
             container.innerHTML = '';
             container.appendChild(table);
         }
+
 
         function renderCompaniesTable() {
             const container = document.getElementById('companies-table-container');
@@ -4267,7 +4272,6 @@
             container.innerHTML = '';
             container.appendChild(table);
         }
-
 
         // --- Funções para o modal de post agendado ---
         function handleOpenScheduledPostModal(post = null) {
