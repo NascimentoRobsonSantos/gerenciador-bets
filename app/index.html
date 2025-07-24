@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Gerenciador de Posts</title>
     <style>
         /* Reset Básico e Variáveis de Tema */
@@ -1259,6 +1259,41 @@
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel modal-close-btn-alternative" data-modal-id="modalCreateWhatsapp">Cancelar</button>
                     <button type="submit" class="btn-confirm">Criar Oferta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="modalOfferTypeChoice" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" data-modal-id="modalOfferTypeChoice">&times;</button>
+            <h3>Como você quer criar a oferta?</h3>
+            <div class="modal-actions" style="justify-content: center; gap: 15px;">
+                <button id="btnCreateOfferFromLink" class="btn-primary">Gerar por Link</button>
+                <button id="btnCreateOfferManually" class="btn-primary">Criar Manualmente</button>
+            </div>
+        </div>
+    </div>
+    <div id="modalGenerateFromLink" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" data-modal-id="modalGenerateFromLink">&times;</button>
+            <h3>Gerar Oferta a partir de um Link</h3>
+            <form id="formGenerateFromLink">
+                <div>
+                    <label for="generateFromLinkUrl">Link do Anúncio:</label>
+                    <div class="input-container-relative">
+                        <input type="url" id="generateFromLinkUrl" required>
+                        <button type="button" id="btnPasteAndGenerate" class="paste-btn" title="Colar da área de transferência">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1-1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                                <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zM8 7a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3A.5.5 0 0 1 8 7z"/>
+                                <path d="M6.5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1H7a.5.5 0 0 1-.5-.5z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel modal-close-btn-alternative" data-modal-id="modalGenerateFromLink">Cancelar</button>
+                    <button type="submit" class="btn-confirm">Gerar</button>
                 </div>
             </form>
         </div>
@@ -3027,15 +3062,14 @@
             if (imageUrl) {
                 const src = imageUrl.startsWith('http') ? imageUrl : `data:image/jpeg;base64,${imageUrl}`;
                 imageHtml = `<div class="wpp-image-container" data-id="${item.id}" title="Ver/Editar Imagem">
-                                     <img src="${src}" class="table-image-preview" alt="Preview">
-                                   </div>`;
+                                <img src="${src}" class="table-image-preview" alt="Preview">
+                            </div>`;
             }
 
             return `
                 <tr id="wpp-row-${item.id}" data-item='${JSON.stringify(item)}'>
                     <td data-label="Loja">${item.loja || 'N/A'}</td>
-                    <td data-label="Grupo">${item.grupo || 'N/A'}</td>
-                    <td data-label="Mensagem" style="max-width: 250px; white-space: pre-wrap; word-break: break-word;">${item.message_parte1 || 'N/A'}</td>
+                    <td data-label="Comissão">${item.commission || 'N/A'}</td> <td data-label="Mensagem" style="max-width: 250px; white-space: pre-wrap; word-break: break-word;">${item.message_parte1 || 'N/A'}</td>
                     <td data-label="URL"><a href="${item.url_production}" target="_blank">Link</a></td>
                     <td data-label="Imagem">${imageHtml}</td>
                     <td data-label="Criado em">${formatMediaDateTime(item["Created on"])}</td>
@@ -3205,13 +3239,35 @@
         }
 
         async function handleCreateOfferModal() {
-            formCreateWhatsapp.reset();
-            state.newImageBase64 = null;
-            document.getElementById('createWppImagePreview').src = 'https://placehold.co/200x200/cccccc/ffffff?text=Sem+Imagem';
-            
-            await fetchWhatsappGroups(); // Garante que os grupos estão carregados
-            
-            openModal(modalCreateWhatsapp);
+            openModal(document.getElementById('modalOfferTypeChoice'));
+        }
+
+        async function handleGenerateAdFromLink(event) {
+            event.preventDefault();
+            const urlInput = document.getElementById('generateFromLinkUrl');
+            const url = urlInput.value.trim();
+            if (!url) {
+                showAlert("Por favor, insira uma URL para gerar o anúncio.");
+                return;
+            }
+
+            showLoading("Gerando anúncio a partir do link...");
+            try {
+                const response = await fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, {
+                    method: "POST",
+                    body: JSON.stringify({ url: url, conta_user_instagram: decodeURIComponent(state.activeMediaType) })
+                });
+                const responseData = await response.json();
+                if (!response.ok) throw new Error(responseData.message || 'Erro ao gerar anúncio.');
+                
+                showAlert('Oferta gerada com sucesso a partir do link!');
+                closeModal(document.getElementById('modalGenerateFromLink'));
+                fetchData();
+            } catch (error) {
+                showAlert(`Erro: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
         }
 
         async function handleCreateOfferSubmit(event) {
@@ -4613,6 +4669,32 @@
             existingLinksListDiv.addEventListener('click', (event) => {
                 if (event.target.classList.contains('btn-delete-link')) {
                     handleDeleteLink(event);
+                }
+            });
+
+            document.getElementById('btnCreateOfferFromLink').addEventListener('click', () => {
+                closeModal(document.getElementById('modalOfferTypeChoice'));
+                openModal(document.getElementById('modalGenerateFromLink'));
+                document.getElementById('formGenerateFromLink').reset();
+            });
+
+            document.getElementById('btnCreateOfferManually').addEventListener('click', () => {
+                closeModal(document.getElementById('modalOfferTypeChoice'));
+                // Abre o modal de criação manual que já existe
+                formCreateWhatsapp.reset();
+                state.newImageBase64 = null;
+                document.getElementById('createWppImagePreview').src = 'https://placehold.co/200x200/cccccc/ffffff?text=Sem+Imagem';
+                openModal(modalCreateWhatsapp);
+            });
+
+            document.getElementById('formGenerateFromLink').addEventListener('submit', handleGenerateAdFromLink);
+            
+            document.getElementById('btnPasteAndGenerate').addEventListener('click', async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    document.getElementById('generateFromLinkUrl').value = text;
+                } catch (err) {
+                    showAlert('Não foi possível ler da área de transferência.');
                 }
             });
 
