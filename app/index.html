@@ -2603,11 +2603,12 @@
                 const data = await res.json();
 
                 if (state.currentView === 'media') {
-                    // A API retorna um array contendo um objeto com 'data' e 'totalItems'
-                    if (Array.isArray(data) && data.length > 0 && data[0]) {
-                        state.items = data[0].data || [];
-                        state.totalItems = data[0].totalItems || 0;
+                    // A API retorna um objeto com 'data' e 'totalItems'
+                    if (data && data.data && Array.isArray(data.data)) {
+                        state.items = data.data;
+                        state.totalItems = data.totalItems || 0;
                     } else {
+                        // Fallback para o caso de a resposta não vir no formato esperado
                         state.items = [];
                         state.totalItems = 0;
                     }
