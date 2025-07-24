@@ -2603,14 +2603,15 @@
                 const data = await res.json();
 
                 if (state.currentView === 'media') {
-                    // A API retorna um objeto com 'data' e 'totalItems'
-                    if (data && data.data && Array.isArray(data.data)) {
-                        state.items = data.data;
-                        state.totalItems = data.totalItems || 0;
-                    } else {
-                        // Fallback para o caso de a resposta não vir no formato esperado
-                        state.items = [];
-                        state.totalItems = 0;
+                    if (state.activeAccount === 'WhatsApp') {
+                        // WhatsApp API retorna um objeto com 'data', 'totalItems' e 'lojas'
+                        if (data && data.data && Array.isArray(data.data)) {
+                            state.items = data.data;
+                            state.totalItems = data.totalItems || 0;
+                        } else {
+                            state.items = [];
+                            state.totalItems = 0;
+                        }
                     }
                 } else if (state.currentView === 'settings') {
                     const settingsView = window.location.hash.split('/')[2];
