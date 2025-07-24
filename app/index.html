@@ -1659,10 +1659,15 @@
             [dashboardContentArea, contentDisplayArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => {
                 if(el) el.style.display = 'none';
             });
-            if(paginationContainer) paginationContainer.style.display = 'none';
-
+            
             state.currentPage = newPage;
             state.currentView = mainPath;
+
+            // Limpa a seleção de conta/mídia se não estivermos na área de mídia
+            if (mainPath !== 'media') {
+                state.activeAccount = null;
+                state.activeMediaType = null;
+            }
 
             switch (mainPath) {
                 case 'dashboard':
@@ -2535,18 +2540,26 @@
 
         async function fetchData() {
             if (state.isLoading) return;
-            if (!state.activeAccount || !state.activeMediaType) {
-                console.log("Nenhuma conta ou tipo de mídia ativo. A saltar a busca de dados.");
+            showLoading();
+
+            // Esconde a paginação e limpa a área de itens para uma transição mais suave
+            if (paginationContainer) paginationContainer.style.display = 'none';
+            if (mediaItemsWrapper && state.currentView === 'media') {
+                mediaItemsWrapper.innerHTML = '';
+            }
+
+            if (!state.currentView) {
+                console.warn("Visualização atual não definida, pulando a busca.");
+                hideLoading();
                 return;
             }
-            showLoading("A carregar dados...");
-            
-            let baseUrl = '';
-            const params = new URLSearchParams();
-            
+
+            let endpoint = '';
+            let isPost = false;
+
             if (state.activeAccount === 'WhatsApp') {
-                baseUrl = url_base + API_URLS.WHATSAPP;
-                params.append('conta_user_instagram', state.activeMediaType);
+                endpoint = url_base + API_URLS.WHATSAPP;
+                isPost = true;
             } else {
                 const mediaTypeConfig = MEDIA_TYPES.find(mt => mt.key === state.activeMediaType);
                 if (!mediaTypeConfig) {
@@ -2554,14 +2567,15 @@
                     showAlert("Tipo de mídia inválido.");
                     return;
                 }
-                baseUrl = url_base + mediaTypeConfig.endpoint;
-                params.append('conta_user_instagram', decodeURIComponent(state.activeAccount));
+                endpoint = url_base + mediaTypeConfig.endpoint;
+                isPost = false;
             }
 
+            const params = new URLSearchParams();
             params.append('page', state.currentPage);
             params.append('limit', state.itemsPerPage);
 
-            let url = `${baseUrl}?${params.toString()}`;
+            let url = `${endpoint}?${params.toString()}`;
 
             try {
                 const response = await fetchWithAuth(url);
@@ -4436,7 +4450,7 @@
 
         // NOVO: Função para gerar anúncio a partir de um link
         async function handleGenerateAdFromLink() {
-            const urlInput = document.getElementById('createWppUrl');
+            const urlInput = document.getElementById('generateFromLinkUrl');
             const url = urlInput.value.trim();
             if (!url) {
                 showAlert("Por favor, insira uma URL para gerar o anúncio.");
