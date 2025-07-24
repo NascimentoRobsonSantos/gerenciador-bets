@@ -890,7 +890,7 @@
                 <button id="menuToggleBtn" class="menu-toggle-btn" title="Alternar menu">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"></path></svg>
                 </button>
-                <a href="#/dashboard"><h1>Gerenciador de Posts 1010</h1></a>
+                <a href="#/dashboard"><h1>Gerenciador de Posts</h1></a>
             </div>
             <div class="header-right">
                 <button id="themeToggle" title="Alterar Tema"><div class="toggle-circle"></div></button>
@@ -2563,11 +2563,11 @@
                     return;
                 }
                 if (state.activeAccount === 'WhatsApp') {
-                    endpoint = `${API_URLS.WHATSAPP}?group_name=${encodeURIComponent(state.activeMediaType)}&page=${state.currentPage}&limit=${state.itemsPerPage}`;
+                    endpoint = `${API_URLS.WHATSAPP}?group_name=${decodeURIComponent(state.activeMediaType)}&page=${state.currentPage}&limit=${state.itemsPerPage}`;
                 } else {
                     const mediaTypeConfig = MEDIA_TYPES.find(m => m.key === state.activeMediaType);
                     if (mediaTypeConfig) {
-                        endpoint = `${url_base}${mediaTypeConfig.endpoint}?conta_user_1_instagram=${encodeURIComponent(state.activeAccount)}&page=${state.currentPage}&limit=${state.itemsPerPage}`;
+                        endpoint = `${url_base}${mediaTypeConfig.endpoint}?conta_user_instagram=${decodeURIComponent(state.activeAccount)}&page=${state.currentPage}&limit=${state.itemsPerPage}`;
                     }
                 }
             } else if (state.currentView === 'settings') {
