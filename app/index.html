@@ -363,7 +363,7 @@
         @media (max-width: 1600px) { .grid-container, .stats-grid-container { grid-template-columns: repeat(4, 1fr); } }
         @media (max-width: 1300px) { .grid-container, .stats-grid-container { grid-template-columns: repeat(3, 1fr); } }
         @media (max-width: 1100px) { .grid-container, .stats-grid-container { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 768px) { .grid-container, .stats-grid-container { grid-template-columns: 1fr; } }
+        /* @media (max-width: 768px) { .grid-container, .stats-grid-container { grid-template-columns: 1fr; } } */
 
         .card {
             background-color: var(--card-bg-color);
@@ -450,16 +450,7 @@
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 1050; justify-content: center; align-items: center; }
         .modal-content { background-color: var(--card-bg-color); padding: 25px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); width: 90%; max-width: 450px; position: relative; }
         .modal-content.modal-lg { max-width: 800px; }
-        @media (max-width: 768px) {
-            .modal-content.modal-lg {
-                max-height: 85vh;
-                overflow-y: auto;
-            }
-            .modal-content {
-                max-height: 85vh;
-                overflow-y: auto;
-            }
-        }
+        
         .modal-content h3 { margin-top: 0; margin-bottom: 20px; color: var(--text-color); }
         .modal-close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; font-weight: bold; background: none; border: none; cursor: pointer; color: #888; }
         .modal-close-btn:hover { color: var(--text-color); }
@@ -539,12 +530,6 @@
             margin-bottom: 20px;
             flex-wrap: wrap;
             gap: 15px;
-        }
-        @media (max-width: 768px) {
-            .page-header {
-                flex-direction: column;
-                align-items: stretch;
-            }
         }
         .filters-container {
             background-color: var(--card-bg-color);
@@ -643,9 +628,17 @@
 
         /* Estilos responsivos para a tabela do WhatsApp */
         @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
             .page-header .header-actions {
                 display: flex;
                 justify-content: flex-end; /* Alinha o(s) botão(ões) à direita */
+            }
+            .modal-content, .modal-content.modal-lg {
+                max-height: 85vh;
+                overflow-y: auto;
             }
             .edit-modal-body { flex-direction: column; }
             .list-item-stats {
@@ -693,12 +686,14 @@
                 gap: 5px;
                 text-align: left;
             }
-             .data-table td[data-label="Mensagem"]::before, .data-table td[data-label="Webhook"]::before {
+            .data-table td[data-label="Mensagem"]::before, .data-table td[data-label="Webhook"]::before {
                 margin-bottom: 5px;
             }
             .data-table td .action-buttons {
                 width: 100%;
-                justify-content: space-around;
+                display: flex; /* Garante que é um container flex */
+                justify-content: flex-end; /* Alinha os botões à direita */
+                gap: 8px; /* Adiciona espaço entre eles */
                 padding-top: 10px;
             }
         }
@@ -3244,13 +3239,13 @@
 
         async function handleGenerateAdFromLink(event) {
             event.preventDefault();
-            const urlInput = document.getElementById('generateFromLinkUrl'); // <-- ID CORRETO
+            const urlInput = document.getElementById('generateFromLinkUrl'); // <<-- ID CORRIGIDO
             const url = urlInput.value.trim();
             if (!url) {
                 showAlert("Por favor, insira uma URL para gerar o anúncio.");
                 return;
             }
-            // ... resto da função
+
             showLoading("Gerando anúncio a partir do link...");
             try {
                 const response = await fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, {
@@ -3268,7 +3263,7 @@
             } finally {
                 hideLoading();
             }
-        }
+            }
 
         async function handleCreateOfferSubmit(event) {
             event.preventDefault();
@@ -4496,6 +4491,15 @@
                     }
                 }
             });
+
+            document.addEventListener('gesturestart', function (e) {
+                e.preventDefault();
+            });
+            document.body.addEventListener('touchstart', function(e) {
+                if (e.touches.length > 1) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
             
             formCreateSocialAccount.addEventListener('submit', handleCreateSocialAccount);
             formEditSocialAccount.addEventListener('submit', handleUpdateSocialAccount);
