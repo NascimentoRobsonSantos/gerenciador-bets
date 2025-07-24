@@ -2555,67 +2555,93 @@
             }
 
             let endpoint = '';
-            let isPost = false;
-
-            if (state.activeAccount === 'WhatsApp') {
-                endpoint = url_base + API_URLS.WHATSAPP;
-                isPost = true;
-            } else {
-                const mediaTypeConfig = MEDIA_TYPES.find(mt => mt.key === state.activeMediaType);
-                if (!mediaTypeConfig) {
+            
+            if (state.currentView === 'media') {
+                 if (!state.activeAccount || !state.activeMediaType) {
+                    console.warn("Conta ou tipo de mídia não definidos para a visualização de mídia.");
                     hideLoading();
-                    showAlert("Tipo de mídia inválido.");
                     return;
                 }
-                endpoint = url_base + mediaTypeConfig.endpoint;
-                isPost = false;
+                if (state.activeAccount === 'WhatsApp') {
+                    endpoint = `${API_URLS.WHATSAPP}?group_name=${encodeURIComponent(state.activeMediaType)}&page=${state.currentPage}&limit=${state.itemsPerPage}`;
+                } else {
+                    const mediaTypeConfig = MEDIA_TYPES.find(m => m.key === state.activeMediaType);
+                    if (mediaTypeConfig) {
+                        endpoint = `${url_base}${mediaTypeConfig.endpoint}?conta_user_instagram=${encodeURIComponent(state.activeAccount)}&page=${state.currentPage}&limit=${state.itemsPerPage}`;
+                    }
+                }
+            } else if (state.currentView === 'settings') {
+                const settingsView = window.location.hash.split('/')[2];
+                switch(settingsView) {
+                    case 'accounts': endpoint = API_URLS.GET_ACCOUNTS; break;
+                    case 'whatsapp-groups': endpoint = API_URLS.WHATSAPP_GROUPS_CRUD; break;
+                    case 'companies': endpoint = API_URLS.COMPANIES_CRUD; break;
+                    case 'users': endpoint = API_URLS.USERS_CRUD; break;
+                }
+            } else if (state.currentView === 'dashboard') {
+                endpoint = API_URLS.GET_DASHBOARD_METRICS;
             }
 
-            const params = new URLSearchParams();
-            params.append('page', state.currentPage);
-            params.append('limit', state.itemsPerPage);
 
-            let url = `${endpoint}?${params.toString()}`;
+            if (!endpoint) {
+                console.warn("Nenhum endpoint definido para a visualização atual:", state.currentView, state.activeAccount, state.activeMediaType);
+                hideLoading();
+                return;
+            }
 
             try {
-                const response = await fetchWithAuth(url);
-                if (!response.ok) throw new Error(`Erro HTTP: ${response.status} ao buscar de ${url}`);
-                
-                const result = await response.json();
-                
-                if (result && typeof result === 'object' && !Array.isArray(result)) {
-                    state.items = Array.isArray(result.data) ? result.data : [];
-                    state.totalItems = result.totalItems || 0;
-                    if (state.activeAccount === 'WhatsApp') {
-                        state.whatsappLojas = result.lojas || [];
+                const res = await fetchWithAuth(endpoint);
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        handleLogout(); // Desloga se o token for inválido
+                        throw new Error("Sessão expirada. Por favor, faça login novamente.");
                     }
-                } else if (Array.isArray(result)) {
-                    state.items = result;
-                    state.totalItems = result.length; 
-                } else {
-                    console.warn("Formato de resposta da API inesperado:", result);
-                    state.items = [];
-                    state.totalItems = 0;
+                    const errorText = await res.text();
+                    throw new Error(`Erro ${res.status}: ${errorText}`);
                 }
                 
-                if (['reels', 'stories'].includes(state.activeMediaType)) {
-                    state.items.sort((a, b) => (new Date(b.media_created_at).getTime() || 0) - (new Date(a.media_created_at).getTime() || 0));
+                const data = await res.json();
+
+                if (state.currentView === 'media') {
+                    state.items = data.items || [];
+                    state.totalItems = data.total_items || 0;
+                } else if (state.currentView === 'settings') {
+                    const settingsView = window.location.hash.split('/')[2];
+                    switch(settingsView) {
+                        case 'accounts': state.socialAccounts = data; renderSocialAccountsTable(); break;
+                        case 'whatsapp-groups': state.whatsappGroups = data; renderWhatsappGroupsTable(); break;
+                        case 'companies': state.companies = data; renderCompaniesTable(); break;
+                        case 'users': state.users = data; renderUsersTable(); break;
+                    }
+                } else if (state.currentView === 'dashboard') {
+                    renderDashboard(data);
                 }
-                
-                state.filteredItems = [...state.items];
 
             } catch (error) {
-                if (error.message !== "Sessão expirada.") {
-                    console.error(`Falha ao buscar dados para ${state.activeMediaType}:`, error);
-                    showAlert(`Erro ao carregar dados: ${error.message}`);
+                console.error("Erro ao buscar dados:", error);
+                showAlert(error.message, "Erro de Conexão");
+                if (mediaItemsWrapper) {
+                     mediaItemsWrapper.innerHTML = `<p style="text-align:center; color: #dc3545;">${error.message}</p>`;
                 }
-                state.items = [];
-                state.totalItems = 0;
             } finally {
                 hideLoading();
-                renderItems();
-                renderPaginationControls();
+                // A renderização agora é mais centralizada
+                if(state.currentView === 'media') {
+                    renderItems();
+                    renderPaginationControls();
+                }
             }
+        }
+
+        async function fetchInitialData() {
+            await Promise.all([
+                fetchSocialAccounts(),
+                fetchWhatsappGroups(),
+                fetchCompanies()
+            ]);
+            
+            setupEventListeners();
+            await router(); // Chama o roteador para carregar a view inicial
         }
         
         function changePage(page) {
