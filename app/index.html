@@ -4084,7 +4084,7 @@
             }
         }
 
-        async function initMainApp() {
+        async function fetchInitialData() {
             sidebar = document.getElementById('sidebar');
             dashboardContentArea = document.getElementById('dashboardContentArea');
             contentDisplayArea = document.getElementById('contentDisplayArea');
@@ -4105,6 +4105,169 @@
             setupEventListeners();
             await router(); // Chama o roteador para carregar a view inicial
         }
+
+        function renderSocialAccountsTable() {
+            const container = document.getElementById('social-accounts-table-container');
+            if (!container) return;
+
+            const sortedAccounts = [...state.socialAccounts].sort((a, b) => (a.ordenacao ?? 999) - (b.ordenacao ?? 999));
+
+            if (sortedAccounts.length === 0) {
+                container.innerHTML = '<p>Nenhuma conta social cadastrada.</p>';
+                return;
+            }
+
+            const table = document.createElement('table');
+            table.className = 'data-table';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Ordenação</th>
+                        <th>Nome da Conta</th>
+                        <th>Rede Social</th>
+                        <th>Webhook</th>
+                        <th>Validada</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${sortedAccounts.map(acc => `
+                        <tr data-account-id="${acc.id || acc.nome_conta}">
+                            <td data-label="Ordenação">${acc.ordenacao || 'N/A'}</td>
+                            <td data-label="Nome">${acc.nome_conta}</td>
+                            <td data-label="Rede Social">${acc.social_media}</td>
+                            <td data-label="Webhook" style="word-break: break-all;">${acc.webhook || 'N/A'}</td>
+                            <td data-label="Validada" class="validated-icon">${acc.validated ? '✔️' : '❌'}</td>
+                            <td data-label="Ações">
+                                <div class="action-buttons">
+                                    <button class="btn-edit-account">Editar</button>
+                                    <button class="btn-delete-account btn-delete">Excluir</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>`;
+            container.innerHTML = '';
+            container.appendChild(table);
+        }
+
+        function renderWhatsappGroupsTable() {
+            const container = document.getElementById('whatsapp-groups-table-container');
+            if (!container) return;
+            const sortedGroups = [...state.whatsappGroups].sort((a, b) => (a.ordenacao || 999) - (b.ordenacao || 999));
+
+            if (sortedGroups.length === 0) {
+                container.innerHTML = '<p>Nenhum grupo cadastrado.</p>';
+                return;
+            }
+            const table = document.createElement('table');
+            table.className = 'data-table';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Ordenação</th>
+                        <th>Nome do Grupo</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${sortedGroups.map(group => `
+                        <tr data-group-id="${group.id}">
+                            <td data-label="Ordenação">${group.ordenacao || 'N/A'}</td>
+                            <td data-label="Nome">${group.group_name}</td>
+                            <td data-label="Ações">
+                                <div class="action-buttons">
+                                    <button class="btn-edit-wpp-group">Editar</button>
+                                    <button class="btn-delete-wpp-group btn-delete">Excluir</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>`;
+            container.innerHTML = '';
+            container.appendChild(table);
+        }
+
+        function renderCompaniesTable() {
+            const container = document.getElementById('companies-table-container');
+            if (!container) return;
+            if (state.companies.length === 0) {
+                container.innerHTML = '<p>Nenhuma empresa cadastrada.</p>';
+                return;
+            }
+            const table = document.createElement('table');
+            table.className = 'data-table';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Nome da Empresa</th>
+                        <th>CNPJ/CPF</th>
+                        <th>E-mail</th>
+                        <th>Módulos Ativos</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${state.companies.map(company => `
+                        <tr data-company-id="${company.id}">
+                            <td data-label="Nome">${company.name}</td>
+                            <td data-label="CNPJ/CPF">${company.cnpj_cpf || 'N/A'}</td>
+                            <td data-label="E-mail">${company.email || 'N/A'}</td>
+                            <td data-label="Módulos">${formatCompanyModules(company.modules)}</td>
+                            <td data-label="Ações">
+                                <div class="action-buttons">
+                                    <button class="btn-primary btn-edit-company-data">Editar Dados</button>
+                                    <button class="btn-primary btn-edit-company-modules">Gerenciar Módulos</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>`;
+            container.innerHTML = '';
+            container.appendChild(table);
+        }
+
+        function renderUsersTable() {
+            const container = document.getElementById('users-table-container');
+            if (!container) return;
+            if (state.users.length === 0) {
+                container.innerHTML = '<p>Nenhum usuário cadastrado.</p>';
+                return;
+            }
+            const table = document.createElement('table');
+            table.className = 'data-table';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>E-mail</th>
+                        <th>Ativo</th>
+                        <th>Admin</th>
+                        <th>Tema Escuro</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${state.users.map(user => `
+                        <tr data-user-id="${user.id}">
+                            <td data-label="Nome">${user.name || 'N/A'}</td>
+                            <td data-label="Email">${user.email}</td>
+                            <td data-label="Ativo">${user.is_active ? '✔️' : '❌'}</td>
+                            <td data-label="Admin">${user.admin ? '✔️' : '❌'}</td>
+                            <td data-label="Tema Escuro">${user.dark_theme ? '✔️' : '❌'}</td>
+                            <td data-label="Ações">
+                                <div class="action-buttons">
+                                    <button class="btn-primary btn-edit-user">Editar</button>
+                                    <button class="btn-delete-user btn-delete">Excluir</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>`;
+            container.innerHTML = '';
+            container.appendChild(table);
+        }
+
 
         // --- Funções para o modal de post agendado ---
         function handleOpenScheduledPostModal(post = null) {
@@ -4574,10 +4737,9 @@
                 registerContainer.style.display = 'none';
                 appContainer.style.display = 'flex';
                 
-                // Adiciona o listener para mudanças no hash (botões de voltar/avançar do navegador)
                 window.addEventListener('hashchange', router);
 
-                initMainApp();
+                fetchInitialData(); // <-- Chamando a função com o nome correto
             } else {
                 loginContainer.style.display = 'flex';
                 appContainer.style.display = 'none';
