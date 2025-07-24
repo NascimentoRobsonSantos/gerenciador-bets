@@ -696,6 +696,15 @@
                 gap: 8px; /* Adiciona espaço entre eles */
                 padding-top: 10px;
             }
+            .data-table td[data-label="Mensagem"], .data-table td[data-label="Webhook"] {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+                text-align: left;
+                /* ADICIONE ESTAS DUAS LINHAS */
+                overflow-wrap: break-word;
+                word-break: break-all;
+            }
         }
 
         /* Theme Toggle & Settings Dropdown */
@@ -2544,7 +2553,7 @@
 
             // Esconde a paginação e limpa a área de itens para uma transição mais suave
             if (paginationContainer) paginationContainer.style.display = 'none';
-            if (mediaItemsWrapper && state.currentView === 'media' && state.activeAccount !== 'WhatsApp') {
+            if (mediaItemsWrapper && state.currentView === 'media') {
                 mediaItemsWrapper.innerHTML = '';
             }
 
@@ -3233,8 +3242,11 @@
 
         async function handleEditWhatsappPost(event) {
             const id = event.currentTarget.dataset.id;
-            const itemData = state.filteredItems.find(item => item.id == id);
-            if (!itemData) return;
+            const itemData = state.items.find(item => item.id == id);
+            if (!itemData) {
+                showAlert("Erro: Item da oferta não encontrado.");
+                return;
+            }
             state.newImageBase64 = null;
 
             document.getElementById('editWppId').value = itemData.id;
@@ -3307,31 +3319,23 @@
 
         async function handleDeleteWhatsappPost(event) {
             const id = event.currentTarget.dataset.id;
-            const itemData = state.filteredItems.find(item => item.id == id);
-            if (!itemData) return;
-
             const confirmed = await showConfirm(`Tem certeza que deseja excluir a oferta de WhatsApp ID ${id}?`);
             if (!confirmed) return;
 
-            const accountName = decodeURIComponent(state.activeMediaType); // CORREÇÃO
-
+            const accountName = decodeURIComponent(state.activeMediaType);
             showLoading("Excluindo oferta...");
             try {
                 const response = await fetchWithAuth(API_URLS.WHATSAPP_ACTION, {
                     method: 'DELETE',
-                    body: JSON.stringify({ 
-                        id: id, 
-                        image_base64: itemData.image_base64,
-                        conta_user_instagram: accountName 
-                    })
+                    body: JSON.stringify({ id: id, conta_user_instagram: accountName })
                 });
-                const responseData = await response.json();
-                if (!response.ok) throw new Error(responseData.message || 'Erro no servidor');
-
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: 'Erro no servidor' }));
+                    throw new Error(errorData.message);
+                }
                 showAlert('Oferta excluída com sucesso!');
                 fetchData();
             } catch (error) {
-                console.error("Erro ao excluir oferta:", error);
                 showAlert(`Erro ao excluir: ${error.message}`);
             } finally {
                 hideLoading();
@@ -3340,18 +3344,17 @@
 
         async function handlePostWhatsappAd(event) {
             const id = event.currentTarget.dataset.id;
-            const itemData = state.filteredItems.find(item => item.id == id);
+            const itemData = state.items.find(item => item.id == id);
             if (!itemData) return;
 
             const confirmed = await showConfirm(`Tem certeza que deseja POSTAR a oferta?`);
             if (!confirmed) return;
             
-            const accountName = decodeURIComponent(state.activeMediaType); // CORREÇÃO
+            const accountName = decodeURIComponent(state.activeMediaType);
             
             const payload = {
                 id: itemData.id,
                 loja: itemData.loja,
-                grupo: itemData.grupo,
                 message_parte1: itemData.message_parte1,
                 url_production: itemData.url_production,
                 image_base64: itemData.image_base64,
@@ -3366,11 +3369,9 @@
                 });
                 const responseData = await response.json();
                 if (!response.ok) throw new Error(responseData.message || 'Erro no servidor');
-
                 showAlert('Oferta postada com sucesso!');
                 fetchData();
             } catch (error) {
-                console.error("Erro ao postar oferta:", error);
                 showAlert(`Erro ao postar: ${error.message}`);
             } finally {
                 hideLoading();
@@ -3382,11 +3383,9 @@
         }
 
         async function handleGenerateAdFromLink(event) {
-            // Se o evento vier de um submit de formulário, previna o comportamento padrão
             if (event && typeof event.preventDefault === 'function') {
                 event.preventDefault();
             }
-            
             const urlInput = document.getElementById('generateFromLinkUrl');
             const url = urlInput.value.trim();
             if (!url) {
@@ -3400,12 +3399,15 @@
                     method: "POST",
                     body: JSON.stringify({ url: url, conta_user_instagram: decodeURIComponent(state.activeMediaType) })
                 });
-                const responseData = await response.json();
-                if (!response.ok) throw new Error(responseData.message || 'Erro ao gerar anúncio.');
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: 'Erro ao gerar anúncio.' }));
+                    throw new Error(errorData.message);
+                }
+                await response.json(); // Apenas para consumir a resposta
                 
-                showAlert('Oferta gerada com sucesso a partir do link!');
+                showAlert('Oferta gerada com sucesso a partir do link! A lista será atualizada.');
                 closeModal(document.getElementById('modalGenerateFromLink'));
-                fetchData();
+                await fetchData(); // Atualiza a lista de ofertas
             } catch (error) {
                 showAlert(`Erro: ${error.message}`);
             } finally {
