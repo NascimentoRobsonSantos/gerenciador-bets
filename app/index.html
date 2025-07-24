@@ -1745,7 +1745,7 @@
 
         // Função auxiliar para fechar a sidebar no mobile
         function closeSidebarIfMobile() {
-            if (window.matchMedia('(max-width: 992px)').matches) {
+            if (window.innerWidth <= 992) {
                 document.body.classList.remove('sidebar-collapsed');
             }
         }
@@ -1964,9 +1964,12 @@
             if (formGenerateFromLink) {
                 formGenerateFromLink.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    const url = document.getElementById('generateFromLinkUrl').value;
+                    if (state.isLoading) return; // Previne dupla submissão
+
+                    const urlInput = document.getElementById('generateFromLinkUrl');
+                    const url = urlInput.value;
                     if (!url) {
-                        showAlert("Por favor, insira um link.");
+                        showAlert("Por favor, insira uma URL para gerar o anúncio.");
                         return;
                     }
 
@@ -1991,15 +1994,15 @@
                         const previewImg = document.getElementById('createWppImagePreview');
                         if(data.imagem_url) {
                            previewImg.src = data.imagem_url;
-                           if(data.imagem_base64) {
-                               state.newImageBase64 = data.imagem_base64;
-                           }
+                           state.newImageBase64 = data.imagem_base64 || null;
                         } else {
                            previewImg.src = 'https://placehold.co/200x200/cccccc/ffffff?text=Sem+Imagem';
+                           state.newImageBase64 = null;
                         }
                         
+                        urlInput.value = ''; 
                         closeModal(modalGenerateFromLink);
-                        openModal(modalCreateWhatsapp);
+                        openModal(document.getElementById('modalCreateWhatsapp'));
 
                     } catch (error) {
                         console.error('Erro ao gerar anúncio pelo link:', error);
@@ -2016,9 +2019,6 @@
                     try {
                         const text = await navigator.clipboard.readText();
                         document.getElementById('generateFromLinkUrl').value = text;
-                        if (formGenerateFromLink) {
-                           formGenerateFromLink.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-                        }
                     } catch (err) {
                         showAlert('Falha ao colar da área de transferência.');
                     }
@@ -2113,7 +2113,13 @@
             paginationContainer.innerHTML = '';
             
             const totalPages = Math.ceil(state.totalItems / state.itemsPerPage);
-            if (totalPages <= 1) return;
+            
+            // Oculta se não houver páginas ou se estiver carregando
+            if (totalPages <= 1 || state.isLoading) {
+                paginationContainer.style.display = 'none';
+                return;
+            }
+            paginationContainer.style.display = 'flex';
 
             const controlsDiv = document.createElement('div');
             controlsDiv.className = 'pagination-controls';
@@ -2528,6 +2534,7 @@
         }
 
         async function fetchData() {
+            if (state.isLoading) return;
             if (!state.activeAccount || !state.activeMediaType) {
                 console.log("Nenhuma conta ou tipo de mídia ativo. A saltar a busca de dados.");
                 return;
@@ -3478,9 +3485,11 @@
         }
         
         async function showSocialAccountsPage() {
+            state.currentView = 'settings';
+            [dashboardContentArea, contentDisplayArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
             socialAccountsContentArea.style.display = 'block';
-            await fetchSocialAccounts();
-            renderSocialAccountsPage();
+            paginationContainer.style.display = 'none';
+            await fetchData();
         }
 
         function renderSocialAccountsPage() {
@@ -3679,9 +3688,11 @@
         
         // --- Funções para Gerenciamento de Grupos WhatsApp ---
         async function showWhatsappGroupsPage() {
+            state.currentView = 'settings';
+            [dashboardContentArea, contentDisplayArea, socialAccountsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
             whatsappGroupsContentArea.style.display = 'block';
-            await fetchWhatsappGroups();
-            renderWhatsappGroupsPage();
+            paginationContainer.style.display = 'none';
+            await fetchData();
         }
 
         async function fetchWhatsappGroups() {
@@ -3847,9 +3858,11 @@
 
         // --- Funções de Admin (Empresas e Usuários) ---
         async function showCompaniesPage() {
+            state.currentView = 'settings';
+            [dashboardContentArea, contentDisplayArea, socialAccountsContentArea, whatsappGroupsContentArea, usersContentArea].forEach(el => el.style.display = 'none');
             companiesContentArea.style.display = 'block';
-            await fetchCompanies();
-            renderCompaniesPage();
+            paginationContainer.style.display = 'none';
+            await fetchData();
         }
 
         function handleEditCompanyDataModal(company) {
@@ -4039,10 +4052,11 @@
         }
 
         async function showUsersPage() {
+            state.currentView = 'settings';
+            [dashboardContentArea, contentDisplayArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea].forEach(el => el.style.display = 'none');
             usersContentArea.style.display = 'block';
-            paginationContainer.style.display = 'flex';
-            await fetchUsers();
-            renderUsersPage();
+            paginationContainer.style.display = 'none';
+            await fetchData();
         }
 
         async function fetchUsers() {
