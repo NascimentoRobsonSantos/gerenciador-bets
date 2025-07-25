@@ -2202,7 +2202,7 @@
                 }
             } 
             else if (item.media_type === 'VIDEO') {
-                const videoUrl = item.media_url || item.s3_url_video;
+                const videoUrl = item.media_url || item.s3_url_video || item.url_s3_video;
                 const thumbUrl = item.thumbnail_url || item.story_thumbnail;
 
                 if (videoUrl) {
