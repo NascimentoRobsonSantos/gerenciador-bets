@@ -4397,7 +4397,7 @@
             }
 
             showLoading("Gerando anúncio...");
-            fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, { method: "POST", body: JSON.stringify({ url: url }) })
+            fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, { method: "POST", body: JSON.stringify({ url: url, grupo: accountName }) })
                 .then(async response => { if (!response.ok) throw new Error(await response.text()); return response.json(); })
                 .then(() => { showAlert('Anúncio criado com sucesso!'); closeModal(modalGenerateFromLink); fetchData(); })
                 .catch(error => { 
