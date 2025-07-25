@@ -2565,7 +2565,7 @@
                 }
                 if (state.activeAccount === 'WhatsApp') {
                     const mediaTypeConfig = MEDIA_TYPES.find(m => m.key === 'whatsapp');
-                    endpoint = `${url_base}${API_URLS.WHATSAPP}?conta_user_instagram=${decodeURIComponent(state.activeMediaType)}&${params.toString()}`;
+                    endpoint = `${url_base}${API_URLS.WHATSAPP}?grupo=${decodeURIComponent(state.activeMediaType)}&${params.toString()}`;
                 } else {
                     const mediaTypeConfig = MEDIA_TYPES.find(m => m.key === state.activeMediaType);
                     if (mediaTypeConfig) {
