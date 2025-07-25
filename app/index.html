@@ -2183,7 +2183,7 @@
 
             // Lógica para posts agendados que podem ter múltiplas mídias
             if (item.media_urls && Array.isArray(item.media_urls) && item.media_urls.length > 0) {
-                const firstMediaUrl = item.media_urls[0];
+                const firstMediaUrl = item.media_urls[0] || item.url_s3_video;
                 if (firstMediaUrl.toLowerCase().includes('.mp4') || firstMediaUrl.toLowerCase().includes('.mov')) {
                      mediaContainer.innerHTML = `<video src="${firstMediaUrl}" controls></video>`;
                 } else {
