@@ -2193,7 +2193,7 @@
             }
 
             if (item.media_type === 'IMAGE' || item.media_type === 'CAROUSEL_ALBUM') {
-                const primaryImg = item.story_thumbnail || item.media_url;
+                const primaryImg = item.story_thumbnail || item.media_url || item.url_s3_video;
                 const primaryImg2 = item.media_url;
                  if (primaryImg) {
                      mediaContainer.innerHTML = `<img src="${primaryImg}" onerror="this.onerror=null; this.src='${primaryImg2}';" alt="Mídia do post">`;
