@@ -2564,7 +2564,6 @@
                     return;
                 }
                 if (state.activeAccount === 'WhatsApp') {
-                    const mediaTypeConfig = MEDIA_TYPES.find(m => m.key === 'whatsapp');
                     endpoint = `${url_base}${API_URLS.WHATSAPP}?grupo=${decodeURIComponent(state.activeMediaType)}&${params.toString()}`;
                 } else {
                     const mediaTypeConfig = MEDIA_TYPES.find(m => m.key === state.activeMediaType);
@@ -2600,10 +2599,10 @@
                     renderItems(); // Renderiza os cards ou a tabela de ofertas
                 } else if (state.currentView === 'settings') {
                     const settingsView = window.location.hash.split('/')[2].split('?')[0];
-                    if (settingsView === 'accounts') { state.socialAccounts = data.data || []; renderSocialAccountsPage(); }
-                    if (settingsView === 'whatsapp-groups') { state.whatsappGroups = data.data || []; renderWhatsappGroupsPage(); }
-                    if (settingsView === 'companies') { state.companies = data.data || []; renderCompaniesPage(); }
-                    if (settingsView === 'users') { state.users = data.data || []; renderUsersPage(); }
+                    if (settingsView === 'accounts') { state.socialAccounts = data.data || []; renderSocialAccountsTable(); }
+                    if (settingsView === 'whatsapp-groups') { state.whatsappGroups = data.data || []; renderWhatsappGroupsTable(); }
+                    if (settingsView === 'companies') { state.companies = data.data || []; renderCompaniesTable(); }
+                    if (settingsView === 'users') { state.users = data.data || []; renderUsersTable(); }
                 }
             } catch (error) {
                 showAlert(`Erro ao carregar dados: ${error.message}`);
@@ -3237,7 +3236,7 @@
             event.preventDefault();
             
             const id = document.getElementById('editWppId').value;
-            const accountName = decodeURIComponent(state.activeMediaType); // CORREÇÃO
+            const accountName = decodeURIComponent(state.activeMediaType);
             
             const payload = {
                 id: id,
@@ -3262,9 +3261,8 @@
 
                 showAlert('Oferta atualizada com sucesso!');
                 closeModal(modalEditWhatsapp);
-                fetchData();
+                await fetchData(); // Await garante que a lista atualize
             } catch (error) {
-                console.error("Erro ao salvar oferta:", error);
                 showAlert(`Erro ao salvar: ${error.message}`);
             } finally {
                 hideLoading();
@@ -3288,7 +3286,7 @@
                     throw new Error(errorData.message);
                 }
                 showAlert('Oferta excluída com sucesso!');
-                await fetchData(); // Adiciona o 'await' para esperar a atualização
+                await fetchData(); // Await garante que a lista atualize
             } catch (error) {
                 showAlert(`Erro ao excluir: ${error.message}`);
             } finally {
