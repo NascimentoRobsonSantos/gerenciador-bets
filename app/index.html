@@ -1250,7 +1250,6 @@
                             <label for="createWppUrl">URL do Anúncio:</label>
                             <div style="display: flex; gap: 5px; align-items: center;">
                                 <input type="url" id="createWppUrl" required style="flex-grow: 1; margin-bottom: 0;">
-                                <button type="button" id="btnGenerateAd" class="btn-primary" style="padding: 5px 10px; font-size: 0.8rem; flex-shrink: 0;">Gerar</button>
                                 <button type="button" id="btnOpenAdUrl" class="btn-link" style="padding: 5px 10px; font-size: 0.8rem; flex-shrink: 0;">Abrir</button>
                             </div>
                         </div>
@@ -2455,11 +2454,10 @@
                 
                 li.innerHTML = `
                     <div>
-                        <strong>ID do Link:</strong> ${link.id || 'N/A'}<br>
                         <strong>Loja:</strong> ${link.loja || 'N/A'}<br>
                         <strong>Descrição:</strong> ${link.descricao || 'N/A'}<br>
                         <strong>Categoria:</strong> ${link.categoria || 'N/A'}<br>
-                        <strong>URL:</strong> <a href="${link.url_production}" target="_blank" style="color: var(--active-menu-text); word-break: break-all;">${link.url_production || 'N/A'}</a>
+                        <a href="${link.url_production}" target="_blank" style="color: var(--active-menu-text); word-break: break-all;">${link.url_production || 'N/A'}</a>
                     </div>
                     <button class="btn-delete btn-delete-link" data-link-id="${link.id}" style="width: auto; flex-shrink: 0; margin-left: 10px;">Excluir</button>
                 `;
@@ -3273,7 +3271,7 @@
 
         async function handleDeleteWhatsappPost(event) {
             const id = event.currentTarget.dataset.id;
-            const confirmed = await showConfirm(`Tem certeza que deseja excluir a oferta de WhatsApp ID ${id}?`);
+            const confirmed = await showConfirm(`Tem certeza que deseja excluir a oferta de WhatsApp selecionada?`);
             if (!confirmed) return;
 
             const accountName = decodeURIComponent(state.activeMediaType);
@@ -4403,14 +4401,13 @@
             showLoading("Gerando anúncio...");
             fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, { method: "POST", body: JSON.stringify({ url: url }) })
                 .then(async response => { if (!response.ok) throw new Error(await response.text()); return response.json(); })
-                .then(() => { showAlert('Anúncio criado com sucesso!'); closeModal(modalCreateWhatsapp); fetchData(); })
+                .then(() => { showAlert('Anúncio criado com sucesso!'); closeModal(modalGenerateFromLink); fetchData(); })
                 .catch(error => { 
                     if (error.message !== "Sessão expirada.") {
                         console.error("Erro:", error); showAlert(`Erro: ${error.message}`); 
                     }
                 })
                 .finally(hideLoading);
-            
         }
 
         // --- Funções do Dashboard ---
@@ -4664,11 +4661,6 @@
             document.getElementById('formUser').addEventListener('submit', handleUserFormSubmit);
 
             // Listeners para os novos botões no modal de criar oferta
-            const btnGenerateAd = document.getElementById('btnGenerateAd');
-            if (btnGenerateAd) {
-                btnGenerateAd.addEventListener('click', handleGenerateAdFromLink);
-            }
-
             const btnOpenAdUrl = document.getElementById('btnOpenAdUrl');
             if (btnOpenAdUrl) {
                 btnOpenAdUrl.addEventListener('click', () => {
