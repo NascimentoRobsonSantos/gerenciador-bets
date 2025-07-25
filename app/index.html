@@ -3143,7 +3143,8 @@
                 <thead>
                     <tr>
                         <th>Loja</th>
-                        <th>Comissão</th> <th>Mensagem</th>
+                        <th>Comissão</th> 
+                        <th>Mensagem</th>
                         <th>URL</th>
                         <th>Imagem</th>
                         <th>Criado em</th>
@@ -3176,7 +3177,8 @@
             return `
                 <tr id="wpp-row-${item.id}" data-item='${JSON.stringify(item)}'>
                     <td data-label="Loja">${item.loja || 'N/A'}</td>
-                    <td data-label="Comissão">${item.commission || 'N/A'}</td> <td data-label="Mensagem" style="max-width: 250px; white-space: pre-wrap; word-break: break-word;">${item.message_parte1 || 'N/A'}</td>
+                    <td data-label="Comissão">${item.commission || 'N/A'}</td> 
+                    <td data-label="Mensagem" style="max-width: 250px; white-space: pre-wrap; word-break: break-word;">${item.message_parte1 || 'N/A'}</td>
                     <td data-label="URL"><a href="${item.url_production}" target="_blank">Link</a></td>
                     <td data-label="Imagem">${imageHtml}</td>
                     <td data-label="Criado em">${formatMediaDateTime(item["Created on"])}</td>
@@ -3271,7 +3273,7 @@
 
         async function handleDeleteWhatsappPost(event) {
             const id = event.currentTarget.dataset.id;
-            const confirmed = await showConfirm(`Tem certeza que deseja excluir a oferta de WhatsApp selecionada?`);
+            const confirmed = await showConfirm(`Tem certeza que deseja excluir a oferta de WhatsApp ID ${id}?`);
             if (!confirmed) return;
 
             const accountName = decodeURIComponent(state.activeMediaType);
@@ -3286,7 +3288,7 @@
                     throw new Error(errorData.message);
                 }
                 showAlert('Oferta excluída com sucesso!');
-                fetchData();
+                await fetchData(); // Adiciona o 'await' para esperar a atualização
             } catch (error) {
                 showAlert(`Erro ao excluir: ${error.message}`);
             } finally {
@@ -3322,7 +3324,7 @@
                 const responseData = await response.json();
                 if (!response.ok) throw new Error(responseData.message || 'Erro no servidor');
                 showAlert('Oferta postada com sucesso!');
-                fetchData();
+                await fetchData(); // Adiciona o 'await' para esperar a atualização
             } catch (error) {
                 showAlert(`Erro ao postar: ${error.message}`);
             } finally {
@@ -3338,7 +3340,6 @@
             if (event && typeof event.preventDefault === 'function') {
                 event.preventDefault();
             }
-            
             const urlInput = document.getElementById('generateFromLinkUrl');
             const url = urlInput.value.trim();
             if (!url) {
@@ -3352,7 +3353,6 @@
                     method: "POST",
                     body: JSON.stringify({ url: url, conta_user_instagram: decodeURIComponent(state.activeMediaType) })
                 });
-                
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ message: 'Erro ao gerar anúncio.' }));
                     throw new Error(errorData.message);
@@ -3361,7 +3361,7 @@
                 
                 showAlert('Oferta gerada com sucesso! A lista será atualizada.');
                 closeModal(document.getElementById('modalGenerateFromLink'));
-                await fetchData(); // Espera a busca de dados terminar
+                await fetchData(); // Await já estava aqui, mas é crucial
             } catch (error) {
                 showAlert(`Erro: ${error.message}`);
             } finally {
