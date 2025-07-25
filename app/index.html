@@ -4395,6 +4395,7 @@
                 showAlert("Por favor, insira uma URL para gerar o anúncio.");
                 return;
             }
+            const accountName = decodeURIComponent(state.activeMediaType);
 
             showLoading("Gerando anúncio...");
             fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, { method: "POST", body: JSON.stringify({ url: url, grupo: accountName }) })
