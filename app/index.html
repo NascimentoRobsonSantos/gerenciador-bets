@@ -3512,6 +3512,48 @@
             await fetchData(); // Busca os dados para preencher a tabela
         }
 
+        async function fetchSocialAccounts() {
+            try {
+                const response = await fetchWithAuth(API_URLS.GET_ACCOUNTS);
+                if (!response.ok) throw new Error("Não foi possível carregar as contas.");
+                const result = await response.json();
+                state.socialAccounts = result?.data || [];
+            } catch (error) {
+                if (!error.message.includes("Sessão expirada")) {
+                    showAlert(`Erro ao carregar contas: ${error.message}`);
+                }
+                state.socialAccounts = [];
+            }
+        }
+
+        async function fetchWhatsappGroups() {
+            try {
+                const response = await fetchWithAuth(API_URLS.WHATSAPP_GROUPS_CRUD);
+                if (!response.ok) throw new Error("Não foi possível carregar os grupos.");
+                const result = await response.json();
+                state.whatsappGroups = result?.data || [];
+            } catch (error) {
+                if (!error.message.includes("Sessão expirada")) {
+                    showAlert(`Erro ao carregar grupos do WhatsApp: ${error.message}`);
+                }
+                state.whatsappGroups = [];
+            }
+        }
+
+        async function fetchCompanies() {
+            try {
+                const response = await fetchWithAuth(API_URLS.COMPANIES_CRUD);
+                if (!response.ok) throw new Error("Não foi possível carregar as empresas.");
+                const result = await response.json();
+                state.companies = result?.data || [];
+            } catch (error) {
+                if (!error.message.includes("Sessão expirada")) {
+                    showAlert(`Erro ao carregar empresas: ${error.message}`);
+                }
+                state.companies = [];
+            }
+        }
+
         function renderSocialAccountsPage() { // Renomeado para renderizar a ESTRUTURA
             socialAccountsContentArea.innerHTML = `
                 <div class="page-header">
