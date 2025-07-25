@@ -3244,7 +3244,7 @@
                 loja: document.getElementById('editWppLoja').value,
                 message_parte1: document.getElementById('editWppMessage').value,
                 url_production: document.getElementById('editWppUrl').value,
-                conta_user_instagram: accountName
+                grupo: accountName
             };
 
             if (state.newImageBase64) {
@@ -3273,7 +3273,7 @@
 
         async function handleDeleteWhatsappPost(event) {
             const id = event.currentTarget.dataset.id;
-            const confirmed = await showConfirm(`Tem certeza que deseja excluir a oferta de WhatsApp ID ${id}?`);
+            const confirmed = await showConfirm(`Tem certeza que deseja excluir a oferta de WhatsApp?`);
             if (!confirmed) return;
 
             const accountName = decodeURIComponent(state.activeMediaType);
@@ -3281,7 +3281,7 @@
             try {
                 const response = await fetchWithAuth(API_URLS.WHATSAPP_ACTION, {
                     method: 'DELETE',
-                    body: JSON.stringify({ id: id, conta_user_instagram: accountName })
+                    body: JSON.stringify({ id: id, grupo: accountName })
                 });
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ message: 'Erro no servidor' }));
@@ -3312,7 +3312,7 @@
                 message_parte1: itemData.message_parte1,
                 url_production: itemData.url_production,
                 image_base64: itemData.image_base64,
-                conta_user_instagram: accountName
+                grupo: accountName
             };
 
             showLoading("Postando oferta...");
