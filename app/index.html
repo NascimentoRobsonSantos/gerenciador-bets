@@ -4268,6 +4268,23 @@
                 </tbody>`;
             container.innerHTML = '';
             container.appendChild(table);
+
+            // ADIÇÃO: Registra os eventos de clique para os botões da tabela
+            table.querySelectorAll('.btn-edit-company-data').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const companyId = e.target.closest('tr').dataset.companyId;
+                    const company = state.companies.find(c => c.id == companyId);
+                    if (company) handleEditCompanyDataModal(company);
+                });
+            });
+
+            table.querySelectorAll('.btn-edit-company-modules').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const companyId = e.target.closest('tr').dataset.companyId;
+                    const company = state.companies.find(c => c.id == companyId);
+                    if (company) handleEditCompanyModulesModal(company);
+                });
+            });
         }
 
         function renderUsersTable() {
