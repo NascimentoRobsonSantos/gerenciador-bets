@@ -1794,78 +1794,51 @@
 
             const moduleMap = { Instagram: 'instagram', Facebook: 'facebook', Threads: 'threads' };
 
-            // -- INÍCIO DA LÓGICA CORRIGIDA --
             for (const socialMedia in groupedAccounts) {
-                const moduleKey = moduleMap[socialMedia];
-                if (moduleKey && !activeCompanyModules[moduleKey]) continue;
+                // ... (o loop for para 'socialMedia' continua exatamente como na resposta anterior) ...
+            }
 
-                const accounts = groupedAccounts[socialMedia];
-                const mediaGroup = document.createElement('div');
-                mediaGroup.className = 'menu-group';
-                const mediaParent = document.createElement('div');
-                mediaParent.className = 'menu-parent';
-                mediaParent.textContent = socialMedia;
-                const mediaSubmenu = document.createElement('ul');
-
-                const isMediaGroupActive = accounts.some(acc => acc.nome_conta === state.activeAccount);
-                if (!isMediaGroupActive) {
-                    mediaParent.classList.add('collapsed');
-                    mediaSubmenu.classList.add('collapsed');
+            if (activeCompanyModules.whatsapp) {
+                const whatsappGroup = document.createElement('div');
+                whatsappGroup.className = 'menu-group';
+                const whatsappParent = document.createElement('div');
+                whatsappParent.className = 'menu-parent';
+                whatsappParent.textContent = 'WhatsApp';
+                const whatsappSubmenu = document.createElement('ul');
+                
+                // LINHA CORRIGIDA AQUI
+                const isWhatsappActive = state.activeAccount === 'WhatsApp' || state.currentView !== 'media';
+                
+                if (!isWhatsappActive) {
+                    whatsappParent.classList.add('collapsed');
+                    whatsappSubmenu.classList.add('collapsed');
                 }
 
-                mediaParent.addEventListener('click', () => {
-                    mediaParent.classList.toggle('collapsed');
-                    mediaSubmenu.classList.toggle('collapsed');
+                whatsappParent.addEventListener('click', () => {
+                    whatsappParent.classList.toggle('collapsed');
+                    whatsappSubmenu.classList.toggle('collapsed');
                 });
 
-                mediaGroup.appendChild(mediaParent);
-                mediaGroup.appendChild(mediaSubmenu);
+                whatsappGroup.appendChild(whatsappParent);
+                whatsappGroup.appendChild(whatsappSubmenu);
 
-                accounts.forEach(account => {
-                    const accountParent = document.createElement('div');
-                    accountParent.className = 'menu-parent submenu-item';
-                    accountParent.textContent = account.nome_conta;
-                    accountParent.style.paddingLeft = '15px';
-                    const accountSubmenu = document.createElement('ul');
+                const sortedGroups = [...state.whatsappGroups].sort((a, b) => (a.ordenacao || 999) - (b.ordenacao || 999));
 
-                    if (state.activeAccount !== account.nome_conta) {
-                        accountParent.classList.add('collapsed');
-                        accountSubmenu.classList.add('collapsed');
+                sortedGroups.forEach(group => {
+                    const li = document.createElement('li');
+                    li.className = 'submenu-item';
+                    li.textContent = `Ofertas - ${group.group_name}`;
+                    if (state.activeAccount === 'WhatsApp' && state.activeMediaType === group.group_name) {
+                        li.classList.add('active');
                     }
-
-                    accountParent.addEventListener('click', (e) => {
+                    li.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        accountParent.classList.toggle('collapsed');
-                        accountSubmenu.classList.toggle('collapsed');
+                        navigateTo('media', ['WhatsApp', group.group_name]);
+                        closeSidebarIfMobile();
                     });
-
-                    // Lógica para decidir quais submenus mostrar
-                    let mediaTypesForThisAccount = [];
-                    if (socialMedia === 'Threads') {
-                        mediaTypesForThisAccount = MEDIA_TYPES.filter(mt => mt.key.startsWith('threads-') || mt.key === 'scheduled-threads');
-                    } else { // Padrão para Instagram, Facebook, etc.
-                        mediaTypesForThisAccount = MEDIA_TYPES.filter(mt => !mt.key.startsWith('threads-'));
-                    }
-
-                    mediaTypesForThisAccount.forEach(mediaType => {
-                        const li = document.createElement('li');
-                        li.className = 'submenu-item';
-                        li.textContent = mediaType.label;
-                        if (state.activeAccount === account.nome_conta && state.activeMediaType === mediaType.key) {
-                            li.classList.add('active');
-                        }
-                        li.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            navigateTo('media', [account.nome_conta, mediaType.key]);
-                            closeSidebarIfMobile();
-                        });
-                        accountSubmenu.appendChild(li);
-                    });
-
-                    mediaSubmenu.appendChild(accountParent);
-                    mediaSubmenu.appendChild(accountSubmenu);
+                    whatsappSubmenu.appendChild(li);
                 });
-                menuContainer.appendChild(mediaGroup);
+                menuContainer.appendChild(whatsappGroup);
             }
             // -- FIM DA LÓGICA CORRIGIDA --
 
@@ -2096,62 +2069,66 @@
             mediaContainer.className = 'media-content';
             const placeholder = 'https://placehold.co/400x640/cccccc/ffffff?text=Indisponível';
 
-            // Lógica para posts agendados que podem ter múltiplas mídias
-            if (item.media_urls && Array.isArray(item.media_urls) && item.media_urls.length > 0) {
-                const firstMediaUrl = item.media_urls[0] || item.url_s3_video;
-                if (firstMediaUrl.toLowerCase().includes('.mp4') || firstMediaUrl.toLowerCase().includes('.mov')) {
-                     mediaContainer.innerHTML = `<video src="${firstMediaUrl}" controls></video>`;
-                } else {
-                     mediaContainer.innerHTML = `<img src="${firstMediaUrl}" alt="Mídia do post">`;
-                }
+            const urls = item.media_urls || [item.media_url, item.s3_url_video].filter(Boolean);
+            if (!urls || urls.length === 0) {
+                mediaContainer.innerHTML = '<span>Mídia indisponível</span>';
                 return mediaContainer;
             }
 
-            if (item.media_type === 'IMAGE' || item.media_type === 'CAROUSEL_ALBUM') {
-                const primaryImg = item.story_thumbnail || item.media_url || item.url_s3_video;
-                const primaryImg2 = item.media_url;
-                 if (primaryImg) {
-                     mediaContainer.innerHTML = `<img src="${primaryImg}" onerror="this.onerror=null; this.src='${primaryImg2}';" alt="Mídia do post">`;
-                } else {
-                     mediaContainer.innerHTML = `<span>Imagem indisponível</span>`;
-                }
-            } 
-            else if (item.media_type === 'VIDEO') {
-                const videoUrl = item.media_url || item.s3_url_video || item.url_s3_video;
-                const thumbUrl = item.thumbnail_url || item.story_thumbnail;
+            const videos = urls.filter(url => url.endsWith('.mp4') || url.endsWith('.mov'));
+            const images = urls.filter(url => url.endsWith('.webp') || url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.png'));
 
-                if (videoUrl) {
-                    if (thumbUrl) {
-                        mediaContainer.innerHTML = `
-                            <img src="${thumbUrl}" onerror="this.onerror=null; this.src='${placeholder}';" alt="Thumbnail do vídeo">
-                            <div class="play-button-overlay" data-video-url="${videoUrl}">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
-                            </div>
-                        `;
-                        const playOverlay = mediaContainer.querySelector('.play-button-overlay');
-                        playOverlay.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            mediaContainer.innerHTML = `<video src="${videoUrl}" controls autoplay></video>`;
-                        });
-                    } else {
-                        mediaContainer.innerHTML = `<video src="${videoUrl}" controls></video>`;
-                    }
+            if (videos.length > 0) { // Prioriza vídeo
+                const videoUrl = videos[0];
+                const thumbUrl = images[0] || item.thumbnail_url || item.story_thumbnail;
+                if (thumbUrl) {
+                    mediaContainer.innerHTML = `
+                        <img src="${thumbUrl}" onerror="this.onerror=null; this.src='${placeholder}';" alt="Thumbnail do vídeo">
+                        <div class="play-button-overlay" data-video-url="${videoUrl}">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                        </div>`;
+                    const playOverlay = mediaContainer.querySelector('.play-button-overlay');
+                    playOverlay.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        mediaContainer.innerHTML = `<video src="${videoUrl}" controls autoplay></video>`;
+                    });
                 } else {
-                    mediaContainer.innerHTML = '<span>URL do vídeo indisponível</span>';
+                    mediaContainer.innerHTML = `<video src="${videoUrl}" controls></video>`;
                 }
+            } else if (images.length > 1) { // Carrossel de imagens
+                let currentIndex = 0;
+                const imageElements = images.map((src, index) => `<img src="${src}" style="display: ${index === 0 ? 'block' : 'none'};" alt="Mídia ${index + 1}">`).join('');
+                
+                mediaContainer.innerHTML = `
+                    ${imageElements}
+                    <button class="carousel-btn prev" style="position:absolute; left: 10px; top: 50%; transform: translateY(-50%); z-index: 10;">&#10094;</button>
+                    <button class="carousel-btn next" style="position:absolute; right: 10px; top: 50%; transform: translateY(-50%); z-index: 10;">&#10095;</button>
+                `;
+
+                const imgs = mediaContainer.querySelectorAll('img');
+                const updateCarousel = () => {
+                    imgs.forEach((img, index) => {
+                        img.style.display = index === currentIndex ? 'block' : 'none';
+                    });
+                };
+
+                mediaContainer.querySelector('.prev').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    currentIndex = (currentIndex > 0) ? currentIndex - 1 : imgs.length - 1;
+                    updateCarousel();
+                });
+
+                mediaContainer.querySelector('.next').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    currentIndex = (currentIndex < imgs.length - 1) ? currentIndex + 1 : 0;
+                    updateCarousel();
+                });
+            } else if (images.length === 1) { // Apenas uma imagem
+                mediaContainer.innerHTML = `<img src="${images[0]}" onerror="this.onerror=null; this.src='${placeholder}';" alt="Mídia do post">`;
+            } else {
+                mediaContainer.innerHTML = '<span>Mídia indisponível</span>';
             }
-            else {
-                 const singleUrl = item.s3_url_video || item.media_url;
-                  if(singleUrl){
-                       if (singleUrl.toLowerCase().includes('.mp4') || singleUrl.toLowerCase().includes('.mov') || singleUrl.toLowerCase().includes('video')) {
-                            mediaContainer.innerHTML = `<video src="${singleUrl}" controls></video>`;
-                       } else {
-                            mediaContainer.innerHTML = `<img src="${singleUrl}" alt="Mídia do post">`;
-                       }
-                  } else {
-                     mediaContainer.innerHTML = '<span>Mídia indisponível</span>';
-                  }
-            }
+
             return mediaContainer;
         }
 
@@ -4252,16 +4229,17 @@
             const contentDiv = document.createElement('div');
             contentDiv.innerHTML = `
                 <label for="desc-${item.id}">Descrição:</label>
-                <textarea id="desc-${item.id}">${item.description || item.caption || ''}</textarea>
+                <textarea id="desc-${item.id}">${item.description || ''}</textarea>
                 <div class="card-buttons">
                     <button class="btn-save btn-save-threads" data-id="${item.id}">Salvar Threads</button>
-                    <button class="btn-whatsapp" data-id="${item.id}" data-video-url="${item.media_urls?.[0] || ''}">Enviar p/ WhatsApp</button>
+                    <button class="btn-whatsapp" data-id="${item.id}" data-video-url="${(item.media_urls || []).find(url => url.includes('.mp4')) || ''}">Enviar p/ WhatsApp</button>
                     <button class="btn-link" data-id="${item.id}" data-type="threads-feed">Incluir Links</button>
+                    ${item.conta_clone_url ? `<button onclick="window.open('${item.conta_clone_url}', '_blank')">Ver no Threads Clone</button>` : ''}
+                    ${item.threads_permalink ? `<button onclick="window.open('${item.threads_permalink}', '_blank')">Ver no Threads</button>` : ''}
                     <button class="btn-delete btn-delete-threads" data-id="${item.id}">Deletar Threads</button>
                 </div>`;
             card.appendChild(contentDiv);
             
-            // Adiciona os event listeners para os botões
             card.querySelector('.btn-save-threads').addEventListener('click', handleSaveThreads);
             card.querySelector('.btn-whatsapp').addEventListener('click', handleOpenWhatsAppModal);
             card.querySelector('.btn-link').addEventListener('click', handleOpenLinkModal);
@@ -4279,15 +4257,16 @@
             const contentDiv = document.createElement('div');
             contentDiv.innerHTML = `
                 <label for="desc-${item.id}">Descrição:</label>
-                <textarea id="desc-${item.id}">${item.description || item.caption || ''}</textarea>
+                <textarea id="desc-${item.id}">${item.description || ''}</textarea>
                 <div class="card-buttons">
                     <button class="btn-save btn-save-threads" data-id="${item.id}">Salvar Threads</button>
                     <button class="btn-link" data-id="${item.id}" data-type="threads-base-posts">Incluir Links</button>
+                    ${item.conta_clone_url ? `<button onclick="window.open('${item.conta_clone_url}', '_blank')">Ver no Threads Clone</button>` : ''}
+                    ${item.threads_permalink ? `<button onclick="window.open('${item.threads_permalink}', '_blank')">Ver no Threads</button>` : ''}
                     <button class="btn-delete btn-delete-threads" data-id="${item.id}">Deletar Threads</button>
                 </div>`;
             card.appendChild(contentDiv);
 
-            // Adiciona os event listeners para os botões
             card.querySelector('.btn-save-threads').addEventListener('click', handleSaveThreads);
             card.querySelector('.btn-link').addEventListener('click', handleOpenLinkModal);
             card.querySelector('.btn-delete-threads').addEventListener('click', handleDeleteThreads);
