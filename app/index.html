@@ -1773,7 +1773,6 @@
             }
         }
 
-        // --- Funções de Renderização ---
         function renderSidebarMenu() {
             if (!sidebar) return;
             sidebar.innerHTML = '';
@@ -1795,53 +1794,81 @@
             const moduleMap = { Instagram: 'instagram', Facebook: 'facebook', Threads: 'threads' };
 
             for (const socialMedia in groupedAccounts) {
-                // ... (o loop for para 'socialMedia' continua exatamente como na resposta anterior) ...
-            }
+                const moduleKey = moduleMap[socialMedia];
+                if (moduleKey && !activeCompanyModules[moduleKey]) continue;
 
-            if (activeCompanyModules.whatsapp) {
-                const whatsappGroup = document.createElement('div');
-                whatsappGroup.className = 'menu-group';
-                const whatsappParent = document.createElement('div');
-                whatsappParent.className = 'menu-parent';
-                whatsappParent.textContent = 'WhatsApp';
-                const whatsappSubmenu = document.createElement('ul');
-                
-                // LINHA CORRIGIDA AQUI
-                const isWhatsappActive = state.activeAccount === 'WhatsApp' || state.currentView !== 'media';
-                
-                if (!isWhatsappActive) {
-                    whatsappParent.classList.add('collapsed');
-                    whatsappSubmenu.classList.add('collapsed');
+                const accounts = groupedAccounts[socialMedia];
+                const mediaGroup = document.createElement('div');
+                mediaGroup.className = 'menu-group';
+                const mediaParent = document.createElement('div');
+                mediaParent.className = 'menu-parent';
+                mediaParent.textContent = socialMedia;
+                const mediaSubmenu = document.createElement('ul');
+
+                const isMediaGroupActive = accounts.some(acc => acc.nome_conta === state.activeAccount);
+                if (!isMediaGroupActive) {
+                    mediaParent.classList.add('collapsed');
+                    mediaSubmenu.classList.add('collapsed');
                 }
 
-                whatsappParent.addEventListener('click', () => {
-                    whatsappParent.classList.toggle('collapsed');
-                    whatsappSubmenu.classList.toggle('collapsed');
+                mediaParent.addEventListener('click', () => {
+                    mediaParent.classList.toggle('collapsed');
+                    mediaSubmenu.classList.toggle('collapsed');
                 });
 
-                whatsappGroup.appendChild(whatsappParent);
-                whatsappGroup.appendChild(whatsappSubmenu);
+                mediaGroup.appendChild(mediaParent);
+                mediaGroup.appendChild(mediaSubmenu);
 
-                const sortedGroups = [...state.whatsappGroups].sort((a, b) => (a.ordenacao || 999) - (b.ordenacao || 999));
+                accounts.forEach(account => {
+                    const accountParent = document.createElement('div');
+                    accountParent.className = 'menu-parent submenu-item';
+                    accountParent.textContent = account.nome_conta;
+                    accountParent.style.paddingLeft = '15px';
+                    const accountSubmenu = document.createElement('ul');
 
-                sortedGroups.forEach(group => {
-                    const li = document.createElement('li');
-                    li.className = 'submenu-item';
-                    li.textContent = `Ofertas - ${group.group_name}`;
-                    if (state.activeAccount === 'WhatsApp' && state.activeMediaType === group.group_name) {
-                        li.classList.add('active');
+                    if (state.activeAccount !== account.nome_conta) {
+                        accountParent.classList.add('collapsed');
+                        accountSubmenu.classList.add('collapsed');
                     }
-                    li.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        navigateTo('media', ['WhatsApp', group.group_name]);
-                        closeSidebarIfMobile();
-                    });
-                    whatsappSubmenu.appendChild(li);
-                });
-                menuContainer.appendChild(whatsappGroup);
-            }
-            // -- FIM DA LÓGICA CORRIGIDA --
 
+                    accountParent.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        accountParent.classList.toggle('collapsed');
+                        accountSubmenu.classList.toggle('collapsed');
+                    });
+
+                    // LÓGICA ADICIONADA PARA DIFERENCIAR MENUS
+                    let mediaTypesForThisAccount = [];
+                    if (socialMedia === 'Threads') {
+                        // Filtra apenas os tipos de mídia do Threads
+                        mediaTypesForThisAccount = MEDIA_TYPES.filter(mt => mt.key.startsWith('threads-') || mt.key === 'scheduled-threads');
+                    } else {
+                        // Filtra para não incluir os tipos de mídia do Threads para outras redes
+                        mediaTypesForThisAccount = MEDIA_TYPES.filter(mt => !mt.key.startsWith('threads-'));
+                    }
+
+                    mediaTypesForThisAccount.forEach(mediaType => {
+                        const li = document.createElement('li');
+                        li.className = 'submenu-item';
+                        li.textContent = mediaType.label;
+                        if (state.activeAccount === account.nome_conta && state.activeMediaType === mediaType.key) {
+                            li.classList.add('active');
+                        }
+                        li.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            navigateTo('media', [account.nome_conta, mediaType.key]);
+                            closeSidebarIfMobile();
+                        });
+                        accountSubmenu.appendChild(li);
+                    });
+
+                    mediaSubmenu.appendChild(accountParent);
+                    mediaSubmenu.appendChild(accountSubmenu);
+                });
+                menuContainer.appendChild(mediaGroup);
+            }
+
+            // SEÇÃO DO WHATSAPP (RESTAURADA)
             if (activeCompanyModules.whatsapp) {
                 const whatsappGroup = document.createElement('div');
                 whatsappGroup.className = 'menu-group';
@@ -1883,6 +1910,7 @@
                 menuContainer.appendChild(whatsappGroup);
             }
 
+            // SEÇÃO DE CONFIGURAÇÕES (RESTAURADA)
             const configGroup = document.createElement('div');
             configGroup.className = 'menu-group';
             const configParent = document.createElement('div');
