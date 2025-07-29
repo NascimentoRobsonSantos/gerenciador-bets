@@ -1121,7 +1121,8 @@
                     <legend style="font-size:0.9rem; padding:0 5px; width:auto;">Tipo:</legend>
                     <label style="display:inline-block; margin-right:15px; font-weight:normal;"><input type="radio" name="linkFormTipo" value="post" checked> Post</label>
                     <label style="display:inline-block; margin-right:15px; font-weight:normal;"><input type="radio" name="linkFormTipo" value="story"> Story</label>
-                    <label style="display:inline-block; font-weight:normal;"><input type="radio" name="linkFormTipo" value="reels"> Reels</label>
+                    <label style="display:inline-block; margin-right:15px; font-weight:normal;"><input type="radio" name="linkFormTipo" value="reels"> Reels</label>
+                    <label style="display:inline-block; font-weight:normal;"><input type="radio" name="linkFormTipo" value="threads"> Threads</label>
                 </fieldset>
                 <div class="modal-actions">
                     <div style="margin-top: 20px; text-align: center; width:100%; display:flex; justify-content:space-around">
@@ -2759,20 +2760,37 @@
             });
         }
 
-        async function handleOpenLinkModal(event) { 
-            const itemId = event.target.dataset.id; const type = event.target.dataset.type || 'post'; 
-            linkFormPostId.value = itemId; formAddLinks.reset(); 
-            const radio = formAddLinks.querySelector(`input[name="linkFormTipo"][value="${type}"]`) || formAddLinks.querySelector(`input[name="linkFormTipo"][value="post"]`); 
-            if(radio) radio.checked = true; 
-            existingLinksListDiv.innerHTML = '<p>Carregando...</p>'; openModal(modalAddLinks); 
-            try { 
-                const url = `${API_URLS.GET_LINKS_POSTAGENS}?id_post=${encodeURIComponent(itemId)}&type=${encodeURIComponent(type)}`; 
-                const response = await fetchWithAuth(url); 
-                if (!response.ok) throw new Error(await response.text()); 
-                const links = await response.json(); 
-                renderExistingLinks(Array.isArray(links) ? links : []); 
-            } catch (error) { console.error("Erro:", error); existingLinksListDiv.innerHTML = `<p style="color:red;">Erro: ${error.message}</p>`; } 
-        } 
+        async function handleOpenLinkModal(event) {
+            const itemId = event.target.dataset.id;
+            let type = event.target.dataset.type || 'post';
+            let apiType = type; // Variável para a chamada da API
+
+            // Consolida os tipos 'threads-feed' e 'threads-base-posts' para 'threads'
+            if (type.startsWith('threads-')) {
+                apiType = 'threads'; // Usa 'threads' para a API
+                type = 'threads';    // E também para selecionar o radio button
+            }
+            
+            linkFormPostId.value = itemId;
+            formAddLinks.reset();
+            
+            const radio = formAddLinks.querySelector(`input[name="linkFormTipo"][value="${type}"]`);
+            if (radio) radio.checked = true;
+            
+            existingLinksListDiv.innerHTML = '<p>Carregando...</p>';
+            openModal(modalAddLinks);
+            
+            try {
+                const url = `${API_URLS.GET_LINKS_POSTAGENS}?id_post=${encodeURIComponent(itemId)}&type=${encodeURIComponent(apiType)}`;
+                const response = await fetchWithAuth(url);
+                if (!response.ok) throw new Error(await response.text());
+                const links = await response.json();
+                renderExistingLinks(Array.isArray(links) ? links : []);
+            } catch (error) {
+                console.error("Erro:", error);
+                existingLinksListDiv.innerHTML = `<p style="color:red;">Erro: ${error.message}</p>`;
+            }
+        }
 
         formAddLinks.addEventListener('submit', async (event) => { 
             event.preventDefault(); 
