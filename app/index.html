@@ -3068,7 +3068,7 @@
             const container = document.getElementById('whatsapp-table-container');
             if (!container) return;
 
-            f (state.filteredItems.length === 0 && !state.isLoading) { // Use filteredItems
+            if (state.filteredItems.length === 0 && !state.isLoading) { // Use filteredItems
                 targetDiv.innerHTML = '<p>Nenhum item encontrado para esta visualização.</p>';
                 return;
             }
