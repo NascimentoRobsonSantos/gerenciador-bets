@@ -1815,6 +1815,12 @@
                 mediaParent.textContent = socialMedia;
                 const mediaSubmenu = document.createElement('ul');
 
+                const isMediaGroupActive = accounts.some(acc => acc.nome_conta === state.activeAccount);
+                if (!isMediaGroupActive) {
+                    mediaParent.classList.add('collapsed');
+                    mediaSubmenu.classList.add('collapsed');
+                }
+                
                 applySidebarState(mediaParent, socialMedia);
 
                 mediaParent.addEventListener('click', () => {
@@ -1833,7 +1839,6 @@
                     accountParent.style.paddingLeft = '15px';
                     const accountSubmenu = document.createElement('ul');
 
-                    // Aplica o estado salvo ou o padrão
                     if (state.activeAccount !== account.nome_conta) {
                         accountParent.classList.add('collapsed');
                         accountSubmenu.classList.add('collapsed');
@@ -1847,11 +1852,14 @@
                         saveSidebarState();
                     });
 
+                    // LÓGICA CORRIGIDA PARA SEPARAR OS MENUS
                     let mediaTypesForThisAccount = [];
                     if (socialMedia === 'Threads') {
+                        // Filtra apenas os tipos de mídia do Threads
                         mediaTypesForThisAccount = MEDIA_TYPES.filter(mt => mt.key.startsWith('threads-') || mt.key === 'scheduled-threads');
                     } else {
-                        mediaTypesForThisAccount = MEDIA_TYPES.filter(mt => !mt.key.startsWith('threads-'));
+                        // Filtra para NÃO incluir os tipos de mídia do Threads para outras redes
+                        mediaTypesForThisAccount = MEDIA_TYPES.filter(mt => !mt.key.startsWith('threads-') && mt.key !== 'scheduled-threads');
                     }
 
                     mediaTypesForThisAccount.forEach(mediaType => {
@@ -1960,20 +1968,22 @@
                 return;
             }
 
-            // Limpa a área de exibição
+            // Limpa a área de exibição antes de desenhar
             mediaItemsWrapper.innerHTML = '';
+            
+            // Usa a lista de itens filtrados (importante para os filtros funcionarem)
+            const itemsToDisplay = state.filteredItems;
 
-            // Verifica se há itens para exibir APÓS a filtragem
-            if (state.filteredItems.length === 0 && !state.isLoading) {
+            if (itemsToDisplay.length === 0 && !state.isLoading) {
                 mediaItemsWrapper.innerHTML = '<p style="text-align:center; padding: 20px;">Nenhum item encontrado para esta visualização.</p>';
                 return;
             }
 
-            // Decide se renderiza uma tabela (WhatsApp) ou uma grade de cards (outros)
+            // Verifica se a visualização ativa é a do WhatsApp
             if (state.activeAccount === 'WhatsApp') {
-                renderWhatsappContent(mediaItemsWrapper);
+                renderWhatsappContent(mediaItemsWrapper); // Chama a função que desenha a tabela
             } else {
-                renderCardContent(mediaItemsWrapper);
+                renderCardContent(mediaItemsWrapper); // Chama a função que desenha os cards
             }
         }
 
@@ -1983,7 +1993,7 @@
             const gridContainer = document.createElement('div');
             gridContainer.className = 'grid-container';
 
-            state.filteredItems.forEach(item => {
+            (state.filteredItems || []).forEach(item => { // Usa a lista filtrada
                 let card;
                 // O 'switch' decide qual função de criação de card usar
                 switch (state.activeMediaType) {
@@ -1998,7 +2008,6 @@
                         card = createStoryCard(item);
                         break;
                     case 'scheduled-posts':
-                    case 'scheduled-threads':
                         card = createScheduledPostCard(item);
                         break;
                     case 'threads-feed':
@@ -2017,6 +2026,7 @@
                 }
             });
 
+            targetDiv.innerHTML = ''; // Limpa o conteúdo antigo
             targetDiv.appendChild(gridContainer);
         }
 
