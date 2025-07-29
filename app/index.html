@@ -4362,7 +4362,7 @@
 
         async function handlePostThreadsNow(event) {
             const postId = event.target.dataset.id;
-            const confirmed = await showConfirm(`Tem certeza que deseja postar este item (ID: ${postId}) no Threads agora?`);
+            const confirmed = await showConfirm(`Deseja postar este item (ID: ${postId}) no Threads agora?`);
             if (!confirmed) return;
 
             showLoading("Postando no Threads...");
