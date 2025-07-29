@@ -1955,41 +1955,68 @@
         }
 
         function renderItems() {
-            if (!mediaItemsWrapper) { // Garante que o wrapper existe
-                console.error("mediaItemsWrapper não encontrado! Isso é um erro de fluxo.");
+            if (!mediaItemsWrapper) {
+                console.error("mediaItemsWrapper não encontrado!");
                 return;
             }
 
+            // Limpa a área de exibição
+            mediaItemsWrapper.innerHTML = '';
+
+            // Verifica se há itens para exibir APÓS a filtragem
+            if (state.filteredItems.length === 0 && !state.isLoading) {
+                mediaItemsWrapper.innerHTML = '<p style="text-align:center; padding: 20px;">Nenhum item encontrado para esta visualização.</p>';
+                return;
+            }
+
+            // Decide se renderiza uma tabela (WhatsApp) ou uma grade de cards (outros)
             if (state.activeAccount === 'WhatsApp') {
                 renderWhatsappContent(mediaItemsWrapper);
-            } else if (state.activeMediaType === 'scheduled-posts') {
-                renderScheduledPostsPage(mediaItemsWrapper);
-            } else { // Reels, Stories, Posts, Stories Base
+            } else {
                 renderCardContent(mediaItemsWrapper);
             }
         }
 
         function renderCardContent(targetDiv) {
             if (!targetDiv) return;
-            targetDiv.innerHTML = ''; // Limpa APENAS o contêiner dos itens
-
-            if (state.items.length === 0 && !state.isLoading) {
-                targetDiv.innerHTML = '<p>Nenhum item encontrado para esta visualização.</p>';
-                return;
-            }
+            
             const gridContainer = document.createElement('div');
             gridContainer.className = 'grid-container';
+
             state.filteredItems.forEach(item => {
                 let card;
-                if (state.activeMediaType === 'reels') card = createReelCard(item);
-                else if (state.activeMediaType === 'posts') card = createPostCard(item);
-                else if (state.activeMediaType === 'stories') card = createStoryCard(item);
-                else if (state.activeMediaType === 'stories-base') card = createStoryBaseCard(item);
-                else if (state.activeMediaType === 'threads-feed') card = createThreadsFeedCard(item); // <-- ADICIONE ESTA LINHA
-                else if (state.activeMediaType === 'threads-base-posts') card = createThreadsBasePostCard(item); // <-- ADICIONE ESTA LINHA
-        
-                if (card) gridContainer.appendChild(card);
+                // O 'switch' decide qual função de criação de card usar
+                switch (state.activeMediaType) {
+                    case 'reels':
+                        card = createReelCard(item);
+                        break;
+                    case 'posts':
+                        card = createPostCard(item);
+                        break;
+                    case 'stories':
+                    case 'stories-base':
+                        card = createStoryCard(item);
+                        break;
+                    case 'scheduled-posts':
+                    case 'scheduled-threads':
+                        card = createScheduledPostCard(item);
+                        break;
+                    case 'threads-feed':
+                        card = createThreadsFeedCard(item);
+                        break;
+                    case 'threads-base-posts':
+                        card = createThreadsBasePostCard(item);
+                        break;
+                    default:
+                        console.warn("Tipo de mídia desconhecido para renderização de card:", state.activeMediaType);
+                        break;
+                }
+                
+                if (card) {
+                    gridContainer.appendChild(card);
+                }
             });
+
             targetDiv.appendChild(gridContainer);
         }
 
@@ -3016,15 +3043,10 @@
 
         function renderWhatsappContent(targetDiv) {
             if (!targetDiv) return;
-            targetDiv.innerHTML = ''; 
-
-            if (state.items.length === 0 && !state.isLoading) {
-                targetDiv.innerHTML = '<p style="padding: 20px; text-align: center;">Nenhum item encontrado.</p>';
-                return;
-            }
 
             const tableContainer = document.createElement('div');
             tableContainer.className = 'table-container';
+            
             const table = document.createElement('table');
             table.className = 'data-table';
             table.innerHTML = `
@@ -3041,17 +3063,19 @@
                     </tr>
                 </thead>
                 <tbody>
-                    ${state.items.map(createWhatsappTableRow).join('')}
+                    ${state.filteredItems.map(createWhatsappTableRow).join('')}
                 </tbody>
             `;
+            
             tableContainer.appendChild(table);
             targetDiv.appendChild(tableContainer);
 
             // Adiciona os event listeners corretamente após a tabela ser inserida no DOM
-            table.querySelectorAll('.btn-edit-wpp').forEach(btn => btn.addEventListener('click', (e) => handleEditWhatsappPost(e)));
+            table.querySelectorAll('.btn-edit-wpp').forEach(btn => btn.addEventListener('click', handleEditWhatsappPost));
             table.querySelectorAll('.btn-delete-wpp').forEach(btn => btn.addEventListener('click', handleDeleteWhatsappPost));
             table.querySelectorAll('.btn-post-wpp').forEach(btn => btn.addEventListener('click', handlePostWhatsappAd));
         }
+
 
         function applyWhatsappFilters() {
             const filterLoja = document.getElementById('filter-loja')?.value || '';
