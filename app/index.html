@@ -1748,7 +1748,7 @@
                 return;
             }
             showLoading("Atualizando Stories...");
-            const updateEndpoint = `${API_URLS.FORCE_UPDATE_STORIES}?conta_user_instagram=${decodeURIComponent(state.activeAccount)}`;
+            const updateEndpoint = `${API_URLS.FORCE_UPDATE_STORIES}?conta_user=${decodeURIComponent(state.activeAccount)}`;
             fetchWithAuth(updateEndpoint)
                 .then(res => {
                     if (!res.ok) throw new Error('Falha na atualização forçada de Stories.');
@@ -1765,7 +1765,7 @@
                 return;
             }
             showLoading("Atualizando Reels...");
-            const updateEndpoint = `${API_URLS.FORCE_UPDATE_REELS}?conta_user_instagram=${decodeURIComponent(state.activeAccount)}`;
+            const updateEndpoint = `${API_URLS.FORCE_UPDATE_REELS}?conta_user=${decodeURIComponent(state.activeAccount)}`;
             fetchWithAuth(updateEndpoint)
                 .then(res => {
                     if (!res.ok) throw new Error('Falha na atualização forçada de Reels.');
@@ -2352,7 +2352,7 @@
                 <label>ID: ${story.id}</label>
                 <p style="font-size:0.8em; margin-top:-5px; margin-bottom:10px;">(${formattedDateTime})</p>
                 <div class="card-buttons">
-                    <button class="btn-save" data-id="${story.id}" data-type="${story.media_product_type || 'STORIES'}" data-conta="${story.conta_user_instagram}">Repostar Story</button>
+                    <button class="btn-save" data-id="${story.id}" data-type="${story.media_product_type || 'STORIES'}" data-conta="${story.conta_user}">Repostar Story</button>
                     <button class="btn-copy" data-url="${story.media_url || ''}">Copiar Link da Mídia</button>
                     <button class="btn-link" data-id="${story.id}" data-type="story">Incluir Links</button>
                     ${story.permalink ? `<button onclick="window.open('${story.permalink}', '_blank')">Ver Story no Instagram</button>` : ''}
@@ -2524,7 +2524,7 @@
                 } else {
                     const mediaTypeConfig = MEDIA_TYPES.find(m => m.key === state.activeMediaType);
                     if (mediaTypeConfig) {
-                        endpoint = `${url_base}${mediaTypeConfig.endpoint}?conta_user_instagram=${decodeURIComponent(state.activeAccount)}&${params.toString()}`;
+                        endpoint = `${url_base}${mediaTypeConfig.endpoint}?conta_user=${decodeURIComponent(state.activeAccount)}&${params.toString()}`;
                     }
                 }
             } else if (state.currentView === 'settings') {
@@ -2632,7 +2632,7 @@
             const payload = { 
                 id_story: storyId, 
                 media_product_type: event.target.dataset.type || 'STORIES', 
-                conta_user_instagram: event.target.dataset.conta 
+                conta_user: event.target.dataset.conta 
             }; 
             showLoading("Repostando story..."); 
             fetchWithAuth(API_URLS.REPOST_STORIES, { method: "POST", body: JSON.stringify(payload) }) 
@@ -2727,7 +2727,7 @@
             
             const payload = {
                 id: postId,
-                conta_user_instagram: state.activeAccount 
+                conta_user: state.activeAccount 
             };
 
             fetchWithAuth(endpoint, { method: 'POST', body: JSON.stringify(payload) }) 
@@ -3313,7 +3313,7 @@
             try {
                 const response = await fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, {
                     method: "POST",
-                    body: JSON.stringify({ url: url, conta_user_instagram: decodeURIComponent(state.activeMediaType) })
+                    body: JSON.stringify({ url: url, conta_user: decodeURIComponent(state.activeMediaType) })
                 });
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ message: 'Erro ao gerar anúncio.' }));
@@ -3341,7 +3341,7 @@
                 message_parte1: document.getElementById('createWppMessage').value,
                 url_production: document.getElementById('createWppUrl').value,
                 image_base64: state.newImageBase64,
-                conta_user_instagram: accountName
+                conta_user: accountName
             };
 
             showLoading("Criando nova oferta...");
@@ -4493,7 +4493,7 @@
                 return;
             }
             showLoading("Solicitando atualização do Threads...");
-            const endpoint = `${url_base}/${API_URLS.FORCE_UPDATE_THREADS}?conta_user_instagram=${decodeURIComponent(state.activeAccount)}`;
+            const endpoint = `${url_base}/${API_URLS.FORCE_UPDATE_THREADS}?conta_user=${decodeURIComponent(state.activeAccount)}`;
             
             fetchWithAuth(endpoint)
                 .then(res => {
@@ -4556,7 +4556,7 @@
                 description: document.getElementById('scheduledPostDescription').value,
                 schedule_time: document.getElementById('scheduledPostDateTime').value,
                 media_base64: media_base64,
-                conta_user_instagram: state.activeAccount
+                conta_user: state.activeAccount
             };
 
             let url = API_URLS.SCHEDULED_POSTS_CRUD;
