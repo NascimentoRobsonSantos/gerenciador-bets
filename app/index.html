@@ -1486,8 +1486,8 @@
             WHATSAPP: `/post-group-whatsapp`,
 
             // Endpoints de Midia Threads
-            THREADS_FEED: `/threads-feed`,
-            THREADS_BASE_POSTS: `/threads-pots-base`,
+            THREADS_FEED: `/threads_feed`,
+            THREADS_BASE_POSTS: `/threads_pots_base`,
             POST_THREADS_MANUAL: `post_schedule_threads_manual`,
 
             // Endpoints de Grupos WhatsApp
@@ -4369,7 +4369,7 @@
             try {
                 const payload = {
                     id: postId,
-                    conta_user_instagram: state.activeAccount 
+                    conta_user: decodeURIComponent(state.activeAccount) 
                 };
                 const response = await fetchWithAuth(`${url_base}/${API_URLS.POST_THREADS_MANUAL}`, {
                     method: 'POST',
