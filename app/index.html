@@ -1490,6 +1490,7 @@
             THREADS_FEED: `/threads_feed`,
             THREADS_BASE_POSTS: `/threads_pots_base`,
             POST_THREADS_MANUAL: `post_schedule_threads_manual`,
+            FORCE_UPDATE_THREADS: `/get_threads_all_instagram_carla`,
 
             // Endpoints de Grupos WhatsApp
             WHATSAPP_GROUPS_CRUD: `${url_base}/whatsapp_groups`,
@@ -1978,7 +1979,7 @@
             }
             const gridContainer = document.createElement('div');
             gridContainer.className = 'grid-container';
-            state.items.forEach(item => {
+            state.filteredItems.forEach(item => {
                 let card;
                 if (state.activeMediaType === 'reels') card = createReelCard(item);
                 else if (state.activeMediaType === 'posts') card = createPostCard(item);
@@ -3067,8 +3068,8 @@
             const container = document.getElementById('whatsapp-table-container');
             if (!container) return;
 
-            if (state.filteredItems.length === 0 && !state.isLoading) {
-                container.innerHTML = '<p style="padding: 20px; text-align: center;">Nenhum item encontrado com os filtros aplicados.</p>';
+            f (state.filteredItems.length === 0 && !state.isLoading) { // Use filteredItems
+                targetDiv.innerHTML = '<p>Nenhum item encontrado para esta visualização.</p>';
                 return;
             }
 
@@ -3355,34 +3356,37 @@
         async function showMediaContent(account, type) {
             state.activeAccount = account;
             state.activeMediaType = type;
-
             const decodedAccountName = decodeURIComponent(account);
 
-            [dashboardContentArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => el.style.display = 'none');
+            // Limpa as áreas de conteúdo
+            [dashboardContentArea, socialAccountsContentArea, whatsappGroupsContentArea, companiesContentArea, usersContentArea].forEach(el => {
+                if (el) el.style.display = 'none';
+            });
             contentDisplayArea.style.display = 'block';
-            paginationContainer.style.display = 'flex';
-            
-            contentDisplayArea.innerHTML = ''; 
+            contentDisplayArea.innerHTML = ''; // Limpa a área principal
 
+            // Cria os elementos do cabeçalho
             const headerDiv = document.createElement('div');
             headerDiv.className = 'page-header';
             const pageTitle = document.createElement('h2');
-            headerDiv.appendChild(pageTitle);
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'header-actions';
-            headerDiv.appendChild(actionsDiv);
             
-            let titleText = '';
+            // Define o título da página
+            const mediaLabel = MEDIA_TYPES.find(mt => mt.key === type)?.label || type;
+            const titleText = (decodedAccountName === 'WhatsApp') 
+                ? `Ofertas - ${decodeURIComponent(type)}` 
+                : `${decodedAccountName} - ${mediaLabel}`;
+            pageTitle.textContent = titleText;
+            document.title = titleText;
 
+            headerDiv.appendChild(pageTitle); // Adiciona o título primeiro
+
+            // Lógica condicional para filtros e botões de ação
             if (decodedAccountName === 'WhatsApp') {
-                const groupName = decodeURIComponent(type);
-                titleText = `Ofertas - ${groupName}`;
-                
-                // Adiciona os filtros e botões específicos do WhatsApp
                 const filtersDiv = document.createElement('div');
                 filtersDiv.className = 'filters-container';
-                await fetchWhatsappGroups();
-                const lojasOptions = state.whatsappLojas.map(loja => `<option value="${loja}">${loja}</option>`).join('');
+                const lojasOptions = (state.whatsappLojas || []).map(loja => `<option value="${loja}">${loja}</option>`).join('');
                 filtersDiv.innerHTML = `
                     <div>
                         <label for="filter-loja">Filtrar por Loja:</label>
@@ -3390,10 +3394,8 @@
                             <option value="">Todas as Lojas</option>
                             ${lojasOptions}
                         </select>
-                    </div>
-                `;
-                headerDiv.insertBefore(filtersDiv, actionsDiv);
-                filtersDiv.querySelector('#filter-loja')?.addEventListener('change', applyWhatsappFilters);
+                    </div>`;
+                headerDiv.appendChild(filtersDiv);
 
                 const createOfferBtn = document.createElement('button');
                 createOfferBtn.className = 'btn-primary';
@@ -3407,10 +3409,23 @@
                 refreshBtn.addEventListener('click', fetchData);
                 actionsDiv.appendChild(refreshBtn);
 
-            } else { // Para Instagram e outros
-                const mediaLabel = MEDIA_TYPES.find(mt => mt.key === type)?.label || type;
-                titleText = `${decodedAccountName} - ${mediaLabel}`;
+            } else if (type.startsWith('threads-')) { // Lógica para Threads
+                const filtersDiv = document.createElement('div');
+                filtersDiv.className = 'filters-container';
+                filtersDiv.innerHTML = `
+                    <div>
+                        <label for="filter-threads-category">Filtrar por Categoria:</label>
+                        <select id="filter-threads-category"><option value="">Todas</option></select>
+                    </div>`;
+                headerDiv.appendChild(filtersDiv);
+
+                const btnReloadThreads = document.createElement('button');
+                btnReloadThreads.className = 'btn-primary';
+                btnReloadThreads.textContent = '🔄 Recarregar novos Threads';
+                btnReloadThreads.addEventListener('click', handleRecarregarThreads);
+                actionsDiv.appendChild(btnReloadThreads);
                 
+            } else { // Lógica para Instagram (Reels, Stories, etc.)
                 if (type === 'reels') {
                     const btnReloadReels = document.createElement('button');
                     btnReloadReels.className = 'btn-primary';
@@ -3426,17 +3441,40 @@
                 }
             }
 
-            pageTitle.textContent = titleText;
-            document.title = titleText; // Atualiza o título da aba do navegador
-
+            headerDiv.appendChild(actionsDiv);
             contentDisplayArea.appendChild(headerDiv);
 
             mediaItemsWrapper = document.createElement('div');
             mediaItemsWrapper.id = 'media-items-wrapper';
             contentDisplayArea.appendChild(mediaItemsWrapper);
+            
+            if(paginationContainer) paginationContainer.style.display = 'flex';
 
-            await fetchData();
+            await fetchData(); // Busca os dados para a view atual
+            
+            // Popula o filtro de categoria do Threads APÓS os dados serem carregados
+            if (type.startsWith('threads-')) {
+                const categoryFilterSelect = document.getElementById('filter-threads-category');
+                if (categoryFilterSelect) {
+                    const categories = [...new Set(state.items.map(item => item.media_category).filter(Boolean))];
+                    categories.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat;
+                        option.textContent = cat;
+                        categoryFilterSelect.appendChild(option);
+                    });
+                    categoryFilterSelect.addEventListener('change', applyThreadsFilters);
+                }
+            }
+            // Popula o filtro de loja do WhatsApp APÓS os dados serem carregados
+            if (decodedAccountName === 'WhatsApp') {
+                const lojaFilterSelect = document.getElementById('filter-loja');
+                if (lojaFilterSelect) {
+                    lojaFilterSelect.addEventListener('change', applyWhatsappFilters);
+                }
+            }
         }
+
         
         async function showSocialAccountsPage() {
             socialAccountsContentArea.style.display = 'block';
@@ -4267,15 +4305,16 @@
         function createThreadsFeedCard(item) {
             const card = document.createElement('div');
             card.className = 'card';
+            const formattedDateTime = formatMediaDateTime(item.created_at);
             const mediaElement = createSmartMediaElement(item);
             card.appendChild(mediaElement);
 
             const contentDiv = document.createElement('div');
             contentDiv.innerHTML = `
+                <p style="font-size:0.8em; margin-bottom:10px;">ID: ${item.id} | Criado em: ${formattedDateTime}</p>
                 <label for="desc-${item.id}">Descrição:</label>
-                <textarea id="desc-${item.id}">${item.description || ''}</textarea>
+                <textarea id="desc-${item.id}" readonly>${item.description || ''}</textarea>
                 <div class="card-buttons">
-                    <button class="btn-save btn-save-threads" data-id="${item.id}">Salvar Threads</button>
                     <button class="btn-whatsapp" data-id="${item.id}" data-video-url="${(item.media_urls || []).find(url => url.includes('.mp4')) || ''}">Enviar p/ WhatsApp</button>
                     <button class="btn-link" data-id="${item.id}" data-type="threads-feed">Incluir Links</button>
                     ${item.conta_clone_url ? `<button onclick="window.open('${item.conta_clone_url}', '_blank')">Ver no Threads Clone</button>` : ''}
@@ -4284,7 +4323,6 @@
                 </div>`;
             card.appendChild(contentDiv);
             
-            card.querySelector('.btn-save-threads').addEventListener('click', handleSaveThreads);
             card.querySelector('.btn-whatsapp').addEventListener('click', handleOpenWhatsAppModal);
             card.querySelector('.btn-link').addEventListener('click', handleOpenLinkModal);
             card.querySelector('.btn-delete-threads').addEventListener('click', handleDeleteThreads);
@@ -4295,13 +4333,17 @@
         function createThreadsBasePostCard(item) {
             const card = document.createElement('div');
             card.className = 'card';
+            const formattedDateTime = formatMediaDateTime(item.created_at);
             const mediaElement = createSmartMediaElement(item);
             card.appendChild(mediaElement);
 
             const contentDiv = document.createElement('div');
             contentDiv.innerHTML = `
+                <p style="font-size:0.8em; margin-bottom:10px;">ID: ${item.id} | Criado em: ${formattedDateTime}</p>
                 <label for="desc-${item.id}">Descrição:</label>
                 <textarea id="desc-${item.id}">${item.description || ''}</textarea>
+                <label for="cat-${item.id}" style="margin-top:10px;">Categoria:</label>
+                <input type="text" id="cat-${item.id}" value="${item.media_category || ''}" placeholder="Ex: Especial, Normal">
                 <div class="card-buttons">
                     <button class="btn-save btn-save-threads" data-id="${item.id}">Salvar Threads</button>
                     <button class="btn-link" data-id="${item.id}" data-type="threads-base-posts">Incluir Links</button>
@@ -4315,7 +4357,6 @@
             card.querySelector('.btn-save-threads').addEventListener('click', handleSaveThreads);
             card.querySelector('.btn-link').addEventListener('click', handleOpenLinkModal);
             card.querySelector('.btn-delete-threads').addEventListener('click', handleDeleteThreads);
-            // Adiciona o listener para o novo botão
             card.querySelector('.btn-post-threads-now').addEventListener('click', handlePostThreadsNow);
 
             return card;
@@ -4326,7 +4367,6 @@
             const cardElement = event.target.closest('.card');
             if (!cardElement) return;
 
-            // Lógica para escolher o endpoint correto
             const isFeed = state.activeMediaType === 'threads-feed';
             const endpoint = isFeed ? API_URLS.THREADS_FEED : API_URLS.THREADS_BASE_POSTS;
             const url = `${url_base}${endpoint}`;
@@ -4335,6 +4375,11 @@
                 id: itemId,
                 description: cardElement.querySelector(`#desc-${itemId}`).value,
             };
+
+            // Adiciona a categoria ao payload apenas se estiver na página de Postagens Base
+            if (!isFeed) {
+                payload.media_category = cardElement.querySelector(`#cat-${itemId}`).value;
+            }
 
             showLoading("Salvando alteração no Threads...");
             try {
@@ -4403,6 +4448,34 @@
             } finally {
                 hideLoading();
             }
+        }
+
+        function applyThreadsFilters() {
+            const categoryFilter = document.getElementById('filter-threads-category')?.value;
+            if (!categoryFilter) {
+                state.filteredItems = [...state.items];
+            } else {
+                state.filteredItems = state.items.filter(item => item.media_category === categoryFilter);
+            }
+            renderItems(); // Re-renderiza os cards com os itens filtrados
+        }
+
+        function handleRecarregarThreads() {
+            if (!state.activeAccount) {
+                showAlert("Por favor, selecione uma conta no menu lateral primeiro.");
+                return;
+            }
+            showLoading("Solicitando atualização do Threads...");
+            const endpoint = `${url_base}/${API_URLS.FORCE_UPDATE_THREADS}?conta_user_instagram=${decodeURIComponent(state.activeAccount)}`;
+            
+            fetchWithAuth(endpoint)
+                .then(res => {
+                    if (!res.ok) throw new Error('Falha na atualização forçada do Threads.');
+                    showAlert("Atualização do Threads solicitada! A lista será atualizada em breve.");
+                    setTimeout(fetchData, 5000); // Dá um tempo para o backend processar
+                })
+                .catch(err => showAlert(`Erro: ${err.message}`))
+                .finally(hideLoading);
         }
 
         // --- Funções para o modal de post agendado ---
