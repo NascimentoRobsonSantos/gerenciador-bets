@@ -3150,8 +3150,7 @@
             return `
                 <tr id="wpp-row-${item.id}" data-item='${JSON.stringify(item)}'>
                     <td data-label="Loja">${item.loja || 'N/A'}</td>
-                    <td data-label="Comissão">${item.commission || 'N/A'}</td> 
-                    <td data-label="Mensagem" style="max-width: 250px; white-space: pre-wrap; word-break: break-word;">${item.message_parte1 || 'N/A'}</td>
+                    <td data-label="Comissão">${item.comission || 'N/A'}</td> <td data-label="Mensagem" style="max-width: 250px; white-space: pre-wrap; word-break: break-word;">${item.message_parte1 || 'N/A'}</td>
                     <td data-label="URL"><a href="${item.url_production}" target="_blank">Link</a></td>
                     <td data-label="Imagem">${imageHtml}</td>
                     <td data-label="Criado em">${formatMediaDateTime(item["Created on"])}</td>
