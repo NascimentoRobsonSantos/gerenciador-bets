@@ -1968,15 +1968,11 @@
                 return;
             }
 
-            // Limpa a área antes de desenhar
             mediaItemsWrapper.innerHTML = '';
 
-            // Verifica se a visualização ativa é a do WhatsApp
             if (state.activeAccount === 'WhatsApp') {
-                // Se for WhatsApp, usa a função específica para renderizar a tabela
                 renderWhatsappContent(mediaItemsWrapper);
             } else {
-                // Para todas as outras mídias (Instagram, Threads, etc.), usa a função de renderizar cards
                 renderCardContent(mediaItemsWrapper);
             }
         }
