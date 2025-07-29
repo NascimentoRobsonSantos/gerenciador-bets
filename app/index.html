@@ -2546,22 +2546,17 @@
                 const res = await fetchWithAuth(endpoint);
                 if (!res.ok) throw new Error(await res.text());
                 const data = await res.json();
+                
+                state.items = data.data || [];
+                state.totalItems = data.totalItems || 0;
+                state.filteredItems = [...state.items]; // GARANTE QUE A LISTA FILTRADA SEJA ATUALIZADA
 
-                // Atualiza o estado com base nos dados recebidos
-                if (state.currentView === 'media') {
-                    state.items = data.data || [];
-                    state.totalItems = data.totalItems || 0;
-                    if (state.activeAccount === 'WhatsApp') state.whatsappLojas = data.lojas || [];
-                    renderItems(); // Renderiza os cards ou a tabela de ofertas
-                } else if (state.currentView === 'settings') {
-                    const settingsView = window.location.hash.split('/')[2].split('?')[0];
-                    if (settingsView === 'accounts') { state.socialAccounts = data.data || []; renderSocialAccountsTable(); }
-                    if (settingsView === 'whatsapp-groups') { state.whatsappGroups = data.data || []; renderWhatsappGroupsTable(); }
-                    if (settingsView === 'companies') { state.companies = data.data || []; renderCompaniesTable(); }
-                    if (settingsView === 'users') { state.users = data.data || []; renderUsersTable(); }
-                }
+                if (state.activeAccount === 'WhatsApp') state.whatsappLojas = data.lojas || [];
+
+                renderItems(); // Chama a renderização APÓS os dados estarem no state
             } catch (error) {
                 showAlert(`Erro ao carregar dados: ${error.message}`);
+                if(mediaItemsWrapper) mediaItemsWrapper.innerHTML = ''; // Limpa a área em caso de erro
             } finally {
                 hideLoading();
                 renderPaginationControls();
