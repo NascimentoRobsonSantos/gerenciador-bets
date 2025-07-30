@@ -2439,7 +2439,7 @@
                 if (!response.ok) throw new Error(responseData.message || "Erro ao excluir o link.");
 
                 showAlert("Link excluído com sucesso!");
-                
+                await fetchData();
                 // Recarrega a lista de links no modal
                 const postId = linkFormPostId.value;
                 const type = document.querySelector('input[name="linkFormTipo"]:checked')?.value || 'post';
@@ -2601,15 +2601,19 @@
                 revisado: cardElement.querySelector(`#rev-${postId}`).checked 
             }; 
             showLoading("Salvando post..."); 
-            fetchWithAuth(API_URLS.UPDATE_POST, { method: "PUT", body: JSON.stringify(payload) })
-                .then(async response => { if (!response.ok) throw new Error(await response.text()); return response.json(); })
-                .then(() => { showAlert('Post atualizado!'); fetchData(); })
-                .catch(error => { 
-                    if (error.message !== "Sessão expirada.") {
-                        console.error("Erro:", error); showAlert(`Erro: ${error.message}`); 
-                    }
-                })
-                .finally(hideLoading);
+            try {
+                const response = await fetchWithAuth(API_URLS.UPDATE_POST, { method: "PUT", body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(await response.text());
+                await response.json();
+                showAlert('Post atualizado!');
+                await fetchData(); // CORRIGIDO
+            } catch(error) {
+                if (error.message !== "Sessão expirada.") {
+                    console.error("Erro:", error); showAlert(`Erro: ${error.message}`); 
+                }
+            } finally {
+                hideLoading();
+            }
         } 
         async function handleSalvarEdicaoReel(event) { 
             const reelId = event.target.dataset.id; 
@@ -2620,11 +2624,17 @@
                 media_product_type: event.target.dataset.type || 'REELS' 
             }; 
             showLoading("Salvando reel..."); 
-            fetchWithAuth(API_URLS.UPDATE_POST, { method: "PUT", body: JSON.stringify(payload) }) 
-                .then(async response => { if (!response.ok) throw new Error(await response.text()); return response.json(); }) 
-                .then(() => { showAlert('Reel atualizado!'); fetchData(); }) 
-                .catch(error => { console.error("Erro:", error); showAlert(`Erro: ${error.message}`); }) 
-                .finally(hideLoading); 
+            try {
+                const response = await fetchWithAuth(API_URLS.UPDATE_POST, { method: "PUT", body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(await response.text());
+                await response.json();
+                showAlert('Reel atualizado!');
+                await fetchData(); // CORRIGIDO
+            } catch(error) {
+                console.error("Erro:", error); showAlert(`Erro: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
         } 
         async function handleRepostStory(event) { 
             const storyId = event.target.dataset.id; 
@@ -2635,11 +2645,17 @@
                 conta_user: event.target.dataset.conta 
             }; 
             showLoading("Repostando story..."); 
-            fetchWithAuth(API_URLS.REPOST_STORIES, { method: "POST", body: JSON.stringify(payload) }) 
-                .then(async response => { if (!response.ok) throw new Error(await response.text()); return response.json(); }) 
-                .then(() => { showAlert('Story repostado!'); fetchData(); }) 
-                .catch(error => { console.error("Erro:", error); showAlert(`Erro: ${error.message}`); }) 
-                .finally(hideLoading); 
+            try {
+                const response = await fetchWithAuth(API_URLS.REPOST_STORIES, { method: "POST", body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(await response.text());
+                await response.json();
+                showAlert('Story repostado!');
+                await fetchData(); // CORRIGIDO
+            } catch(error) {
+                console.error("Erro:", error); showAlert(`Erro: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
         } 
         async function handleExcluirPost(event) {
             const postId = event.target.dataset.id;
@@ -2652,45 +2668,52 @@
             const url = isScheduled ? API_URLS.SCHEDULED_POSTS_CRUD : API_URLS.DELETE_POST;
             const payload = { id: postId };
 
-            fetchWithAuth(url, { method: "DELETE", body: JSON.stringify(payload) })
-                .then(async response => {
-                    if (!response.ok) throw new Error(await response.text());
-                    try { return response.json(); } catch (e) { return {}; }
-                })
-                .then(data => {
-                    showAlert(data.message || "Item excluído.");
-                    fetchData();
-                })
-                .catch(error => {
-                    console.error("Erro:", error);
-                    showAlert(`Erro: ${error.message}`);
-                })
-                .finally(hideLoading);
+            try {
+                const response = await fetchWithAuth(url, { method: "DELETE", body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(await response.text());
+                const data = await response.json().catch(() => ({}));
+                showAlert(data.message || "Item excluído.");
+                await fetchData(); // CORRIGIDO
+            } catch(error) {
+                console.error("Erro:", error);
+                showAlert(`Erro: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
         }
         async function handleDeleteReel(event) {
             const reelId = event.target.dataset.id;
             const confirmed = await showConfirm(`Tem certeza que deseja excluir o Reel ID ${reelId}?`);
             if (!confirmed) return;
             showLoading("Excluindo Reel...");
-            fetchWithAuth(API_URLS.DELETE_REEL, { method: "DELETE", body: JSON.stringify({ id: reelId }) })
-                .then(async response => { if (!response.ok) throw new Error(await response.text()); try { return response.json(); } catch(e){ return {};} })
-                .then(data => { showAlert(data.message || "Reel excluído."); fetchData(); })
-                .catch(error => { console.error("Erro:", error); showAlert(`Erro: ${error.message}`); })
-                .finally(hideLoading);
+            try {
+                const response = await fetchWithAuth(API_URLS.DELETE_REEL, { method: "DELETE", body: JSON.stringify({ id: reelId }) });
+                if (!response.ok) throw new Error(await response.text());
+                const data = await response.json().catch(() => ({}));
+                showAlert(data.message || "Reel excluído.");
+                await fetchData(); // CORRIGIDO
+            } catch(error) {
+                console.error("Erro:", error); showAlert(`Erro: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
         }
         async function handleExcluirStoryBase(event) { 
             const storyId = event.target.dataset.id; 
             const confirmed = await showConfirm(`Tem certeza que deseja excluir o Story Base ID ${storyId}?`);
             if (!confirmed) return;
             showLoading("Excluindo Story Base..."); 
-            fetchWithAuth(API_URLS.DELETE_STORIES, { method: "DELETE", body: JSON.stringify({ id: storyId }) }) 
-                .then(async response => {  
-                    if (!response.ok) throw new Error(await response.text());  
-                    try { return response.json(); } catch(e){ return {}; } 
-                }) 
-                .then(data => { showAlert(data.message || "Story Base excluído."); fetchData(); }) 
-                .catch(error => { console.error("Erro:", error); showAlert(`Erro: ${error.message}`); }) 
-                .finally(hideLoading); 
+            try {
+                const response = await fetchWithAuth(API_URLS.DELETE_STORIES, { method: "DELETE", body: JSON.stringify({ id: storyId }) });
+                if (!response.ok) throw new Error(await response.text());
+                const data = await response.json().catch(() => ({}));
+                showAlert(data.message || "Story Base excluído.");
+                await fetchData(); // CORRIGIDO
+            } catch(error) {
+                console.error("Erro:", error); showAlert(`Erro: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
         } 
         function handleUploadVideo(event) { 
             const postId = event.target.dataset.id; const file = event.target.files[0]; if (!file) return; 
@@ -2703,7 +2726,8 @@
                 try { 
                     const response = await fetchWithAuth(API_URLS.UPLOAD_VIDEO, { method: 'POST', body: formData, headers: {'Content-Type': undefined} }); 
                     if (!response.ok) throw new Error(await response.text()); 
-                    showAlert("✅ Vídeo enviado!"); fetchData(); 
+                    showAlert("✅ Vídeo enviado!");
+                    await fetchData(); // CORRIGIDO
                 } catch (error) { console.error("Erro:", error); showAlert(`Erro: ${error.message}`); } 
                 finally { hideLoading(); event.target.value = null; } 
             }; 
@@ -2729,12 +2753,17 @@
                 id: postId,
                 conta_user: state.activeAccount 
             };
-
-            fetchWithAuth(endpoint, { method: 'POST', body: JSON.stringify(payload) }) 
-                .then(async response => { if (!response.ok) throw new Error(await response.text()); return response.json(); }) 
-                .then(data => { showAlert(data.message || "✅ Post enviado!"); fetchData(); }) 
-                .catch(error => { console.error("Erro:", error); showAlert(`Erro: ${error.message}`); }) 
-                .finally(hideLoading); 
+            try {
+                const response = await fetchWithAuth(endpoint, { method: 'POST', body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(await response.text());
+                const data = await response.json();
+                showAlert(data.message || "✅ Post enviado!");
+                await fetchData(); // CORRIGIDO
+            } catch(error) {
+                console.error("Erro:", error); showAlert(`Erro: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
         }
         function handleCopyLink(event) { 
             const url = event.target.dataset.url; 
@@ -3134,7 +3163,7 @@
             if (imageUrl) {
                 const src = imageUrl.startsWith('http') ? imageUrl : `data:image/jpeg;base64,${imageUrl}`;
                 imageHtml = `<div class="wpp-image-container" data-id="${item.id}" title="Ver/Editar Imagem">
-                                <img src="${src}" class="table-image-preview" alt="Preview">
+                                <img src="${src}" class="table-image-preview" alt="Preview" onerror="this.style.display='none'">
                             </div>`;
             }
 
@@ -3148,7 +3177,7 @@
                     <td data-label="Modificado em">${formatMediaDateTime(item["Last modified"])}</td>
                     <td data-label="Ação">
                         <div class="action-buttons">
-                            <button class="btn-edit-wpp" data-id="${item.id}">Editar</button>
+                            <button class="btn-edit-wpp btn-primary" data-id="${item.id}">Editar</button>
                             <button class="btn-delete-wpp btn-delete" data-id="${item.id}">Excluir</button>
                             <button class="btn-post-wpp btn-whatsapp" data-id="${item.id}">Postar</button>
                         </div>
@@ -3198,7 +3227,6 @@
 
         async function handleSaveWhatsappEdit(event) {
             event.preventDefault();
-            
             const id = document.getElementById('editWppId').value;
             const accountName = decodeURIComponent(state.activeMediaType);
             
@@ -3220,9 +3248,10 @@
                     method: 'PUT',
                     body: JSON.stringify(payload)
                 });
-                const responseData = await response.json();
-                if (!response.ok) throw new Error(responseData.message || 'Erro no servidor');
-
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: 'Erro no servidor' }));
+                    throw new Error(errorData.message);
+                }
                 showAlert('Oferta atualizada com sucesso!');
                 closeModal(modalEditWhatsapp);
                 await fetchData(); // Await garante que a lista atualize
@@ -3333,8 +3362,7 @@
 
         async function handleCreateOfferSubmit(event) {
             event.preventDefault();
-
-            const accountName = decodeURIComponent(state.activeMediaType); // CORREÇÃO
+            const accountName = decodeURIComponent(state.activeMediaType);
 
             const payload = {
                 loja: document.getElementById('createWppLoja').value,
@@ -3350,14 +3378,14 @@
                     method: 'POST',
                     body: JSON.stringify(payload)
                 });
-                const responseData = await response.json();
-                if (!response.ok) throw new Error(responseData.message || 'Erro no servidor');
-
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: 'Erro no servidor' }));
+                    throw new Error(errorData.message);
+                }
                 showAlert('Nova oferta criada com sucesso!');
                 closeModal(modalCreateWhatsapp);
-                fetchData();
+                await fetchData(); // CORRIGIDO
             } catch (error) {
-                console.error("Erro ao criar oferta:", error);
                 showAlert(`Erro ao criar: ${error.message}`);
             } finally {
                 hideLoading();
@@ -4573,7 +4601,7 @@
                 
                 showAlert(isEditing ? 'Postagem atualizada com sucesso!' : 'Postagem criada com sucesso!');
                 closeModal(modalScheduledPost);
-                fetchData();
+                await fetchData();
             } catch (error) {
                 showAlert(`Erro: ${error.message}`);
             } finally {
@@ -4594,7 +4622,7 @@
             showLoading("Gerando anúncio...");
             fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, { method: "POST", body: JSON.stringify({ url: url, grupo: accountName }) })
                 .then(async response => { if (!response.ok) throw new Error(await response.text()); return response.json(); })
-                .then(() => { showAlert('Anúncio criado com sucesso!'); closeModal(modalGenerateFromLink); fetchData(); })
+                .then(() => { showAlert('Anúncio criado com sucesso!'); closeModal(modalGenerateFromLink); await fetchData(); })
                 .catch(error => { 
                     if (error.message !== "Sessão expirada.") {
                         console.error("Erro:", error); showAlert(`Erro: ${error.message}`); 
