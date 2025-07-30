@@ -2733,34 +2733,40 @@
             }; 
             reader.readAsDataURL(file); 
         } 
-        async function handlePostarUnicoInstagram(event) { 
-            const postId = event.target.dataset.id; 
-            const post = state.items.find(p => String(p.id) === String(postId)); 
-            if (!post) { showAlert("Post não encontrado."); return; } 
-            
-            if (state.activeMediaType === 'posts' && !post.check_reviewed) { 
-                showAlert("Post precisa ser 'Revisado'."); 
-                return; 
-            } 
-            
+        async function handlePostarUnicoInstagram(event) {
+            const postId = event.target.dataset.id;
+            const post = state.items.find(p => String(p.id) === String(postId));
+            if (!post) {
+                showAlert("Post não encontrado.");
+                return;
+            }
+
+            if (state.activeMediaType === 'posts' && !post.check_reviewed) {
+                showAlert("Post precisa ser 'Revisado'.");
+                return;
+            }
+
             const confirmed = await showConfirm(`Postar item ID ${post.id} no Instagram (${state.activeAccount})?`);
             if (!confirmed) return;
-            showLoading("Postando no Instagram..."); 
             
+            showLoading("Postando no Instagram...");
+
             const endpoint = API_URLS.POST_INSTAGRAM_MANUAL;
-            
+
             const payload = {
                 id: postId,
-                conta_user: state.activeAccount 
+                conta_user: state.activeAccount // <-- CORRIGIDO AQUI
             };
+
             try {
                 const response = await fetchWithAuth(endpoint, { method: 'POST', body: JSON.stringify(payload) });
                 if (!response.ok) throw new Error(await response.text());
                 const data = await response.json();
                 showAlert(data.message || "✅ Post enviado!");
-                await fetchData(); // CORRIGIDO
-            } catch(error) {
-                console.error("Erro:", error); showAlert(`Erro: ${error.message}`);
+                await fetchData();
+            } catch (error) {
+                console.error("Erro:", error);
+                showAlert(`Erro: ${error.message}`);
             } finally {
                 hideLoading();
             }
