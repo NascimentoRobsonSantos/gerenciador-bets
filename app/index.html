@@ -1305,6 +1305,13 @@
                         </button>
                     </div>
                 </div>
+                
+                <div id="generateFromLinkGroupContainer">
+                    <label for="generateFromLinkGroup">Grupo do WhatsApp:</label>
+                    <select id="generateFromLinkGroup" required>
+                        </select>
+                </div>
+
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel modal-close-btn-alternative" data-modal-id="modalGenerateFromLink">Cancelar</button>
                     <button type="submit" class="btn-confirm">Gerar</button>
@@ -2193,8 +2200,8 @@
                 return mediaContainer;
             }
 
-            const videos = urls.filter(url => url.endsWith('.mp4') || url.endsWith('.mov'));
-            const images = urls.filter(url => url.endsWith('.webp') || url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.png'));
+            const videos = urls.filter(url => url.endsWith('.mp4') || url.endsWith('.mov') || url.includes('video'));
+            const images = urls.filter(url => url.endsWith('.webp') || url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.png') || url.includes('image'));
 
             if (videos.length > 0) { // Prioriza vídeo
                 const videoUrl = videos[0];
@@ -3398,7 +3405,61 @@
         }
 
         async function handleCreateOfferModal() {
+            // Verifica se estamos em uma página do WhatsApp para pegar o nome do grupo
+            const preselectedGroup = (state.activeAccount === 'WhatsApp') ? state.activeMediaType : null;
+
+            // Abre o modal de escolha inicial
             openModal(document.getElementById('modalOfferTypeChoice'));
+
+            // Adiciona os listeners aos botões, passando o grupo pré-selecionado
+            document.getElementById('btnCreateOfferFromLink').onclick = () => {
+                closeModal(document.getElementById('modalOfferTypeChoice'));
+                openGenerateFromLinkModal(preselectedGroup); // Passa o grupo para a próxima função
+            };
+            
+            document.getElementById('btnCreateOfferManually').onclick = () => {
+                closeModal(document.getElementById('modalOfferTypeChoice'));
+                handleOpenCreateWhatsappModal();
+            };
+        }
+
+        function openGenerateFromLinkModal(preselectedGroup = null) {
+            const modal = document.getElementById('modalGenerateFromLink');
+            const form = document.getElementById('formGenerateFromLink');
+            const groupSelect = document.getElementById('generateFromLinkGroup');
+            
+            form.reset();
+            groupSelect.innerHTML = ''; // Limpa opções antigas
+
+            // Popula o select com os grupos do WhatsApp
+            if (state.whatsappGroups.length > 0) {
+                // --- CORREÇÃO APLICADA AQUI ---
+                // Ordena os grupos com base no campo 'ordenacao' antes de criar as opções
+                const sortedGroups = [...state.whatsappGroups].sort((a, b) => (a.ordenacao || 999) - (b.ordenacao || 999));
+
+                sortedGroups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group.group_name;
+                    option.textContent = group.group_name;
+                    groupSelect.appendChild(option);
+                });
+                // --- FIM DA CORREÇÃO ---
+
+                // Seleciona o grupo correto
+                if (preselectedGroup) {
+                    groupSelect.value = preselectedGroup;
+                } else {
+                    groupSelect.selectedIndex = 0; // Seleciona o primeiro da lista (agora ordenada) como padrão
+                }
+            } else {
+                // Caso não haja grupos, exibe uma mensagem
+                const option = document.createElement('option');
+                option.textContent = 'Nenhum grupo encontrado';
+                option.disabled = true;
+                groupSelect.appendChild(option);
+            }
+            
+            openModal(modal);
         }
 
         async function handleGenerateAdFromLink(event) {
@@ -4778,6 +4839,17 @@
 
         function renderDashboard(metrics) {
             dashboardContentArea.innerHTML = `
+
+                <div style="margin-top: 40px;">
+                        <div class="page-header">
+                            <h2>Atalhos</h2>
+                        </div>
+                        <div class="card">
+                            <div class="card-buttons">
+                                <button id="btnShortcutGenerateOffer" class="btn-primary">Gerar Link de Ofertas</button>
+                            </div>
+                        </div>
+                </div>
                 <div class="page-header">
                     <h2>Dashboard de Métricas (Instagram)</h2>
                 </div>
@@ -4805,17 +4877,6 @@
                     <div class="stat-card">
                         <div class="value">${metrics.reelsMonth}</div>
                         <div class="label">Reels no Mês</div>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 40px;">
-                    <div class="page-header">
-                        <h2>Atalhos</h2>
-                    </div>
-                    <div class="card">
-                        <div class="card-buttons">
-                            <button id="btnShortcutGenerateOffer" class="btn-primary">Gerar Link de Ofertas</button>
-                        </div>
                     </div>
                 </div>
             `;
