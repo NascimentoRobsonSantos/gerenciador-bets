@@ -1466,6 +1466,58 @@
 
     <button id="scrollTopBtn" title="Voltar ao topo">↑</button>
 
+    <!-- Modal para Baixar Novas Postagens -->
+    <div id="modalDownloadPosts" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Baixar Novas Postagens</h3>
+                <button class="modal-close-btn" data-modal-id="modalDownloadPosts">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formDownloadPosts">
+                    <div class="input-group">
+                        <label for="downloadType">Tipo de Download:</label>
+                        <select id="downloadType" required>
+                            <option value="">Selecione...</option>
+                            <option value="conta_clone">Link Único</option>
+                            <option value="link">Nome da Conta</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group" id="linkInputGroup" style="display: none;">
+                        <label for="downloadLink">Link:</label>
+                        <input type="url" id="downloadLink" placeholder="Cole o link aqui...">
+                    </div>
+                    
+                    <div class="input-group" id="contaInputGroup" style="display: none;">
+                        <label for="downloadConta">Nome da Conta:</label>
+                        <input type="text" id="downloadConta" placeholder="Nome da conta...">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="downloadMediaType">Tipo:</label>
+                        <select id="downloadMediaType" required>
+                            <option value="">Selecione...</option>
+                            <option value="REELS">Reels</option>
+                            <option value="FEED">Feed</option>
+                            <option value="STORIES">Stories</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="downloadCategory">Categoria:</label>
+                        <input type="text" id="downloadCategory" placeholder="Ex: Especial, Normal">
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-confirm">Baixar Postagens</button>
+                        <button type="button" class="btn-cancel modal-close-btn-alternative" data-modal-id="modalDownloadPosts">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- Configuração e Estado Global ---
         const url_base = "https://webhook.storeprodigital.site/webhook";
@@ -2309,7 +2361,7 @@
             card.querySelector('.btn-link').addEventListener('click', handleOpenLinkModal); 
             card.querySelector('.btn-whatsapp').addEventListener('click', handleOpenWhatsAppModal); 
             card.querySelector('.btn-instagram-post').addEventListener('click', handlePostarUnicoInstagram); 
-            card.querySelector('input[type="file"]').addEventListener('click', handleUploadVideo); 
+            card.querySelector('input[type="file"]').addEventListener('change', handleUploadVideo); 
             card.querySelector('.btn-download-posts').addEventListener('click', handleOpenDownloadPostsModal); 
             return card; 
         } 
@@ -3497,11 +3549,7 @@
                     </div>`;
                 headerDiv.appendChild(filtersDiv);
 
-                const btnReloadThreads = document.createElement('button');
-                btnReloadThreads.className = 'btn-primary';
-                btnReloadThreads.textContent = '🔄 Recarregar novos Threads';
-                btnReloadThreads.addEventListener('click', handleRecarregarThreads);
-                actionsDiv.appendChild(btnReloadThreads);
+
                 
             } else { // Lógica para Instagram (Reels, Stories, etc.)
                 if (type === 'reels') {
@@ -4542,23 +4590,7 @@
             renderItems(); // Re-renderiza os cards com os itens filtrados
         }
 
-        function handleRecarregarThreads() {
-            if (!state.activeAccount) {
-                showAlert("Por favor, selecione uma conta no menu lateral primeiro.");
-                return;
-            }
-            showLoading("Solicitando atualização do Threads...");
-            const endpoint = `${url_base}/${API_URLS.FORCE_UPDATE_THREADS}?conta_user=${decodeURIComponent(state.activeAccount)}`;
-            
-            fetchWithAuth(endpoint)
-                .then(res => {
-                    if (!res.ok) throw new Error('Falha na atualização forçada do Threads.');
-                    showAlert("Atualização do Threads solicitada! A lista será atualizada em breve.");
-                    setTimeout(fetchData, 5000); // Dá um tempo para o backend processar
-                })
-                .catch(err => showAlert(`Erro: ${err.message}`))
-                .finally(hideLoading);
-        }
+
 
         // --- Funções para o modal de post agendado ---
         function handleOpenScheduledPostModal(post = null) {
@@ -5010,6 +5042,34 @@
                 }
             });
 
+            // Event listener para o modal de download de postagens
+            document.getElementById('formDownloadPosts').addEventListener('submit', handleDownloadPosts);
+            
+            // Event listener para mostrar/ocultar campos no modal de download
+            document.getElementById('downloadType').addEventListener('change', function() {
+                const linkInputGroup = document.getElementById('linkInputGroup');
+                const contaInputGroup = document.getElementById('contaInputGroup');
+                const downloadLink = document.getElementById('downloadLink');
+                const downloadConta = document.getElementById('downloadConta');
+                
+                if (this.value === 'conta_clone') {
+                    linkInputGroup.style.display = 'block';
+                    contaInputGroup.style.display = 'none';
+                    downloadLink.required = true;
+                    downloadConta.required = false;
+                } else if (this.value === 'link') {
+                    linkInputGroup.style.display = 'none';
+                    contaInputGroup.style.display = 'block';
+                    downloadLink.required = false;
+                    downloadConta.required = true;
+                } else {
+                    linkInputGroup.style.display = 'none';
+                    contaInputGroup.style.display = 'none';
+                    downloadLink.required = false;
+                    downloadConta.required = false;
+                }
+            });
+
             const savedToken = localStorage.getItem('authToken');
             const savedCompanyId = localStorage.getItem('companyId');
             const savedUser = localStorage.getItem('currentUser');
@@ -5052,97 +5112,21 @@
             }
         });
 
-        // Modal para Baixar Novas Postagens
-        const modalDownloadPosts = document.createElement('div');
-        modalDownloadPosts.id = 'modalDownloadPosts';
-        modalDownloadPosts.className = 'modal-overlay';
-        modalDownloadPosts.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Baixar Novas Postagens</h3>
-                    <button class="modal-close-btn" data-modal-id="modalDownloadPosts">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <form id="formDownloadPosts">
-                        <div class="input-group">
-                            <label for="downloadType">Tipo de Download:</label>
-                            <select id="downloadType" required>
-                                <option value="">Selecione...</option>
-                                <option value="conta_clone">Link Único</option>
-                                <option value="link">Nome da Conta</option>
-                            </select>
-                        </div>
-                        
-                        <div class="input-group" id="linkInputGroup" style="display: none;">
-                            <label for="downloadLink">Link:</label>
-                            <input type="url" id="downloadLink" placeholder="Cole o link aqui...">
-                        </div>
-                        
-                        <div class="input-group" id="contaInputGroup" style="display: none;">
-                            <label for="downloadConta">Nome da Conta:</label>
-                            <input type="text" id="downloadConta" placeholder="Nome da conta...">
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="downloadMediaType">Tipo:</label>
-                            <select id="downloadMediaType" required>
-                                <option value="">Selecione...</option>
-                                <option value="REELS">Reels</option>
-                                <option value="FEED">Feed</option>
-                                <option value="STORIES">Stories</option>
-                            </select>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="downloadCategory">Categoria:</label>
-                            <input type="text" id="downloadCategory" placeholder="Ex: Especial, Normal">
-                        </div>
-                        
-                        <div class="modal-buttons">
-                            <button type="submit" class="btn-primary">Baixar Postagens</button>
-                            <button type="button" class="btn-secondary" onclick="closeModal(document.getElementById('modalDownloadPosts'))">Cancelar</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modalDownloadPosts);
-
         // Funções para o modal de download de postagens
         function handleOpenDownloadPostsModal(event) {
             const contaUser = event.target.dataset.contaUser;
             const modal = document.getElementById('modalDownloadPosts');
-            const form = document.getElementById('formDownloadPosts');
             
             // Preenche automaticamente o nome da conta
             document.getElementById('downloadConta').value = contaUser;
             
-            // Adiciona event listeners para mostrar/ocultar campos baseado no tipo
-            const downloadType = document.getElementById('downloadType');
-            const linkInputGroup = document.getElementById('linkInputGroup');
-            const contaInputGroup = document.getElementById('contaInputGroup');
+            // Reseta o formulário
+            document.getElementById('formDownloadPosts').reset();
+            document.getElementById('downloadConta').value = contaUser; // Mantém o valor da conta
             
-            downloadType.addEventListener('change', function() {
-                if (this.value === 'conta_clone') {
-                    linkInputGroup.style.display = 'block';
-                    contaInputGroup.style.display = 'none';
-                    document.getElementById('downloadLink').required = true;
-                    document.getElementById('downloadConta').required = false;
-                } else if (this.value === 'link') {
-                    linkInputGroup.style.display = 'none';
-                    contaInputGroup.style.display = 'block';
-                    document.getElementById('downloadLink').required = false;
-                    document.getElementById('downloadConta').required = true;
-                } else {
-                    linkInputGroup.style.display = 'none';
-                    contaInputGroup.style.display = 'none';
-                    document.getElementById('downloadLink').required = false;
-                    document.getElementById('downloadConta').required = false;
-                }
-            });
-            
-            // Adiciona event listener para o formulário
-            form.addEventListener('submit', handleDownloadPosts);
+            // Esconde os campos dinâmicos
+            document.getElementById('linkInputGroup').style.display = 'none';
+            document.getElementById('contaInputGroup').style.display = 'none';
             
             openModal(modal);
         }
