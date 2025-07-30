@@ -1833,7 +1833,7 @@
         // Função auxiliar para fechar a sidebar no mobile
         function closeSidebarIfMobile() {
             if (window.innerWidth <= 992) { // Só executa em telas menores que 992px
-                document.body.classList.add('sidebar-collapsed');
+                document.body.classList.remove('sidebar-collapsed');
             }
         }
 
@@ -2352,8 +2352,6 @@
                     ${post.conta_clone_url_reels ? `<button onclick="window.open('${post.conta_clone_url_reels}', '_blank')">Ver no Instagram Clone</button>` : ''} 
                     <button class="btn-delete" data-id="${post.id}">Excluir Item</button> 
                 </div>
-                <div class="card-buttons" style="margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px;">
-                    <button class="btn-download-posts" data-conta-user="${post.conta_user_instagram || ''}">Baixar novas Postagens</button>
                 </div>`; 
             card.appendChild(contentDiv);
             card.querySelector('.btn-save').addEventListener('click', handleSalvarEdicaoPost); 
@@ -2362,7 +2360,6 @@
             card.querySelector('.btn-whatsapp').addEventListener('click', handleOpenWhatsAppModal); 
             card.querySelector('.btn-instagram-post').addEventListener('click', handlePostarUnicoInstagram); 
             card.querySelector('input[type="file"]').addEventListener('change', handleUploadVideo); 
-            card.querySelector('.btn-download-posts').addEventListener('click', handleOpenDownloadPostsModal); 
             return card; 
         } 
 
@@ -3574,6 +3571,15 @@
                     actionsDiv.appendChild(btnReloadThreads);
                 }
                 
+                // Adiciona botão "Baixar novas Postagens" apenas na página Postagens Base
+                if (type === 'threads-base-posts') {
+                    const btnDownloadPosts = document.createElement('button');
+                    btnDownloadPosts.className = 'btn-primary';
+                    btnDownloadPosts.textContent = '📥 Baixar novas Postagens';
+                    btnDownloadPosts.addEventListener('click', handleOpenDownloadPostsModal);
+                    actionsDiv.appendChild(btnDownloadPosts);
+                }
+                
             } else { // Lógica para Instagram (Reels, Stories, etc.)
                 if (type === 'reels') {
                     const btnReloadReels = document.createElement('button');
@@ -3587,6 +3593,13 @@
                     btnReloadStories.textContent = '🔄 Recarregar Novos Stories';
                     btnReloadStories.addEventListener('click', handleRecarregarStories);
                     actionsDiv.appendChild(btnReloadStories);
+                } else if (type === 'posts') {
+                    // Adiciona botão "Baixar novas Postagens" apenas na página Postagens Base do Instagram
+                    const btnDownloadPosts = document.createElement('button');
+                    btnDownloadPosts.className = 'btn-primary';
+                    btnDownloadPosts.textContent = '📥 Baixar novas Postagens';
+                    btnDownloadPosts.addEventListener('click', handleOpenDownloadPostsModal);
+                    actionsDiv.appendChild(btnDownloadPosts);
                 }
             }
 
@@ -4501,8 +4514,6 @@
                     ${item.threads_permalink ? `<button onclick="window.open('${item.threads_permalink}', '_blank')">Ver no Threads</button>` : ''}
                     <button class="btn-delete btn-delete-threads" data-id="${item.id}">Deletar Threads</button>
                 </div>
-                <div class="card-buttons" style="margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px;">
-                    <button class="btn-download-posts" data-conta-user="${item.conta_user || ''}">Baixar novas Postagens</button>
                 </div>`;
             card.appendChild(contentDiv);
 
@@ -4510,7 +4521,6 @@
             card.querySelector('.btn-link').addEventListener('click', handleOpenLinkModal);
             card.querySelector('.btn-delete-threads').addEventListener('click', handleDeleteThreads);
             card.querySelector('.btn-post-threads-now').addEventListener('click', handlePostThreadsNow);
-            card.querySelector('.btn-download-posts').addEventListener('click', handleOpenDownloadPostsModal);
 
             return card;
         }
