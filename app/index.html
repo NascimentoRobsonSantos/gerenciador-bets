@@ -2544,19 +2544,30 @@
 
             try {
                 const res = await fetchWithAuth(endpoint);
-                if (!res.ok) throw new Error(await res.text());
-                const data = await res.json();
                 
+                // CORREÇÃO: Verifica se a resposta é bem-sucedida antes de tentar processar como JSON
+                if (!res.ok) {
+                    const errorText = await res.text(); // Tenta ler o corpo como texto
+                    throw new Error(`Erro ${res.status}: ${errorText || res.statusText}`);
+                }
+
+                // Adiciona verificação para respostas vazias que podem causar erro de JSON
+                const responseText = await res.text();
+                const data = responseText ? JSON.parse(responseText) : { data: [], totalItems: 0 };
+
                 state.items = data.data || [];
                 state.totalItems = data.totalItems || 0;
-                state.filteredItems = [...state.items]; // GARANTE QUE A LISTA FILTRADA SEJA ATUALIZADA
+                state.filteredItems = [...state.items];
 
-                if (state.activeAccount === 'WhatsApp') state.whatsappLojas = data.lojas || [];
+                if (state.activeAccount === 'WhatsApp') {
+                    state.whatsappLojas = data.lojas || [];
+                }
 
-                renderItems(); // Chama a renderização APÓS os dados estarem no state
+                renderItems();
             } catch (error) {
+                console.error("Erro detalhado em fetchData:", error);
                 showAlert(`Erro ao carregar dados: ${error.message}`);
-                if(mediaItemsWrapper) mediaItemsWrapper.innerHTML = ''; // Limpa a área em caso de erro
+                if(mediaItemsWrapper) mediaItemsWrapper.innerHTML = '<p style="text-align:center;">Não foi possível carregar os dados.</p>';
             } finally {
                 hideLoading();
                 renderPaginationControls();
