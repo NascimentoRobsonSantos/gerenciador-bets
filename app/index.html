@@ -1833,7 +1833,7 @@
         // Função auxiliar para fechar a sidebar no mobile
         function closeSidebarIfMobile() {
             if (window.innerWidth <= 992) { // Só executa em telas menores que 992px
-                document.body.classList.remove('sidebar-collapsed');
+                document.body.classList.add('sidebar-collapsed');
             }
         }
 
@@ -2970,6 +2970,7 @@
                 if (!response.ok) throw new Error(resText); 
                 showAlert("Link incluído com sucesso: " + resText); 
                 formAddLinks.reset(); 
+                await fetchData(); // Atualiza a listagem
                 handleOpenLinkModal({ target: { dataset: { id: payload.id, type: payload.tipo } } }); 
             } catch (error) { 
                 console.error("Erro ao adicionar link:", error); 
@@ -3028,7 +3029,8 @@
             try { 
                 const response = await fetchWithAuth(API_URLS.SEND_WHATS, { method: "POST", body: JSON.stringify(payload) }); 
                 const resText = await response.text(); if (!response.ok) throw new Error(resText); 
-                showAlert("Enviado para WhatsApp com sucesso!"); closeModal(modalEnviarWhatsApp); 
+                showAlert("Enviado para WhatsApp com sucesso!"); closeModal(modalEnviarWhatsApp);
+                await fetchData(); // Atualiza a listagem 
             } catch (error) { console.error("Erro:", error); showAlert(`Erro: ${error.message}`); } 
             finally { hideLoading(); } 
         }
@@ -3403,11 +3405,21 @@
         }
 
         async function handleGenerateAdFromLink(event) {
+            console.log('handleGenerateAdFromLink chamado', event);
+            
             if (event && typeof event.preventDefault === 'function') {
                 event.preventDefault();
             }
+            
+            if (state.isLoading) {
+                console.log('Aplicação está carregando, ignorando submissão');
+                return; // Previne múltiplas submissões
+            }
+            
             const urlInput = document.getElementById('generateFromLinkUrl');
             const url = urlInput.value.trim();
+            console.log('URL fornecida:', url);
+            
             if (!url) {
                 showAlert("Por favor, insira uma URL para gerar o anúncio.");
                 return;
@@ -3415,6 +3427,7 @@
 
             showLoading("Gerando anúncio a partir do link...");
             try {
+                console.log('Enviando requisição para:', API_URLS.GENERATE_AD_FROM_LINK);
                 const response = await fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, {
                     method: "POST",
                     body: JSON.stringify({ url: url, conta_user: decodeURIComponent(state.activeMediaType) })
@@ -3427,8 +3440,11 @@
                 
                 showAlert('Oferta gerada com sucesso! A lista será atualizada.');
                 closeModal(document.getElementById('modalGenerateFromLink'));
-                await fetchData(); // Await já estava aqui, mas é crucial
+                urlInput.value = ''; // Limpa o campo após sucesso
+                state.newImageBase64 = null; // Limpa qualquer imagem em cache
+                await fetchData(); // Atualiza a listagem
             } catch (error) {
+                console.error('Erro ao gerar anúncio:', error);
                 showAlert(`Erro: ${error.message}`);
             } finally {
                 hideLoading();
@@ -3539,7 +3555,7 @@
                 refreshBtn.addEventListener('click', fetchData);
                 actionsDiv.appendChild(refreshBtn);
 
-            } else if (type.startsWith('threads-')) { // Lógica para Threads
+                        } else if (type.startsWith('threads-')) { // Lógica para Threads
                 const filtersDiv = document.createElement('div');
                 filtersDiv.className = 'filters-container';
                 filtersDiv.innerHTML = `
@@ -3549,7 +3565,14 @@
                     </div>`;
                 headerDiv.appendChild(filtersDiv);
 
-
+                // Adiciona botão "Recarregar novos Threads" apenas na página FEED
+                if (type === 'threads-feed') {
+                    const btnReloadThreads = document.createElement('button');
+                    btnReloadThreads.className = 'btn-primary';
+                    btnReloadThreads.textContent = '🔄 Recarregar novos Threads';
+                    btnReloadThreads.addEventListener('click', handleRecarregarThreads);
+                    actionsDiv.appendChild(btnReloadThreads);
+                }
                 
             } else { // Lógica para Instagram (Reels, Stories, etc.)
                 if (type === 'reels') {
@@ -4591,6 +4614,23 @@
         }
 
 
+        function handleRecarregarThreads() {
+            if (!state.activeAccount) {
+                showAlert("Por favor, selecione uma conta no menu lateral primeiro.");
+                return;
+            }
+            showLoading("Solicitando atualização do Threads...");
+            const endpoint = `${url_base}/${API_URLS.FORCE_UPDATE_THREADS}?conta_user=${decodeURIComponent(state.activeAccount)}`;
+            
+            fetchWithAuth(endpoint)
+                .then(res => {
+                    if (!res.ok) throw new Error('Falha na atualização forçada do Threads.');
+                    showAlert("Atualização do Threads solicitada! A lista será atualizada em breve.");
+                    setTimeout(fetchData, 5000); // Dá um tempo para o backend processar
+                })
+                .catch(err => showAlert(`Erro: ${err.message}`))
+                .finally(hideLoading);
+        }
 
         // --- Funções para o modal de post agendado ---
         function handleOpenScheduledPostModal(post = null) {
@@ -5016,27 +5056,52 @@
                 }
             });
 
-            document.getElementById('btnCreateOfferFromLink').addEventListener('click', () => {
-                closeModal(document.getElementById('modalOfferTypeChoice'));
-                openModal(document.getElementById('modalGenerateFromLink'));
-                document.getElementById('formGenerateFromLink').reset();
-            });
+            // Event listeners para os botões do modal de escolha de tipo de oferta
+            const btnCreateOfferFromLink = document.getElementById('btnCreateOfferFromLink');
+            const btnCreateOfferManually = document.getElementById('btnCreateOfferManually');
+            
+            if (btnCreateOfferFromLink) {
+                btnCreateOfferFromLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Botão "Gerar por Link" clicado');
+                    closeModal(document.getElementById('modalOfferTypeChoice'));
+                    openModal(document.getElementById('modalGenerateFromLink'));
+                    document.getElementById('formGenerateFromLink').reset();
+                });
+            } else {
+                console.warn('Botão "Gerar por Link" não encontrado');
+            }
 
-            document.getElementById('btnCreateOfferManually').addEventListener('click', () => {
-                closeModal(document.getElementById('modalOfferTypeChoice'));
-                // Abre o modal de criação manual que já existe
-                formCreateWhatsapp.reset();
-                state.newImageBase64 = null;
-                document.getElementById('createWppImagePreview').src = 'https://placehold.co/200x200/cccccc/ffffff?text=Sem+Imagem';
-                openModal(modalCreateWhatsapp);
-            });
+            if (btnCreateOfferManually) {
+                btnCreateOfferManually.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Botão "Criar Manualmente" clicado');
+                    closeModal(document.getElementById('modalOfferTypeChoice'));
+                    // Abre o modal de criação manual que já existe
+                    formCreateWhatsapp.reset();
+                    state.newImageBase64 = null;
+                    document.getElementById('createWppImagePreview').src = 'https://placehold.co/200x200/cccccc/ffffff?text=Sem+Imagem';
+                    openModal(modalCreateWhatsapp);
+                });
+            } else {
+                console.warn('Botão "Criar Manualmente" não encontrado');
+            }
 
-            document.getElementById('formGenerateFromLink').addEventListener('submit', handleGenerateAdFromLink);
+            const formGenerateFromLink = document.getElementById('formGenerateFromLink');
+            if (formGenerateFromLink) {
+                formGenerateFromLink.addEventListener('submit', handleGenerateAdFromLink);
+                console.log('Event listener para formGenerateFromLink adicionado');
+            } else {
+                console.warn('Formulário formGenerateFromLink não encontrado');
+            }
             
             document.getElementById('btnPasteAndGenerate').addEventListener('click', async () => {
                 try {
                     const text = await navigator.clipboard.readText();
                     document.getElementById('generateFromLinkUrl').value = text;
+                    // Não submete automaticamente o formulário - deixa o usuário clicar em "Gerar"
                 } catch (err) {
                     showAlert('Não foi possível ler da área de transferência.');
                 }
@@ -5161,19 +5226,24 @@
             try {
                 let endpoint, payload;
                 
+                // Determina o tipo da rede social baseado na página atual
+                const socialNetworkType = state.activeMediaType.startsWith('threads') ? 'THREADS' : 'INSTAGRAM';
+                
                 if (downloadType === 'conta_clone') {
                     endpoint = API_URLS.SET_LINK_DOWNLOAD_THREADS;
                     payload = {
                         link: downloadLink,
                         conta_user: downloadConta,
-                        media_type: downloadMediaType
+                        media_type: downloadMediaType,
+                        tipo: socialNetworkType
                     };
                 } else {
                     endpoint = API_URLS.SET_CONTA_CLONE_DOWNLOAD_THREADS;
                     payload = {
                         conta_clone: downloadConta,
                         conta_user: downloadConta,
-                        media_type: downloadMediaType
+                        media_type: downloadMediaType,
+                        tipo: socialNetworkType
                     };
                 }
                 
