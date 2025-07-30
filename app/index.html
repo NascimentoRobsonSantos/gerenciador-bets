@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Gerenciador de Posts</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Reset Básico e Variáveis de Tema */
         :root {
@@ -822,6 +823,32 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
+        }
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            width: 100%;
+        }
+
+        .chart-card {
+            background-color: var(--card-bg-color);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+        }
+
+        .chart-card h3 {
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .shortcuts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
         }
         .stat-card {
             background-color: var(--card-bg-color);
@@ -3463,32 +3490,24 @@
         }
 
         async function handleGenerateAdFromLink(event) {
-            console.log('handleGenerateAdFromLink chamado', event);
-            
             if (event && typeof event.preventDefault === 'function') {
                 event.preventDefault();
             }
-            
-            if (state.isLoading) {
-                console.log('Aplicação está carregando, ignorando submissão');
-                return; // Previne múltiplas submissões
-            }
-            
             const urlInput = document.getElementById('generateFromLinkUrl');
+            const groupSelect = document.getElementById('generateFromLinkGroup'); // Pega o select
             const url = urlInput.value.trim();
-            console.log('URL fornecida:', url);
-            
-            if (!url) {
-                showAlert("Por favor, insira uma URL para gerar o anúncio.");
+            const grupo = groupSelect.value; // Pega o valor selecionado
+
+            if (!url || !grupo) {
+                showAlert("Por favor, preencha o link e selecione um grupo.");
                 return;
             }
 
             showLoading("Gerando anúncio a partir do link...");
             try {
-                console.log('Enviando requisição para:', API_URLS.GENERATE_AD_FROM_LINK);
                 const response = await fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, {
                     method: "POST",
-                    body: JSON.stringify({ url: url, conta_user: decodeURIComponent(state.activeMediaType) })
+                    body: JSON.stringify({ url: url, grupo: grupo }) // Envia o grupo selecionado
                 });
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ message: 'Erro ao gerar anúncio.' }));
@@ -3498,11 +3517,14 @@
                 
                 showAlert('Oferta gerada com sucesso! A lista será atualizada.');
                 closeModal(document.getElementById('modalGenerateFromLink'));
-                urlInput.value = ''; // Limpa o campo após sucesso
-                state.newImageBase64 = null; // Limpa qualquer imagem em cache
-                await fetchData(); // Atualiza a listagem
+                
+                // Se a página atual não for do grupo criado, navega para ela
+                if (state.activeAccount !== 'WhatsApp' || state.activeMediaType !== grupo) {
+                    navigateTo('media', ['WhatsApp', grupo]);
+                } else {
+                    await fetchData();
+                }
             } catch (error) {
-                console.error('Erro ao gerar anúncio:', error);
                 showAlert(`Erro: ${error.message}`);
             } finally {
                 hideLoading();
@@ -4818,11 +4840,17 @@
                 // Dados mocados para demonstração
                 const mockMetrics = {
                     postsToday: 5,
-                    reelsWeek: 12,
-                    storiesMonth: 89,
+                    storiesToday: 15,
                     postsWeek: 21,
-                    reelsMonth: 45,
-                    storiesToday: 15
+                    storiesWeek: 95, // Nova métrica
+                    reelsWeek: 12,
+                    likesWeek: 1250,   // Nova métrica
+                    commentsWeek: 180, // Nova métrica
+                    sharesWeek: 230,   // Nova métrica
+                    savedWeek: 450,    // Nova métrica
+                    postsMonth: 89,
+                    storiesMonth: 350,
+                    reelsMonth: 45
                 };
                 
                 renderDashboard(mockMetrics);
@@ -4839,50 +4867,95 @@
 
         function renderDashboard(metrics) {
             dashboardContentArea.innerHTML = `
-
-                <div style="margin-top: 40px;">
-                        <div class="page-header">
-                            <h2>Atalhos</h2>
-                        </div>
-                        <div class="card">
-                            <div class="card-buttons">
-                                <button id="btnShortcutGenerateOffer" class="btn-primary">Gerar Link de Ofertas</button>
-                            </div>
-                        </div>
-                </div>
                 <div class="page-header">
-                    <h2>Dashboard de Métricas (Instagram)</h2>
+                    <h2>Dashboard</h2>
                 </div>
-                <div class="dashboard-grid">
-                    <div class="stat-card">
-                        <div class="value">${metrics.postsToday}</div>
-                        <div class="label">Posts Hoje</div>
+
+                <h3>Atalhos</h3>
+                <div class="shortcuts-grid" style="margin-bottom: 40px;">
+                    <div class="card">
+                        <button id="btnShortcutGenerateOffer" class="btn-primary" style="width:100%;">Gerar Oferta por Link</button>
                     </div>
-                    <div class="stat-card">
-                        <div class="value">${metrics.storiesToday}</div>
-                        <div class="label">Stories Hoje</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="value">${metrics.reelsWeek}</div>
-                        <div class="label">Reels na Semana</div>
+
+                <h3>Métricas da Semana (Instagram)</h3>
+                <div class="dashboard-container">
+                    <div class="chart-card">
+                        <h3>Publicações na Semana</h3>
+                        <canvas id="postsChart"></canvas>
                     </div>
-                    <div class="stat-card">
-                        <div class="value">${metrics.postsWeek}</div>
-                        <div class="label">Posts na Semana</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="value">${metrics.storiesMonth}</div>
-                        <div class="label">Stories no Mês</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="value">${metrics.reelsMonth}</div>
-                        <div class="label">Reels no Mês</div>
+                    <div class="chart-card">
+                        <h3>Engajamento na Semana</h3>
+                        <canvas id="engagementChart"></canvas>
                     </div>
                 </div>
             `;
 
-            // Adiciona o event listener para o novo botão de atalho
+            // Listener para o botão de atalho
             document.getElementById('btnShortcutGenerateOffer').addEventListener('click', handleCreateOfferModal);
+
+            // --- Lógica para criar os gráficos ---
+            
+            // Gráfico 1: Posts vs. Stories vs. Reels
+            const postsCtx = document.getElementById('postsChart').getContext('2d');
+            new Chart(postsCtx, {
+                type: 'doughnut', // Tipo de gráfico: rosca
+                data: {
+                    labels: ['Posts na Semana', 'Stories na Semana', 'Reels na Semana'],
+                    datasets: [{
+                        label: 'Publicações',
+                        data: [metrics.postsWeek, metrics.storiesWeek, metrics.reelsWeek],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+
+            // Gráfico 2: Engajamento (Likes, Comentários, Salvos)
+            const engagementCtx = document.getElementById('engagementChart').getContext('2d');
+            new Chart(engagementCtx, {
+                type: 'bar', // Tipo de gráfico: barras
+                data: {
+                    labels: ['Likes', 'Comentários', 'Compart.', 'Salvos'],
+                    datasets: [{
+                        label: 'Total na Semana',
+                        data: [metrics.likesWeek, metrics.commentsWeek, metrics.sharesWeek, metrics.savedWeek],
+                        backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
         }
 
         function saveSidebarState() {
@@ -4940,7 +5013,7 @@
             // Fechar sidebar ao clicar fora (no mobile)
             document.querySelector('.app-body').addEventListener('click', (e) => {
                 if (window.innerWidth <= 992 && !document.body.classList.contains('sidebar-collapsed') && !sidebar.contains(e.target) && !document.getElementById('menuToggleBtn').contains(e.target)) {
-                    closeSidebarIfMobile();
+                    document.body.classList.remove('sidebar-collapsed');
                 }
             });
 
