@@ -2232,7 +2232,7 @@
 
             if (videos.length > 0) { // Prioriza vídeo
                 const videoUrl = videos[0];
-                const thumbUrl = images[0] || item.thumbnail_url || item.story_thumbnail;
+                const thumbUrl = images[0] || item.thumbnail_url || item.story_thumbnail || item.url_s3_thumbnail;
                 if (thumbUrl) {
                     mediaContainer.innerHTML = `
                         <img src="${thumbUrl}" onerror="this.onerror=null; this.src='${placeholder}';" alt="Thumbnail do vídeo">
