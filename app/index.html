@@ -1526,6 +1526,8 @@
             COPY_LINK_BY_ID: `${url_base}/add-copy-links-postagens-carla`,
             DELETE_LINK: `${url_base}/delete-link-postagem`,
             GENERATE_AD_FROM_LINK: `${url_base}/generate-ad-from-link`,
+            SET_CONTA_CLONE_DOWNLOAD_THREADS: `${url_base}/set-conta-clone-download-threads`,
+            SET_LINK_DOWNLOAD_THREADS: `${url_base}/set-link-download-threads`,
         };
 
         const MEDIA_TYPES = [
@@ -2297,6 +2299,9 @@
                     <button class="btn-instagram-post" data-id="${post.id}" ${!post.check_reviewed ? 'disabled' : ''}>Postar este no Instagram</button> 
                     ${post.conta_clone_url_reels ? `<button onclick="window.open('${post.conta_clone_url_reels}', '_blank')">Ver no Instagram Clone</button>` : ''} 
                     <button class="btn-delete" data-id="${post.id}">Excluir Item</button> 
+                </div>
+                <div class="card-buttons" style="margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px;">
+                    <button class="btn-download-posts" data-conta-user="${post.conta_user_instagram || ''}">Baixar novas Postagens</button>
                 </div>`; 
             card.appendChild(contentDiv);
             card.querySelector('.btn-save').addEventListener('click', handleSalvarEdicaoPost); 
@@ -2304,7 +2309,8 @@
             card.querySelector('.btn-link').addEventListener('click', handleOpenLinkModal); 
             card.querySelector('.btn-whatsapp').addEventListener('click', handleOpenWhatsAppModal); 
             card.querySelector('.btn-instagram-post').addEventListener('click', handlePostarUnicoInstagram); 
-            card.querySelector('input[type="file"]').addEventListener('change', handleUploadVideo); 
+            card.querySelector('input[type="file"]').addEventListener('click', handleUploadVideo); 
+            card.querySelector('.btn-download-posts').addEventListener('click', handleOpenDownloadPostsModal); 
             return card; 
         } 
 
@@ -4423,6 +4429,9 @@
                     ${item.conta_clone_url ? `<button onclick="window.open('${item.conta_clone_url}', '_blank')">Ver no Threads Clone</button>` : ''}
                     ${item.threads_permalink ? `<button onclick="window.open('${item.threads_permalink}', '_blank')">Ver no Threads</button>` : ''}
                     <button class="btn-delete btn-delete-threads" data-id="${item.id}">Deletar Threads</button>
+                </div>
+                <div class="card-buttons" style="margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px;">
+                    <button class="btn-download-posts" data-conta-user="${item.conta_user || ''}">Baixar novas Postagens</button>
                 </div>`;
             card.appendChild(contentDiv);
 
@@ -4430,6 +4439,7 @@
             card.querySelector('.btn-link').addEventListener('click', handleOpenLinkModal);
             card.querySelector('.btn-delete-threads').addEventListener('click', handleDeleteThreads);
             card.querySelector('.btn-post-threads-now').addEventListener('click', handlePostThreadsNow);
+            card.querySelector('.btn-download-posts').addEventListener('click', handleOpenDownloadPostsModal);
 
             return card;
         }
@@ -5041,6 +5051,174 @@
                 appContainer.style.display = 'none';
             }
         });
+
+        // Modal para Baixar Novas Postagens
+        const modalDownloadPosts = document.createElement('div');
+        modalDownloadPosts.id = 'modalDownloadPosts';
+        modalDownloadPosts.className = 'modal-overlay';
+        modalDownloadPosts.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Baixar Novas Postagens</h3>
+                    <button class="modal-close-btn" data-modal-id="modalDownloadPosts">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="formDownloadPosts">
+                        <div class="input-group">
+                            <label for="downloadType">Tipo de Download:</label>
+                            <select id="downloadType" required>
+                                <option value="">Selecione...</option>
+                                <option value="conta_clone">Link Único</option>
+                                <option value="link">Nome da Conta</option>
+                            </select>
+                        </div>
+                        
+                        <div class="input-group" id="linkInputGroup" style="display: none;">
+                            <label for="downloadLink">Link:</label>
+                            <input type="url" id="downloadLink" placeholder="Cole o link aqui...">
+                        </div>
+                        
+                        <div class="input-group" id="contaInputGroup" style="display: none;">
+                            <label for="downloadConta">Nome da Conta:</label>
+                            <input type="text" id="downloadConta" placeholder="Nome da conta...">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="downloadMediaType">Tipo:</label>
+                            <select id="downloadMediaType" required>
+                                <option value="">Selecione...</option>
+                                <option value="REELS">Reels</option>
+                                <option value="FEED">Feed</option>
+                                <option value="STORIES">Stories</option>
+                            </select>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="downloadCategory">Categoria:</label>
+                            <input type="text" id="downloadCategory" placeholder="Ex: Especial, Normal">
+                        </div>
+                        
+                        <div class="modal-buttons">
+                            <button type="submit" class="btn-primary">Baixar Postagens</button>
+                            <button type="button" class="btn-secondary" onclick="closeModal(document.getElementById('modalDownloadPosts'))">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modalDownloadPosts);
+
+        // Funções para o modal de download de postagens
+        function handleOpenDownloadPostsModal(event) {
+            const contaUser = event.target.dataset.contaUser;
+            const modal = document.getElementById('modalDownloadPosts');
+            const form = document.getElementById('formDownloadPosts');
+            
+            // Preenche automaticamente o nome da conta
+            document.getElementById('downloadConta').value = contaUser;
+            
+            // Adiciona event listeners para mostrar/ocultar campos baseado no tipo
+            const downloadType = document.getElementById('downloadType');
+            const linkInputGroup = document.getElementById('linkInputGroup');
+            const contaInputGroup = document.getElementById('contaInputGroup');
+            
+            downloadType.addEventListener('change', function() {
+                if (this.value === 'conta_clone') {
+                    linkInputGroup.style.display = 'block';
+                    contaInputGroup.style.display = 'none';
+                    document.getElementById('downloadLink').required = true;
+                    document.getElementById('downloadConta').required = false;
+                } else if (this.value === 'link') {
+                    linkInputGroup.style.display = 'none';
+                    contaInputGroup.style.display = 'block';
+                    document.getElementById('downloadLink').required = false;
+                    document.getElementById('downloadConta').required = true;
+                } else {
+                    linkInputGroup.style.display = 'none';
+                    contaInputGroup.style.display = 'none';
+                    document.getElementById('downloadLink').required = false;
+                    document.getElementById('downloadConta').required = false;
+                }
+            });
+            
+            // Adiciona event listener para o formulário
+            form.addEventListener('submit', handleDownloadPosts);
+            
+            openModal(modal);
+        }
+
+        async function handleDownloadPosts(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const downloadType = document.getElementById('downloadType').value;
+            const downloadLink = document.getElementById('downloadLink').value;
+            const downloadConta = document.getElementById('downloadConta').value;
+            const downloadMediaType = document.getElementById('downloadMediaType').value;
+            const downloadCategory = document.getElementById('downloadCategory').value;
+            
+            if (!downloadType || !downloadMediaType) {
+                showAlert('Por favor, preencha todos os campos obrigatórios.');
+                return;
+            }
+            
+            if (downloadType === 'conta_clone' && !downloadLink) {
+                showAlert('Por favor, insira o link.');
+                return;
+            }
+            
+            if (downloadType === 'link' && !downloadConta) {
+                showAlert('Por favor, insira o nome da conta.');
+                return;
+            }
+            
+            showLoading('Baixando novas postagens...');
+            
+            try {
+                let endpoint, payload;
+                
+                if (downloadType === 'conta_clone') {
+                    endpoint = API_URLS.SET_LINK_DOWNLOAD_THREADS;
+                    payload = {
+                        link: downloadLink,
+                        conta_user: downloadConta,
+                        media_type: downloadMediaType
+                    };
+                } else {
+                    endpoint = API_URLS.SET_CONTA_CLONE_DOWNLOAD_THREADS;
+                    payload = {
+                        conta_clone: downloadConta,
+                        conta_user: downloadConta,
+                        media_type: downloadMediaType
+                    };
+                }
+                
+                // Adiciona categoria se fornecida
+                if (downloadCategory) {
+                    payload.categoria = downloadCategory;
+                }
+                
+                const response = await fetchWithAuth(endpoint, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+                
+                showAlert('Postagens baixadas com sucesso!');
+                closeModal(document.getElementById('modalDownloadPosts'));
+                
+                // Recarrega os dados da página atual
+                await fetchData();
+                
+            } catch (error) {
+                showAlert(`Erro ao baixar postagens: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
 
     </script>
 </body>
