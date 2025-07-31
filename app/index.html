@@ -5331,15 +5331,16 @@
 
         // Funções para o modal de download de postagens
         function handleOpenDownloadPostsModal(event) {
+            console.log('event', event);
             const contaUser = event.target.dataset.contaUser;
             const modal = document.getElementById('modalDownloadPosts');
             
             // Preenche automaticamente o nome da conta
-            document.getElementById('downloadConta').value = contaUser;
+            document.getElementById('downloadConta').value = '';
             
             // Reseta o formulário
             document.getElementById('formDownloadPosts').reset();
-            document.getElementById('downloadConta').value = contaUser; // Mantém o valor da conta
+            document.getElementById('downloadConta').value = ''; // Mantém o valor da conta
             
             // Esconde os campos dinâmicos
             document.getElementById('linkInputGroup').style.display = 'none';
@@ -5385,7 +5386,7 @@
                     endpoint = API_URLS.SET_LINK_DOWNLOAD_THREADS;
                     payload = {
                         link: downloadLink,
-                        conta_user: downloadConta,
+                        conta_user: state.activeAccount,   
                         media_type: downloadMediaType,
                         tipo: socialNetworkType
                     };
@@ -5393,7 +5394,7 @@
                     endpoint = API_URLS.SET_CONTA_CLONE_DOWNLOAD_THREADS;
                     payload = {
                         conta_clone: downloadConta,
-                        conta_user: downloadConta,
+                        conta_user: state.activeAccount, 
                         media_type: downloadMediaType,
                         tipo: socialNetworkType
                     };
