@@ -2221,7 +2221,7 @@
             mediaContainer.className = 'media-content';
             const placeholder = 'https://placehold.co/400x640/cccccc/ffffff?text=Indisponível';
 
-            const urls = item.media_urls || [item.media_url, item.s3_url_video].filter(Boolean);
+            const urls = item.media_urls || [item.media_url, item.s3_url_video, item.url_s3_video].filter(Boolean);
             if (!urls || urls.length === 0) {
                 mediaContainer.innerHTML = '<span>Mídia indisponível</span>';
                 return mediaContainer;
@@ -2232,7 +2232,7 @@
 
             if (videos.length > 0) { // Prioriza vídeo
                 const videoUrl = videos[0];
-                const thumbUrl = images[0] || item.thumbnail_url || item.story_thumbnail || item.url_s3_thumbnail;
+                const thumbUrl = images[0] || item.thumbnail_url || item.story_thumbnail || item.url_s3_thumbnail || item.url_s3_video;
                 if (thumbUrl) {
                     mediaContainer.innerHTML = `
                         <img src="${thumbUrl}" onerror="this.onerror=null; this.src='${placeholder}';" alt="Thumbnail do vídeo">
@@ -5381,12 +5381,14 @@
                 
                 // Determina o tipo da rede social baseado na página atual
                 const socialNetworkType = state.activeMediaType.startsWith('threads') ? 'THREADS' : 'INSTAGRAM';
-                
+
+                const conta_user = decodeURIComponent(state.activeAccount);
+            
                 if (downloadType === 'conta_clone') {
                     endpoint = API_URLS.SET_LINK_DOWNLOAD_THREADS;
                     payload = {
                         link: downloadLink,
-                        conta_user: state.activeAccount,   
+                        conta_user: conta_user,   
                         media_type: downloadMediaType,
                         tipo: socialNetworkType
                     };
@@ -5394,7 +5396,7 @@
                     endpoint = API_URLS.SET_CONTA_CLONE_DOWNLOAD_THREADS;
                     payload = {
                         conta_clone: downloadConta,
-                        conta_user: state.activeAccount, 
+                        conta_user: conta_user, 
                         media_type: downloadMediaType,
                         tipo: socialNetworkType
                     };
