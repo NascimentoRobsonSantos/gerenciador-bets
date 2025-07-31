@@ -5011,8 +5011,16 @@
             });
 
             // Fechar sidebar ao clicar fora (no mobile)
-            document.querySelector('.app-body').addEventListener('click', (e) => {
-                if (window.innerWidth <= 992 && !document.body.classList.contains('sidebar-collapsed') && !sidebar.contains(e.target) && !document.getElementById('menuToggleBtn').contains(e.target)) {
+            // document.querySelector('.app-body').addEventListener('click', (e) => {
+            //     if (window.innerWidth <= 992 && !document.body.classList.contains('sidebar-collapsed') && !sidebar.contains(e.target) && !document.getElementById('menuToggleBtn').contains(e.target)) {
+            //         document.body.classList.remove('sidebar-collapsed');
+            //     }
+            // });
+
+            mainContentEl.addEventListener('click', () => {
+                // Verifica se estamos em uma tela de celular e se o menu está aberto
+                if (window.innerWidth <= 992 && document.body.classList.contains('sidebar-collapsed')) {
+                    // Fecha o menu
                     document.body.classList.remove('sidebar-collapsed');
                 }
             });
