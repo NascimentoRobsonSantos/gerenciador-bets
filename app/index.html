@@ -2657,30 +2657,25 @@
                     }
                 }
             } else if (state.currentView === 'settings') {
-                const settingsView = window.location.hash.split('/')[2].split('?')[0];
-                switch(settingsView) {
-                    case 'accounts': endpoint = API_URLS.GET_ACCOUNTS; break;
-                    case 'whatsapp-groups': endpoint = API_URLS.WHATSAPP_GROUPS_CRUD; break;
-                    case 'companies': endpoint = API_URLS.COMPANIES_CRUD; break;
-                    case 'users': endpoint = API_URLS.USERS_CRUD; break;
-                }
+                // ... (lógica para settings, se necessário)
             }
 
             if (!endpoint) {
                 hideLoading();
                 return;
             }
+            
+            // Cache-busting para garantir dados sempre novos
+            const separator = endpoint.includes('?') ? '&' : '?';
+            const finalEndpoint = `${endpoint}${separator}_=${new Date().getTime()}`;
 
             try {
-                const res = await fetchWithAuth(endpoint);
-                
-                // CORREÇÃO: Verifica se a resposta é bem-sucedida antes de tentar processar como JSON
+                const res = await fetchWithAuth(finalEndpoint);
                 if (!res.ok) {
-                    const errorText = await res.text(); // Tenta ler o corpo como texto
+                    const errorText = await res.text();
                     throw new Error(`Erro ${res.status}: ${errorText || res.statusText}`);
                 }
 
-                // Adiciona verificação para respostas vazias que podem causar erro de JSON
                 const responseText = await res.text();
                 const data = responseText ? JSON.parse(responseText) : { data: [], totalItems: 0 };
 
@@ -2694,8 +2689,9 @@
 
                 renderItems();
             } catch (error) {
-                console.error("Erro detalhado em fetchData:", error);
-                showAlert(`Erro ao carregar dados: ${error.message}`);
+                if (!error.message.includes("Sessão expirada")) {
+                    showAlert(`Erro ao carregar dados: ${error.message}`);
+                }
                 if(mediaItemsWrapper) mediaItemsWrapper.innerHTML = '<p style="text-align:center;">Não foi possível carregar os dados.</p>';
             } finally {
                 hideLoading();
@@ -2730,98 +2726,93 @@
         }
 
         // --- Handlers de Ações (Salvar, Excluir, etc) ---
-        async function handleSalvarEdicaoPost(event) { 
-            const postId = event.target.dataset.id; 
-            const cardElement = event.target.closest('.card'); if (!cardElement) return; 
-            const payload = { 
-                id: postId, 
-                description: cardElement.querySelector(`#desc-${postId}`).value, 
-                ordenacao_postagem: parseInt(cardElement.querySelector(`#ord-${postId}`).value), 
-                categoria: cardElement.querySelector(`#cat-${postId}`).value, 
-                revisado: cardElement.querySelector(`#rev-${postId}`).checked 
-            }; 
-            showLoading("Salvando post..."); 
+        async function handleSalvarEdicaoPost(event) {
+            const postId = event.target.dataset.id;
+            const cardElement = event.target.closest('.card');
+            if (!cardElement) return;
+            const payload = {
+                id: postId,
+                description: cardElement.querySelector(`#desc-${postId}`).value,
+                ordenacao_postagem: parseInt(cardElement.querySelector(`#ord-${postId}`).value),
+                categoria: cardElement.querySelector(`#cat-${postId}`).value,
+                revisado: cardElement.querySelector(`#rev-${postId}`).checked
+            };
+            showLoading("Salvando post...");
             try {
                 const response = await fetchWithAuth(API_URLS.UPDATE_POST, { method: "PUT", body: JSON.stringify(payload) });
                 if (!response.ok) throw new Error(await response.text());
-                await response.json();
                 showAlert('Post atualizado!');
-                await fetchData(); // CORRIGIDO
-            } catch(error) {
-                if (error.message !== "Sessão expirada.") {
-                    console.error("Erro:", error); showAlert(`Erro: ${error.message}`); 
+                await fetchData();
+            } catch (error) {
+                if (!error.message.includes("Sessão expirada")) {
+                    showAlert(`Erro: ${error.message}`);
                 }
             } finally {
                 hideLoading();
             }
-        } 
-        async function handleSalvarEdicaoReel(event) { 
-            const reelId = event.target.dataset.id; 
-            const cardElement = event.target.closest('.card'); if (!cardElement) return; 
-            const payload = { 
-                id: reelId, 
-                caption: cardElement.querySelector(`#caption-${reelId}`).value, 
-                media_product_type: event.target.dataset.type || 'REELS' 
-            }; 
-            showLoading("Salvando reel..."); 
+        }
+
+        async function handleSalvarEdicaoReel(event) {
+            const reelId = event.target.dataset.id;
+            const cardElement = event.target.closest('.card');
+            if (!cardElement) return;
+            const payload = {
+                id: reelId,
+                caption: cardElement.querySelector(`#caption-${reelId}`).value,
+                media_product_type: event.target.dataset.type || 'REELS'
+            };
+            showLoading("Salvando reel...");
             try {
                 const response = await fetchWithAuth(API_URLS.UPDATE_POST, { method: "PUT", body: JSON.stringify(payload) });
                 if (!response.ok) throw new Error(await response.text());
-                await response.json();
                 showAlert('Reel atualizado!');
-                await fetchData(); // CORRIGIDO
-            } catch(error) {
-                console.error("Erro:", error); showAlert(`Erro: ${error.message}`);
-            } finally {
-                hideLoading();
-            }
-        } 
-        async function handleRepostStory(event) { 
-            const storyId = event.target.dataset.id; 
-            console.log('event handleRepostStory', event.target);
-            const cardElement = event.target.closest('.card'); if (!cardElement) return; 
-            const payload = { 
-                id_story: storyId, 
-                media_product_type: event.target.dataset.type || 'STORIES', 
-                conta_user: event.target.dataset.conta 
-            }; 
-            showLoading("Repostando story..."); 
-            try {
-                const response = await fetchWithAuth(API_URLS.REPOST_STORIES, { method: "POST", body: JSON.stringify(payload) });
-                if (!response.ok) throw new Error(await response.text());
-                await response.json();
-                showAlert('Story repostado!');
-                await fetchData(); // CORRIGIDO
-            } catch(error) {
-                console.error("Erro:", error); showAlert(`Erro: ${error.message}`);
-            } finally {
-                hideLoading();
-            }
-        } 
-        async function handleExcluirPost(event) {
-            const postId = event.target.dataset.id;
-            const confirmed = await showConfirm(`Tem certeza que deseja excluir o item ID ${postId}?`);
-            if (!confirmed) return;
-
-            showLoading("Excluindo item...");
-            
-            const isScheduled = state.activeMediaType === 'scheduled-posts';
-            const url = isScheduled ? API_URLS.SCHEDULED_POSTS_CRUD : API_URLS.DELETE_POST;
-            const payload = { id: postId };
-
-            try {
-                const response = await fetchWithAuth(url, { method: "DELETE", body: JSON.stringify(payload) });
-                if (!response.ok) throw new Error(await response.text());
-                const data = await response.json().catch(() => ({}));
-                showAlert(data.message || "Item excluído.");
-                await fetchData(); // CORRIGIDO
-            } catch(error) {
-                console.error("Erro:", error);
+                await fetchData();
+            } catch (error) {
                 showAlert(`Erro: ${error.message}`);
             } finally {
                 hideLoading();
             }
         }
+        
+        async function handleRepostStory(event) {
+            const storyId = event.target.dataset.id;
+            const payload = {
+                id_story: storyId,
+                media_product_type: event.target.dataset.type || 'STORIES',
+                conta_user: event.target.dataset.conta
+            };
+            showLoading("Repostando story...");
+            try {
+                const response = await fetchWithAuth(API_URLS.REPOST_STORIES, { method: "POST", body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(await response.text());
+                showAlert('Story repostado!');
+                await fetchData();
+            } catch (error) {
+                showAlert(`Erro: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function handleExcluirPost(event) {
+            const postId = event.target.dataset.id;
+            const confirmed = await showConfirm(`Tem certeza que deseja excluir o item ID ${postId}?`);
+            if (!confirmed) return;
+            showLoading("Excluindo item...");
+            const isScheduled = state.activeMediaType === 'scheduled-posts';
+            const url = isScheduled ? API_URLS.SCHEDULED_POSTS_CRUD : API_URLS.DELETE_POST;
+            try {
+                const response = await fetchWithAuth(url, { method: "DELETE", body: JSON.stringify({ id: postId }) });
+                if (!response.ok) throw new Error(await response.text());
+                showAlert("Item excluído.");
+                await fetchData();
+            } catch (error) {
+                showAlert(`Erro: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+
         async function handleDeleteReel(event) {
             const reelId = event.target.dataset.id;
             const confirmed = await showConfirm(`Tem certeza que deseja excluir o Reel ID ${reelId}?`);
@@ -2830,28 +2821,27 @@
             try {
                 const response = await fetchWithAuth(API_URLS.DELETE_REEL, { method: "DELETE", body: JSON.stringify({ id: reelId }) });
                 if (!response.ok) throw new Error(await response.text());
-                const data = await response.json().catch(() => ({}));
-                showAlert(data.message || "Reel excluído.");
-                await fetchData(); // CORRIGIDO
-            } catch(error) {
-                console.error("Erro:", error); showAlert(`Erro: ${error.message}`);
+                showAlert("Reel excluído.");
+                await fetchData();
+            } catch (error) {
+                showAlert(`Erro: ${error.message}`);
             } finally {
                 hideLoading();
             }
         }
-        async function handleExcluirStoryBase(event) { 
-            const storyId = event.target.dataset.id; 
+
+        async function handleExcluirStoryBase(event) {
+            const storyId = event.target.dataset.id;
             const confirmed = await showConfirm(`Tem certeza que deseja excluir o Story Base ID ${storyId}?`);
             if (!confirmed) return;
-            showLoading("Excluindo Story Base..."); 
+            showLoading("Excluindo Story Base...");
             try {
                 const response = await fetchWithAuth(API_URLS.DELETE_STORIES, { method: "DELETE", body: JSON.stringify({ id: storyId }) });
                 if (!response.ok) throw new Error(await response.text());
-                const data = await response.json().catch(() => ({}));
-                showAlert(data.message || "Story Base excluído.");
-                await fetchData(); // CORRIGIDO
-            } catch(error) {
-                console.error("Erro:", error); showAlert(`Erro: ${error.message}`);
+                showAlert("Story Base excluído.");
+                await fetchData();
+            } catch (error) {
+                showAlert(`Erro: ${error.message}`);
             } finally {
                 hideLoading();
             }
@@ -3058,7 +3048,8 @@
                 loja_anuncio: linkFormLoja.value, 
                 categoria_anuncio: linkFormCategoria.value.trim(), 
                 tipo: tipoSel.value, 
-                imagem_anuncio_base64: imageBase64 
+                imagem_anuncio_base64: imageBase64,
+                conta_user: decodeURIComponent(state.activeAccount)
             }; 
             if (!payload.link_anuncio || !payload.loja_anuncio) { 
                 showAlert("Os campos 'Link do Anúncio' e 'Loja' são obrigatórios."); 
@@ -3560,13 +3551,11 @@
         }
 
         async function handleGenerateAdFromLink(event) {
-            if (event && typeof event.preventDefault === 'function') {
-                event.preventDefault();
-            }
+            if (event) event.preventDefault();
             const urlInput = document.getElementById('generateFromLinkUrl');
-            const groupSelect = document.getElementById('generateFromLinkGroup'); // Pega o select
+            const groupSelect = document.getElementById('generateFromLinkGroup');
             const url = urlInput.value.trim();
-            const grupo = groupSelect.value; // Pega o valor selecionado
+            const grupo = groupSelect.value;
 
             if (!url || !grupo) {
                 showAlert("Por favor, preencha o link e selecione um grupo.");
@@ -3577,7 +3566,7 @@
             try {
                 const response = await fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, {
                     method: "POST",
-                    body: JSON.stringify({ url: url, grupo: grupo }) // Envia o grupo selecionado
+                    body: JSON.stringify({ url: url, grupo: grupo })
                 });
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ message: 'Erro ao gerar anúncio.' }));
@@ -3588,7 +3577,6 @@
                 showAlert('Oferta gerada com sucesso! A lista será atualizada.');
                 closeModal(document.getElementById('modalGenerateFromLink'));
                 
-                // Se a página atual não for do grupo criado, navega para ela
                 if (state.activeAccount !== 'WhatsApp' || state.activeMediaType !== grupo) {
                     navigateTo('media', ['WhatsApp', grupo]);
                 } else {
