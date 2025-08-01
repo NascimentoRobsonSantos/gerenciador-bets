@@ -2441,7 +2441,7 @@
                 <label>ID: ${story.id}</label>
                 <p style="font-size:0.8em; margin-top:-5px; margin-bottom:10px;">(${formattedDateTime})</p>
                 <div class="card-buttons">
-                    <button class="btn-save" data-id="${story.id}" data-type="${story.media_product_type || 'STORIES'}" data-conta="${story.conta_user}">Repostar Story</button>
+                    <button class="btn-save" data-id="${story.id}" data-type="${story.media_product_type || 'STORIES'}" data-conta="${story.conta_user_instagram}">Repostar Story</button>
                     <button class="btn-copy" data-url="${story.media_url || ''}">Copiar Link da Mídia</button>
                     <button class="btn-link" data-id="${story.id}" data-type="story">Incluir Links</button>
                     ${story.permalink ? `<button onclick="window.open('${story.permalink}', '_blank')">Ver Story no Instagram</button>` : ''}
@@ -2738,6 +2738,7 @@
         } 
         async function handleRepostStory(event) { 
             const storyId = event.target.dataset.id; 
+            console.log('event handleRepostStory', event.target);
             const cardElement = event.target.closest('.card'); if (!cardElement) return; 
             const payload = { 
                 id_story: storyId, 
