@@ -871,6 +871,34 @@
             color: var(--text-color);
             margin-top: 5px;
         }
+        .media-link-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 5px;
+            border-bottom: 1px solid var(--border-color);
+            gap: 15px;
+        }
+
+        .media-link-item:last-child {
+            border-bottom: none;
+        }
+
+        .media-link-item a {
+            color: var(--active-menu-text);
+            text-decoration: none;
+            word-break: break-all; /* Garante que links longos quebrem a linha */
+        }
+
+        .media-link-item a:hover {
+            text-decoration: underline;
+        }
+
+        .media-link-item button {
+            flex-shrink: 0; /* Impede que o botão encolha */
+            padding: 4px 10px;
+            font-size: 0.8rem;
+        }
 
     </style>
 </head>
@@ -1218,6 +1246,17 @@
                     <button type="submit" class="btn-confirm">Copiar Link</button>
                 </div>
             </form>
+        </div>
+    </div>
+    <div id="modalMediaLinks" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" data-modal-id="modalMediaLinks">&times;</button>
+            <h3>Links da Mídia</h3>
+            <div id="mediaLinksList" style="margin-top: 15px;">
+                </div>
+            <div class="modal-actions" style="justify-content: flex-end;">
+                <button type="button" class="btn-cancel modal-close-btn-alternative" data-modal-id="modalMediaLinks">Fechar</button>
+            </div>
         </div>
     </div>
 
@@ -2961,6 +3000,38 @@
             }
         }
 
+        function handleOpenMediaLinksModal(event) {
+            const itemId = event.target.dataset.id;
+            const item = state.items.find(i => i.id == itemId);
+
+            if (!item || !item.media_urls || item.media_urls.length === 0) {
+                showAlert("Nenhum link de mídia encontrado para este item.");
+                return;
+            }
+
+            const modal = document.getElementById('modalMediaLinks');
+            const listContainer = document.getElementById('mediaLinksList');
+            listContainer.innerHTML = ''; // Limpa a lista anterior
+
+            // Cria um item na lista para cada URL
+            item.media_urls.forEach(url => {
+                const linkItemDiv = document.createElement('div');
+                linkItemDiv.className = 'media-link-item';
+                linkItemDiv.innerHTML = `
+                    <a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>
+                    <button class="btn-copy" data-url="${url}">Copiar</button>
+                `;
+                listContainer.appendChild(linkItemDiv);
+            });
+
+            // Adiciona o evento de clique a todos os novos botões de copiar
+            listContainer.querySelectorAll('.btn-copy').forEach(btn => {
+                btn.addEventListener('click', handleCopyLink);
+            });
+
+            openModal(modal);
+        }
+
         formAddLinks.addEventListener('submit', async (event) => { 
             event.preventDefault(); 
             const imageFile = linkFormImagem.files[0]; 
@@ -4560,6 +4631,7 @@
                 <textarea id="desc-${item.id}" readonly>${item.description || ''}</textarea>
                 <div class="card-buttons">
                     <button class="btn-whatsapp" data-id="${item.id}" data-video-url="${(item.media_urls || []).find(url => url.includes('.mp4')) || ''}">Enviar p/ WhatsApp</button>
+                    <button class="btn-copy btn-copy-media-links" data-id="${item.id}">Copiar Links da Mídia</button>
                     <button class="btn-link" data-id="${item.id}" data-type="threads-feed">Incluir Links</button>
                     ${item.conta_clone_url ? `<button onclick="window.open('${item.conta_clone_url}', '_blank')">Ver no Threads Clone</button>` : ''}
                     ${item.threads_permalink ? `<button onclick="window.open('${item.threads_permalink}', '_blank')">Ver no Threads</button>` : ''}
@@ -4568,6 +4640,7 @@
             card.appendChild(contentDiv);
             
             card.querySelector('.btn-whatsapp').addEventListener('click', handleOpenWhatsAppModal);
+            card.querySelector('.btn-copy-media-links').addEventListener('click', handleOpenMediaLinksModal);
             card.querySelector('.btn-link').addEventListener('click', handleOpenLinkModal);
             card.querySelector('.btn-delete-threads').addEventListener('click', handleDeleteThreads);
             
@@ -4590,16 +4663,16 @@
                 <input type="text" id="cat-${item.id}" value="${item.media_category || ''}" placeholder="Ex: Especial, Normal">
                 <div class="card-buttons">
                     <button class="btn-save btn-save-threads" data-id="${item.id}">Salvar Threads</button>
-                    <button class="btn-link" data-id="${item.id}" data-type="threads-base-posts">Incluir Links</button>
+                    <button class="btn-copy btn-copy-media-links" data-id="${item.id}">Copiar Links da Mídia</button> <button class="btn-link" data-id="${item.id}" data-type="threads-base-posts">Incluir Links</button>
                     <button class="btn-instagram-post btn-post-threads-now" data-id="${item.id}">Postar Agora</button> 
                     ${item.conta_clone_url ? `<button onclick="window.open('${item.conta_clone_url}', '_blank')">Ver no Threads Clone</button>` : ''}
                     ${item.threads_permalink ? `<button onclick="window.open('${item.threads_permalink}', '_blank')">Ver no Threads</button>` : ''}
                     <button class="btn-delete btn-delete-threads" data-id="${item.id}">Deletar Threads</button>
-                </div>
                 </div>`;
             card.appendChild(contentDiv);
 
             card.querySelector('.btn-save-threads').addEventListener('click', handleSaveThreads);
+            card.querySelector('.btn-copy-media-links').addEventListener('click', handleOpenMediaLinksModal); // Listener adicionado
             card.querySelector('.btn-link').addEventListener('click', handleOpenLinkModal);
             card.querySelector('.btn-delete-threads').addEventListener('click', handleDeleteThreads);
             card.querySelector('.btn-post-threads-now').addEventListener('click', handlePostThreadsNow);
@@ -5003,6 +5076,19 @@
                     mainContentEl.scrollTo({ top: 0, behavior: 'smooth' });
                 });
             }
+
+            document.getElementById('btnPasteLink').addEventListener('click', async () => {
+                try {
+                    // Pede permissão e lê o texto da área de transferência
+                    const text = await navigator.clipboard.readText();
+                    
+                    // Coloca o texto copiado no campo de input
+                    document.getElementById('linkFormLinkAnuncio').value = text;
+                } catch (err) {
+                    console.error('Falha ao colar da área de transferência: ', err);
+                    showAlert('Não foi possível ler da área de transferência. Verifique as permissões do navegador ou cole manualmente.');
+                }
+            });
 
             // Toggle do menu
             document.getElementById('menuToggleBtn').addEventListener('click', () => {
