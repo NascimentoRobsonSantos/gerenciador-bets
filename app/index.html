@@ -3001,7 +3001,7 @@
                 }); 
                 const resText = await response.text(); 
                 if (!response.ok) throw new Error(resText); 
-                showAlert("Link incluído com sucesso: " + resText); 
+                showAlert("Link incluído com sucesso: "); 
                 formAddLinks.reset(); 
                 await fetchData(); // Atualiza a listagem
                 handleOpenLinkModal({ target: { dataset: { id: payload.id, type: payload.tipo } } }); 
