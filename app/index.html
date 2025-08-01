@@ -1599,7 +1599,7 @@
             DELETE_REEL: `${url_base}/delete-reel`,
             DELETE_POST: `${url_base}/delete-post`,
             DELETE_STORIES: `${url_base}/delete-stories-base`,
-            ADD_LINK: `${url_base}/add-links-postagens-unbox`,
+            ADD_LINK: `${url_base}/add-links-postagens`,
             ADD_LINK_BASE64: `${url_base}/add-links-postagens-base64`,
             SEND_WHATS: `${url_base}/send-video-numero-whats-gerenciador`,
             UPLOAD_VIDEO: `${url_base}/add-upload-video-post`,
@@ -2441,6 +2441,7 @@
                 <label>ID: ${story.id}</label>
                 <p style="font-size:0.8em; margin-top:-5px; margin-bottom:10px;">(${formattedDateTime})</p>
                 <div class="card-buttons">
+                    ${story.url_product ? `<button onclick="window.open('${story.url_product}', '_blank')">Ver Anúncio</button>` : ''}
                     <button class="btn-save" data-id="${story.id}" data-type="${story.media_product_type || 'STORIES'}" data-conta="${story.conta_user_instagram}">Repostar Story</button>
                     <button class="btn-copy" data-url="${story.media_url || ''}">Copiar Link da Mídia</button>
                     <button class="btn-link" data-id="${story.id}" data-type="story">Incluir Links</button>
