@@ -5389,7 +5389,8 @@
                         link: downloadLink,
                         conta_user: conta_user,   
                         media_type: downloadMediaType,
-                        tipo: socialNetworkType
+                        tipo: socialNetworkType,
+                        company_id: state.companyId
                     };
                 } else {
                     endpoint = API_URLS.SET_CONTA_CLONE_DOWNLOAD_THREADS;
@@ -5397,7 +5398,8 @@
                         conta_clone: downloadConta,
                         conta_user: conta_user, 
                         media_type: downloadMediaType,
-                        tipo: socialNetworkType
+                        tipo: socialNetworkType,
+                        company_id: state.companyId
                     };
                 }
                 
