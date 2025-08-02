@@ -2363,7 +2363,7 @@
             
             const formDiv = document.createElement('div');
             formDiv.innerHTML = `
-                <label>ID: ${reel.id}</label>
+                <label><span style="font-weight:normal; font-size:0.9em;">ID: ${reel.id} | Postado em: ${formattedDateTime}</span></label>
                 <div class="list-item-stats">
                     <p><strong>👁️ Views:  </strong> ${reel.views || 0}</p>
                     <p><strong>❤️ Likes:  </strong> ${reel.likes || 0}</p>
@@ -2372,7 +2372,7 @@
                     <p><strong>💾 Salvos:  </strong> ${reel.saved || 0}</p>
                     <p><strong>↪️ Compart.:  </strong> ${reel.shares || 0}</p>
                 </div>
-                <label for="caption-${reel.id}">Descrição: <span style="font-weight:normal; font-size:0.8em;">(${formattedDateTime})</span></label>
+                <label for="caption-${reel.id}">Descrição: </label>
                 <textarea id="caption-${reel.id}">${reel.caption || ''}</textarea>
                 <div class="card-buttons">
                     <button class="btn-save" data-id="${reel.id}" data-type="${reel.media_product_type || 'REELS'}">Salvar Edição Reel</button>
@@ -2477,8 +2477,7 @@
 
             const infoDiv = document.createElement('div');
             infoDiv.innerHTML = `
-                <label>ID: ${story.id}</label>
-                <p style="font-size:0.8em; margin-top:-5px; margin-bottom:10px;">(${formattedDateTime})</p>
+                <label><span style="font-weight:normal; font-size:0.9em;">ID: ${story.id} | Postado em: ${formattedDateTime}</span></label>
                 <div class="card-buttons">
                     ${story.url_product ? `<button onclick="window.open('${story.url_product}', '_blank')">Ver Anúncio</button>` : ''}
                     <button class="btn-save" data-id="${story.id}" data-type="${story.media_product_type || 'STORIES'}" data-conta="${story.conta_user_instagram}">Repostar Story</button>
@@ -4608,13 +4607,13 @@
         function createThreadsFeedCard(item) {
             const card = document.createElement('div');
             card.className = 'card';
-            const formattedDateTime = formatMediaDateTime(item.created_at);
+            const formattedDateTime = formatMediaDateTime(item.threads_date_post);
             const mediaElement = createSmartMediaElement(item);
             card.appendChild(mediaElement);
 
             const contentDiv = document.createElement('div');
             contentDiv.innerHTML = `
-                <p style="font-size:0.8em; margin-bottom:10px;">ID: ${item.id} | Criado em: ${formattedDateTime}</p>
+                <p style="font-size:0.8em; margin-bottom:10px;">ID: ${item.id} | Postado em: ${formattedDateTime}</p>
                 <label for="desc-${item.id}">Descrição:</label>
                 <textarea id="desc-${item.id}" readonly>${item.description || ''}</textarea>
                 <div class="card-buttons">
