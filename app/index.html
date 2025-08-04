@@ -1651,8 +1651,7 @@
             COPY_LINK_BY_ID: `${url_base}/add-copy-links-postagens-carla`,
             DELETE_LINK: `${url_base}/delete-link-postagem`,
             GENERATE_AD_FROM_LINK: `${url_base}/generate-ad-from-link`,
-            SET_CONTA_CLONE_DOWNLOAD_THREADS: `${url_base}/set-conta-clone-download-threads`,
-            SET_LINK_DOWNLOAD_THREADS: `${url_base}/set-link-download-threads`,
+            DOWNLOAD_MEDIA_POSTAGENS: `${url_base}/download-media-postagens`,
         };
 
         const MEDIA_TYPES = [
@@ -5457,7 +5456,7 @@
                 const conta_user = decodeURIComponent(state.activeAccount);
             
                 if (downloadType === 'conta_clone') {
-                    endpoint = API_URLS.SET_LINK_DOWNLOAD_THREADS;
+                    endpoint = API_URLS.DOWNLOAD_MEDIA_POSTAGENS;
                     payload = {
                         link: downloadLink,
                         conta_user: conta_user,   
@@ -5466,7 +5465,7 @@
                         company_id: state.companyId
                     };
                 } else {
-                    endpoint = API_URLS.SET_CONTA_CLONE_DOWNLOAD_THREADS;
+                    endpoint = API_URLS.DOWNLOAD_MEDIA_POSTAGENS;
                     payload = {
                         conta_clone: downloadConta,
                         conta_user: conta_user, 
