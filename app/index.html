@@ -3656,9 +3656,21 @@
             
             // Define o título da página
             const mediaLabel = MEDIA_TYPES.find(mt => mt.key === type)?.label || type;
-            const titleText = (decodedAccountName === 'WhatsApp') 
-                ? `Ofertas - ${decodeURIComponent(type)}` 
-                : `${decodedAccountName} - ${mediaLabel}`;
+            let titleText = '';
+            if (decodedAccountName === 'WhatsApp') {
+                titleText = `Ofertas - ${decodeURIComponent(type)}`;
+            } else {
+                if (type === 'threads-feed' || type === 'threads-base-posts' || type === 'scheduled-threads') {
+                    titleText = `Threads - ${decodedAccountName} - ${mediaLabel}`;
+                } else if (type === 'reels' || type === 'stories' || type === 'stories-base' || type === 'scheduled-posts') {
+                    titleText = `${decodedAccountName} - ${decodedAccountName} - ${mediaLabel}`;
+                }
+                const accountInfo = state.socialAccounts.find(acc => acc.nome_conta === decodedAccountName);
+                const socialMediaName = accountInfo ? accountInfo.social_media : 'Mídia'; 
+                console.log('accountInfo', accountInfo);
+                console.log('socialMediaName', socialMediaName);
+                console.log('type', type);
+            }
             pageTitle.textContent = titleText;
             document.title = titleText;
 
