@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Download de Mídia</title>
+    <style>
+        :root {
+            --bg-color: #18191a;
+            --text-color: #e4e6eb;
+            --card-bg-color: #242526;
+            --border-color: #3a3b3c;
+            --btn-whatsapp-bg: #25D366;
+            --btn-delete-bg: #dc3545; /* Vermelho para download/delete */
+            --btn-text-color: #ffffff;
+            --input-bg-color: #3a3b3c;
+            --input-border-color: #4d4d4d;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .header { text-align: center; margin-bottom: 20px; }
+        .card {
+            background-color: var(--card-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 400px;
+        }
+        .card .media-content {
+            width: 100%; height: auto; aspect-ratio: 5 / 8;
+            border-radius: 6px; margin-bottom: 10px; background-color: var(--bg-color);
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; position: relative;
+        }
+        .card .media-content img, .card .media-content video {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        .card-buttons { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
+        button {
+            cursor: pointer; padding: 12px 15px; border-radius: 6px; border: none;
+            color: var(--btn-text-color); font-size: 16px; font-weight: 600; transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+        .btn-download { background-color: var(--btn-delete-bg); }
+        .btn-whatsapp { background-color: var(--btn-whatsapp-bg); }
+        .play-button-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.3); display: flex;
+            justify-content: center; align-items: center; cursor: pointer;
+        }
+        .play-button-overlay svg { width: 60px; height: 60px; fill: white; }
+        .loading-overlay-full {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7); color: white; font-size: 20px;
+            z-index: 9999; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .loading-overlay-full.active { display: flex; }
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); z-index: 1050;
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background-color: var(--card-bg-color); padding: 25px; border-radius: 8px;
+            width: 90%; max-width: 400px; position: relative;
+        }
+        .modal-close-btn {
+            position: absolute; top: 10px; right: 15px; font-size: 24px;
+            font-weight: bold; background: none; border: none; cursor: pointer; color: #888;
+        }
+        .modal-actions { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; }
+        .btn-cancel { background-color: #6c757d; }
+        .btn-confirm { background-color: #007bff; }
+        input[type="tel"] {
+            width: 100%; padding: 10px; border-radius: 4px; border: 1px solid var(--input-border-color);
+            background-color: var(--input-bg-color); color: var(--text-color); font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Gerenciador de Posts</h1>
+        <h2>Download de Arquivos</h2>
+    </div>
+
+    <div id="downloadCardContainer">
+        </div>
+
+    <div id="modalSendWhatsApp" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" data-modal-id="modalSendWhatsApp">&times;</button>
+            <h3>Enviar Mídia por WhatsApp</h3>
+            <form id="formSendWhatsApp">
+                <div style="margin-top: 15px;">
+                    <label for="whatsappNumber">Número do Celular:</label>
+                    <input type="tel" id="whatsappNumber" placeholder="(XX) X XXXX-XXXX" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel modal-close-btn-alternative" data-modal-id="modalSendWhatsApp">Cancelar</button>
+                    <button type="submit" class="btn-confirm">Enviar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="loadingOverlayFull" class="loading-overlay-full">
+        <p>Carregando...</p>
+    </div>
+
+    <script>
+        const API_URLS = {
+            GET_SINGLE_POST: "https://webhook.storeprodigital.site/webhook/download-file-media",
+            SEND_WHATSAPP: "https://webhook.storeprodigital.site/webhook/send-whatsapp-download-file-media"
+        };
+
+        const loadingOverlay = document.getElementById('loadingOverlayFull');
+        let currentItem = null; // Variável global para armazenar o item carregado
+
+        function showLoading(message = "Carregando...") {
+            if (loadingOverlay) {
+                loadingOverlay.querySelector('p').textContent = message;
+                loadingOverlay.classList.add('active');
+            }
+        }
+
+        function hideLoading() {
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('active');
+            }
+        }
+
+        async function handleDownloadMedia(mediaUrl) {
+            if (!mediaUrl) {
+                alert('Nenhum arquivo de mídia para baixar.');
+                return;
+            }
+
+            const fileName = mediaUrl.split('/').pop();
+            
+            showLoading("Preparando download...");
+
+            try {
+                // Busca o arquivo como um Blob
+                const response = await fetch(mediaUrl);
+                if (!response.ok) {
+                    throw new Error('Falha ao buscar a mídia.');
+                }
+                const blob = await response.blob();
+                const file = new File([blob], fileName, { type: blob.type });
+
+                // Tenta usar a API de Compartilhamento Nativo (ideal para mobile)
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Salvar Mídia',
+                        text: 'Confira esta mídia!',
+                    });
+                    hideLoading();
+                    return; // Sucesso, encerra a função aqui
+                }
+
+                // Fallback para o método de download tradicional (desktop e navegadores sem Share API)
+                const link = document.createElement('a');
+                const url = window.URL.createObjectURL(blob);
+                link.href = url;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url); // Limpa a memória
+
+            } catch (error) {
+                console.error('Erro no download:', error);
+                // Se o usuário cancelar o compartilhamento, pode gerar um erro "AbortError", que não precisa de alerta.
+                if (error.name !== 'AbortError') {
+                   alert('Não foi possível iniciar o download. Tente novamente.');
+                }
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function createSmartMediaElement(item) {
+            const mediaContainer = document.createElement('div');
+            mediaContainer.className = 'media-content';
+            const placeholder = 'https://placehold.co/400x640/cccccc/ffffff?text=Indisponível';
+            const urls = item.media_urls || [];
+            
+            if (!urls.length) {
+                mediaContainer.innerHTML = '<span>Mídia indisponível</span>';
+                return mediaContainer;
+            }
+
+            const videoUrl = urls.find(url => url.endsWith('.mp4') || url.endsWith('.mov'));
+            const imageUrl = urls.find(url => url.endsWith('.webp') || url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.png'));
+
+            if (videoUrl) {
+                mediaContainer.innerHTML = `
+                    <img src="${imageUrl || placeholder}" alt="Thumbnail do vídeo" style="width:100%; height:100%; object-fit:cover;">
+                    <div class="play-button-overlay">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                    </div>`;
+                mediaContainer.querySelector('.play-button-overlay').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    mediaContainer.innerHTML = `<video src="${videoUrl}" controls autoplay style="width:100%; height:100%;"></video>`;
+                });
+            } else if (imageUrl) {
+                mediaContainer.innerHTML = `<img src="${imageUrl}" alt="Mídia do post">`;
+            } else {
+                mediaContainer.innerHTML = '<span>Mídia indisponível</span>';
+            }
+            return mediaContainer;
+        }
+
+        function renderSinglePostCard(targetDiv, item) {
+            currentItem = item; // Salva o item atual globalmente
+            const card = document.createElement('div');
+            card.className = 'card';
+            const mediaElement = createSmartMediaElement(item);
+            const contentDiv = document.createElement('div');
+            contentDiv.innerHTML = `
+                <div class="card-buttons">
+                    <button id="btnDownloadMedia" class="btn-download">Baixar Mídia</button>
+                    <button id="btnOpenWhatsAppModal" class="btn-whatsapp">Enviar por WhatsApp</button>
+                </div>
+            `;
+            card.appendChild(mediaElement);
+            card.appendChild(contentDiv);
+            targetDiv.appendChild(card);
+
+            document.getElementById('btnDownloadMedia').addEventListener('click', () => {
+                const mediaUrl = (item.media_urls || []).find(url => url.endsWith('.mp4') || url.endsWith('.webp') || url.endsWith('.jpg'));
+                if (mediaUrl) {
+                    const link = document.createElement('a');
+                    link.href = mediaUrl;
+                    link.download = mediaUrl.split('/').pop();
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    alert('Nenhum arquivo de mídia para baixar.');
+                }
+            });
+
+            document.getElementById('btnOpenWhatsAppModal').addEventListener('click', () => {
+                const modal = document.getElementById('modalSendWhatsApp');
+                modal.style.display = 'flex';
+                document.getElementById('whatsappNumber').focus();
+            });
+        }
+
+        async function handleSendToWhatsApp(event) {
+            event.preventDefault();
+            const whatsappNumberInput = document.getElementById('whatsappNumber');
+            let number = whatsappNumberInput.value.replace(/\D/g, ''); // Remove todos os não-dígitos
+
+            if (number.length < 10 || !currentItem) {
+                alert("Número de telefone inválido ou mídia não carregada.");
+                return;
+            }
+
+            showLoading("Enviando...");
+            try {
+                const payload = {
+                    numero_telefone: number,
+                    links: {
+                        media_urls: currentItem.media_urls || []
+                    }
+                };
+                
+                const response = await fetch(API_URLS.SEND_WHATSAPP, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Falha no envio.');
+                }
+
+                alert('Mídia enviada com sucesso!');
+                document.getElementById('modalSendWhatsApp').style.display = 'none';
+
+            } catch (error) {
+                alert(`Erro ao enviar: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        async function loadMedia() {
+            const container = document.getElementById('downloadCardContainer');
+            showLoading();
+            try {
+                const params = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
+                const postId = params.get('id');
+                const socialMedia = params.get('social_media');
+
+                if (!postId || !socialMedia) {
+                    throw new Error("ID do post ou rede social não fornecidos na URL.");
+                }
+
+                const endpoint = `${API_URLS.GET_SINGLE_POST}?id=${postId}&social_media=${socialMedia}`;
+                
+                const response = await fetch(endpoint);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Erro ao buscar mídia: ${errorText || response.statusText}`);
+                }
+                
+                const item = await response.json();
+                
+                if (!item || !item.id) {
+                    throw new Error("Mídia não encontrada com o ID fornecido.");
+                }
+                
+                renderSinglePostCard(container, item);
+            } catch (error) {
+                container.innerHTML = `<p style="text-align:center; color: #ff8a8a;">${error.message}</p>`;
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMedia();
+
+            // Listeners do modal de WhatsApp
+            const modalWhatsApp = document.getElementById('modalSendWhatsApp');
+            modalWhatsApp.querySelector('.modal-close-btn').addEventListener('click', () => modalWhatsApp.style.display = 'none');
+            modalWhatsApp.querySelector('.modal-close-btn-alternative').addEventListener('click', () => modalWhatsApp.style.display = 'none');
+            document.getElementById('formSendWhatsApp').addEventListener('submit', handleSendToWhatsApp);
+
+            // Máscara para o campo de telefone
+            const whatsappNumberInput = document.getElementById('whatsappNumber');
+            whatsappNumberInput.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\D/g, '');
+                value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
+                if (value.length > 9) {
+                    value = value.replace(/(\d{5})(\d)/, '$1-$2');
+                } else {
+                    value = value.replace(/(\d{4})(\d)/, '$1-$2');
+                }
+                e.target.value = value.slice(0, 15);
+            });
+        });
+    </script>
+</body>
+</html>
