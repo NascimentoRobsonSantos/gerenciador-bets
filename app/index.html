@@ -3709,6 +3709,12 @@
                     btnReloadThreads.textContent = '🔄 Recarregar novos Threads';
                     btnReloadThreads.addEventListener('click', handleRecarregarThreads);
                     actionsDiv.appendChild(btnReloadThreads);
+                } else if (type === 'threads-base-posts') {
+                    const btnDownloadPosts = document.createElement('button');
+                    btnDownloadPosts.className = 'btn-primary';
+                    btnDownloadPosts.textContent = '📥 Baixar novas Postagens';
+                    btnDownloadPosts.addEventListener('click', handleOpenDownloadPostsModal);
+                    actionsDiv.appendChild(btnDownloadPosts);
                 }
                 
             } else if (type === 'scheduled-posts' || type === 'scheduled-threads') {
@@ -3719,43 +3725,30 @@
                 actionsDiv.appendChild(createBtn);
             }
 
-            // Adiciona botão "Recarregar novos Threads" apenas na página FEED
-            if (type === 'threads-feed') {
-                const btnReloadThreads = document.createElement('button');
-                btnReloadThreads.className = 'btn-primary';
-                btnReloadThreads.textContent = '🔄 Recarregar novos Threads';
-                btnReloadThreads.addEventListener('click', handleRecarregarThreads);
-                actionsDiv.appendChild(btnReloadThreads);
-            }
-            
-            // Adiciona botão "Baixar novas Postagens" apenas na página Postagens Base
-            if (type === 'threads-base-posts') {
+            if (type === 'reels') {
+                const btnReloadReels = document.createElement('button');
+                btnReloadReels.className = 'btn-primary';
+                btnReloadReels.textContent = '🔄 Recarregar Novos Reels';
+                btnReloadReels.addEventListener('click', handleRecarregarReels);
+                actionsDiv.appendChild(btnReloadReels);
+            } else if (type === 'stories' || type === 'stories-base') {
+                const btnReloadStories = document.createElement('button');
+                btnReloadStories.className = 'btn-primary';
+                btnReloadStories.textContent = '🔄 Recarregar Novos Stories';
+                btnReloadStories.addEventListener('click', handleRecarregarStories);
+                actionsDiv.appendChild(btnReloadStories);
+            } else if (type === 'posts') {
+                // Adiciona botão "Baixar novas Postagens" apenas na página Postagens Base do Instagram
                 const btnDownloadPosts = document.createElement('button');
                 btnDownloadPosts.className = 'btn-primary';
                 btnDownloadPosts.textContent = '📥 Baixar novas Postagens';
                 btnDownloadPosts.addEventListener('click', handleOpenDownloadPostsModal);
                 actionsDiv.appendChild(btnDownloadPosts);
-            } else { // Lógica para Instagram (Reels, Stories, etc.)
-                if (type === 'reels') {
-                    const btnReloadReels = document.createElement('button');
-                    btnReloadReels.className = 'btn-primary';
-                    btnReloadReels.textContent = '🔄 Recarregar Novos Reels';
-                    btnReloadReels.addEventListener('click', handleRecarregarReels);
-                    actionsDiv.appendChild(btnReloadReels);
-                } else if (type === 'stories' || type === 'stories-base') {
-                    const btnReloadStories = document.createElement('button');
-                    btnReloadStories.className = 'btn-primary';
-                    btnReloadStories.textContent = '🔄 Recarregar Novos Stories';
-                    btnReloadStories.addEventListener('click', handleRecarregarStories);
-                    actionsDiv.appendChild(btnReloadStories);
-                } else if (type === 'posts') {
-                    // Adiciona botão "Baixar novas Postagens" apenas na página Postagens Base do Instagram
-                    const btnDownloadPosts = document.createElement('button');
-                    btnDownloadPosts.className = 'btn-primary';
-                    btnDownloadPosts.textContent = '📥 Baixar novas Postagens';
-                    btnDownloadPosts.addEventListener('click', handleOpenDownloadPostsModal);
-                    actionsDiv.appendChild(btnDownloadPosts);
-                }
+            }
+            
+            // Adiciona botão "Baixar novas Postagens" apenas na página Postagens Base
+             else { // Lógica para Instagram (Reels, Stories, etc.)
+                
             }
 
             headerDiv.appendChild(actionsDiv);
