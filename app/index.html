@@ -307,15 +307,21 @@
             background-color: var(--bg-color); /* USA A VARIÁVEL DE TEMA */
         }
 
+        .sidebar-settings-mobile-only {
+            display: none;
+        }
+
         @media (max-width: 992px) { 
             .main-content { margin-left: 0; }
             .sidebar { transform: translateX(-100%); }
             body.sidebar-collapsed .sidebar {
                 transform: translateX(0);
             }
-            .settings-container { display: none; }
             .sidebar-actions { display: block; }
             .sidebar-actions ul { flex-direction: column; }
+            .sidebar-settings-mobile-only {
+                display: block;
+            }
         }
 
         button {
@@ -1377,13 +1383,6 @@
                         </button>
                     </div>
                 </div>
-                
-                <div id="generateFromLinkGroupContainer">
-                    <label for="generateFromLinkGroup">Grupo do WhatsApp:</label>
-                    <select id="generateFromLinkGroup" required>
-                        </select>
-                </div>
-
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel modal-close-btn-alternative" data-modal-id="modalGenerateFromLink">Cancelar</button>
                     <button type="submit" class="btn-confirm">Gerar</button>
@@ -1658,6 +1657,7 @@
             DELETE_LINK: `${url_base}/delete-link-postagem`,
             GENERATE_AD_FROM_LINK: `${url_base}/generate-ad-from-link`,
             DOWNLOAD_MEDIA_POSTAGENS: `${url_base}/download-media-postagens`,
+            CREATE_POST_BASE: `${url_base}/create-post-base`,
         };
 
         const MEDIA_TYPES = [
@@ -1915,162 +1915,214 @@
             }
         }
 
-        function renderSidebarMenu() {
-            if (!sidebar) return;
-            sidebar.innerHTML = '';
-            const menuContainer = document.createElement('div');
-            menuContainer.className = 'sidebar-menu';
+        function renderSidebarMenu() {
+            if (!sidebar) return;
+            sidebar.innerHTML = '';
+            const menuContainer = document.createElement('div');
+            menuContainer.className = 'sidebar-menu';
 
-            const currentUserCompany = state.companies.find(c => String(c.id) === String(state.companyId));
-            const activeCompanyModules = currentUserCompany ? currentUserCompany.modules : {};
+            const currentUserCompany = state.companies.find(c => String(c.id) === String(state.companyId));
+            const activeCompanyModules = currentUserCompany ? currentUserCompany.modules : {};
 
-            const sortedAccounts = [...state.socialAccounts].sort((a, b) => (a.ordenacao ?? 999) - (b.ordenacao ?? 999));
-            
-            const groupedAccounts = sortedAccounts.reduce((acc, account) => {
-                const media = account.social_media || 'Outros';
-                if (!acc[media]) acc[media] = [];
-                acc[media].push(account);
-                return acc;
-            }, {});
+            const sortedAccounts = [...state.socialAccounts].sort((a, b) => (a.ordenacao ?? 999) - (b.ordenacao ?? 999));
+            
+            const groupedAccounts = sortedAccounts.reduce((acc, account) => {
+                const media = account.social_media || 'Outros';
+                if (!acc[media]) acc[media] = [];
+                acc[media].push(account);
+                return acc;
+            }, {});
 
-            const moduleMap = { Instagram: 'instagram', Facebook: 'facebook', Threads: 'threads' };
+            const moduleMap = { Instagram: 'instagram', Facebook: 'facebook', Threads: 'threads' };
 
-            for (const socialMedia in groupedAccounts) {
-                const moduleKey = moduleMap[socialMedia];
-                if (moduleKey && !activeCompanyModules[moduleKey]) continue;
+            for (const socialMedia in groupedAccounts) {
+                const moduleKey = moduleMap[socialMedia];
+                if (moduleKey && !activeCompanyModules[moduleKey]) continue;
 
-                const accounts = groupedAccounts[socialMedia];
-                const mediaGroup = document.createElement('div');
-                mediaGroup.className = 'menu-group';
-                const mediaParent = document.createElement('div');
-                mediaParent.className = 'menu-parent';
-                mediaParent.textContent = socialMedia;
-                const mediaSubmenu = document.createElement('ul');
+                const accounts = groupedAccounts[socialMedia]; // A variável 'accounts' é definida aqui
+                const mediaGroup = document.createElement('div');
+                mediaGroup.className = 'menu-group';
+                const mediaParent = document.createElement('div');
+                mediaParent.className = 'menu-parent';
+                mediaParent.textContent = socialMedia;
+                const mediaSubmenu = document.createElement('ul');
 
-                const isMediaGroupActive = accounts.some(acc => acc.nome_conta === state.activeAccount);
-                if (!isMediaGroupActive) {
-                    mediaParent.classList.add('collapsed');
-                    mediaSubmenu.classList.add('collapsed');
-                }
-                
-                applySidebarState(mediaParent, socialMedia);
+                // CORREÇÃO: Este bloco de código foi movido para DENTRO do loop 'for', onde ele pertence.
+                const isMediaGroupActive = accounts.some(acc => acc.nome_conta === state.activeAccount);
+                if (!isMediaGroupActive) {
+                    mediaParent.classList.add('collapsed');
+                    mediaSubmenu.classList.add('collapsed');
+                }
+                
+                applySidebarState(mediaParent, socialMedia);
 
-                mediaParent.addEventListener('click', () => {
-                    mediaParent.classList.toggle('collapsed');
-                    mediaSubmenu.classList.toggle('collapsed');
-                    saveSidebarState();
-                });
+                mediaParent.addEventListener('click', () => {
+                    mediaParent.classList.toggle('collapsed');
+                    mediaSubmenu.classList.toggle('collapsed');
+                    saveSidebarState();
+                });
 
-                mediaGroup.appendChild(mediaParent);
-                mediaGroup.appendChild(mediaSubmenu);
+                mediaGroup.appendChild(mediaParent);
+                mediaGroup.appendChild(mediaSubmenu);
 
-                accounts.forEach(account => {
-                    const accountParent = document.createElement('div');
-                    accountParent.className = 'menu-parent submenu-item';
-                    accountParent.textContent = account.nome_conta;
-                    accountParent.style.paddingLeft = '15px';
-                    const accountSubmenu = document.createElement('ul');
+                accounts.forEach(account => {
+                    const accountParent = document.createElement('div');
+                    accountParent.className = 'menu-parent submenu-item';
+                    accountParent.textContent = account.nome_conta;
+                    accountParent.style.paddingLeft = '15px';
+                    const accountSubmenu = document.createElement('ul');
 
-                    if (state.activeAccount !== account.nome_conta) {
-                        accountParent.classList.add('collapsed');
-                        accountSubmenu.classList.add('collapsed');
-                    }
-                    applySidebarState(accountParent, account.nome_conta);
+                    if (state.activeAccount !== account.nome_conta) {
+                        accountParent.classList.add('collapsed');
+                        accountSubmenu.classList.add('collapsed');
+                    }
+                    applySidebarState(accountParent, account.nome_conta);
 
-                    accountParent.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        accountParent.classList.toggle('collapsed');
-                        accountSubmenu.classList.toggle('collapsed');
-                        saveSidebarState();
-                    });
+                    accountParent.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        accountParent.classList.toggle('collapsed');
+                        accountSubmenu.classList.toggle('collapsed');
+                        saveSidebarState();
+                    });
 
-                    // LÓGICA CORRIGIDA PARA SEPARAR OS MENUS
-                    let mediaTypesForThisAccount = [];
-                    if (socialMedia === 'Threads') {
-                        // Filtra apenas os tipos de mídia do Threads
-                        mediaTypesForThisAccount = MEDIA_TYPES.filter(mt => mt.key.startsWith('threads-') || mt.key === 'scheduled-threads');
-                    } else {
-                        // Filtra para NÃO incluir os tipos de mídia do Threads para outras redes
-                        mediaTypesForThisAccount = MEDIA_TYPES.filter(mt => !mt.key.startsWith('threads-') && mt.key !== 'scheduled-threads');
-                    }
+                    let mediaTypesForThisAccount = [];
+                    if (socialMedia === 'Threads') {
+                        mediaTypesForThisAccount = MEDIA_TYPES.filter(mt => mt.key.startsWith('threads-') || mt.key === 'scheduled-threads');
+                    } else {
+                        mediaTypesForThisAccount = MEDIA_TYPES.filter(mt => !mt.key.startsWith('threads-') && mt.key !== 'scheduled-threads');
+                    }
 
-                    mediaTypesForThisAccount.forEach(mediaType => {
-                        const li = document.createElement('li');
-                        li.className = 'submenu-item';
-                        li.textContent = mediaType.label;
-                        if (state.activeAccount === account.nome_conta && state.activeMediaType === mediaType.key) {
-                            li.classList.add('active');
-                        }
-                        li.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            navigateTo('media', [account.nome_conta, mediaType.key]);
-                            closeSidebarIfMobile();
-                        });
-                        accountSubmenu.appendChild(li);
-                    });
+                    mediaTypesForThisAccount.forEach(mediaType => {
+                        const li = document.createElement('li');
+                        li.className = 'submenu-item';
+                        li.textContent = mediaType.label;
+                        if (state.activeAccount === account.nome_conta && state.activeMediaType === mediaType.key) {
+                            li.classList.add('active');
+                        }
+                        li.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            navigateTo('media', [account.nome_conta, mediaType.key]);
+                            closeSidebarIfMobile();
+                        });
+                        accountSubmenu.appendChild(li);
+                    });
 
-                    mediaSubmenu.appendChild(accountParent);
-                    mediaSubmenu.appendChild(accountSubmenu);
-                });
-                menuContainer.appendChild(mediaGroup);
-            }
+                    mediaSubmenu.appendChild(accountParent);
+                    mediaSubmenu.appendChild(accountSubmenu);
+                });
+                menuContainer.appendChild(mediaGroup);
+            }
 
-            if (activeCompanyModules.whatsapp) {
-                const whatsappGroup = document.createElement('div');
-                whatsappGroup.className = 'menu-group';
-                const whatsappParent = document.createElement('div');
-                whatsappParent.className = 'menu-parent';
-                whatsappParent.textContent = 'WhatsApp';
-                const whatsappSubmenu = document.createElement('ul');
-                
-                if (state.activeAccount !== 'WhatsApp') {
-                    whatsappParent.classList.add('collapsed');
-                    whatsappSubmenu.classList.add('collapsed');
-                }
-                applySidebarState(whatsappParent, 'WhatsApp');
+            if (activeCompanyModules.whatsapp) {
+                const whatsappGroup = document.createElement('div');
+                whatsappGroup.className = 'menu-group';
+                const whatsappParent = document.createElement('div');
+                whatsappParent.className = 'menu-parent';
+                whatsappParent.textContent = 'WhatsApp';
+                const whatsappSubmenu = document.createElement('ul');
+                
+                if (state.activeAccount !== 'WhatsApp') {
+                    whatsappParent.classList.add('collapsed');
+                    whatsappSubmenu.classList.add('collapsed');
+                }
+                applySidebarState(whatsappParent, 'WhatsApp');
 
-                whatsappParent.addEventListener('click', () => {
-                    whatsappParent.classList.toggle('collapsed');
-                    whatsappSubmenu.classList.toggle('collapsed');
-                    saveSidebarState();
-                });
+                whatsappParent.addEventListener('click', () => {
+                    whatsappParent.classList.toggle('collapsed');
+                    whatsappSubmenu.classList.toggle('collapsed');
+                    saveSidebarState();
+                });
 
-                whatsappGroup.appendChild(whatsappParent);
-                whatsappGroup.appendChild(whatsappSubmenu);
+                whatsappGroup.appendChild(whatsappParent);
+                whatsappGroup.appendChild(whatsappSubmenu);
 
-                const sortedGroups = [...state.whatsappGroups].sort((a, b) => (a.ordenacao || 999) - (b.ordenacao || 999));
+                const sortedGroups = [...state.whatsappGroups].sort((a, b) => (a.ordenacao || 999) - (b.ordenacao || 999));
 
-                sortedGroups.forEach(group => {
-                    const li = document.createElement('li');
-                    li.className = 'submenu-item';
-                    li.textContent = `Ofertas - ${group.group_name}`;
-                    if (state.activeAccount === 'WhatsApp' && state.activeMediaType === group.group_name) {
-                        li.classList.add('active');
-                    }
-                    li.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        navigateTo('media', ['WhatsApp', group.group_name]);
-                        closeSidebarIfMobile();
-                    });
-                    whatsappSubmenu.appendChild(li);
-                });
-                menuContainer.appendChild(whatsappGroup);
-            }
-            
-            sidebar.appendChild(menuContainer);
+                sortedGroups.forEach(group => {
+                    const li = document.createElement('li');
+                    li.className = 'submenu-item';
+                    li.textContent = `Ofertas - ${group.group_name}`;
+                    if (state.activeAccount === 'WhatsApp' && state.activeMediaType === group.group_name) {
+                        li.classList.add('active');
+                    }
+                    li.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        navigateTo('media', ['WhatsApp', group.group_name]);
+                        closeSidebarIfMobile();
+                    });
+                    whatsappSubmenu.appendChild(li);
+                });
+                menuContainer.appendChild(whatsappGroup);
+            }
 
-            const themeToggleContainer = document.createElement('div');
-            themeToggleContainer.style.padding = '20px 0';
-            themeToggleContainer.style.textAlign = 'center';
-            themeToggleContainer.innerHTML = `<button id="themeToggle" title="Alterar Tema"><div class="toggle-circle"></div></button>`;
-            sidebar.appendChild(themeToggleContainer);
+            const settingsGroup = document.createElement('div');
+            settingsGroup.className = 'menu-group';
+            settingsGroup.classList.add('sidebar-settings-mobile-only'); 
+            const settingsParent = document.createElement('div');
+            settingsParent.className = 'menu-parent';
+            settingsParent.textContent = 'Configurações';
+            const settingsSubmenu = document.createElement('ul');
 
-            document.getElementById('themeToggle').addEventListener('click', handleThemeToggle);
-            if (document.body.classList.contains('dark-theme')) {
-                const toggleCircle = document.querySelector('#themeToggle .toggle-circle');
-                if(toggleCircle) toggleCircle.style.transform = 'translateX(24px)';
-            }
-        }
+            const isSettingsActive = state.currentView === 'settings';
+            if (!isSettingsActive) {
+                settingsParent.classList.add('collapsed');
+                settingsSubmenu.classList.add('collapsed');
+            }
+            applySidebarState(settingsParent, 'Configurações');
+
+            settingsParent.addEventListener('click', () => {
+                settingsParent.classList.toggle('collapsed');
+                settingsSubmenu.classList.toggle('collapsed');
+                saveSidebarState();
+            });
+
+            settingsGroup.appendChild(settingsParent);
+            settingsGroup.appendChild(settingsSubmenu);
+
+            const settingsItems = [
+                { label: 'Empresas', path: 'companies' },
+                { label: 'Usuários', path: 'users' },
+                { label: 'Redes Sociais', path: 'accounts' },
+                { label: 'Grupos WhatsApp', path: 'whatsapp-groups' },
+                { label: 'Palavra Chave', action: handleIncluirPalavra },
+                { label: 'Logout', action: handleLogout }
+            ];
+            
+            settingsItems.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'submenu-item';
+                li.textContent = item.label;
+                if (isSettingsActive && state.activeMediaType === item.path) {
+                    li.classList.add('active');
+                }
+                li.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (item.action) {
+                        item.action();
+                    } else {
+                        navigateTo('settings', [item.path]);
+                    }
+                    closeSidebarIfMobile();
+                });
+                settingsSubmenu.appendChild(li);
+            });
+
+            menuContainer.appendChild(settingsGroup);
+            
+            sidebar.appendChild(menuContainer);
+
+            const themeToggleContainer = document.createElement('div');
+            themeToggleContainer.style.padding = '20px 0';
+            themeToggleContainer.style.textAlign = 'center';
+            themeToggleContainer.innerHTML = `<button id="themeToggle" title="Alterar Tema"><div class="toggle-circle"></div></button>`;
+            sidebar.appendChild(themeToggleContainer);
+
+            document.getElementById('themeToggle').addEventListener('click', handleThemeToggle);
+            if (document.body.classList.contains('dark-theme')) {
+                const toggleCircle = document.querySelector('#themeToggle .toggle-circle');
+                if(toggleCircle) toggleCircle.style.transform = 'translateX(24px)';
+            }
+        }
 
         async function handleThemeToggle() {
             const isDark = document.body.classList.toggle('dark-theme');
@@ -2134,8 +2186,10 @@
                         card = createPostCard(item);
                         break;
                     case 'stories':
-                    case 'stories-base':
                         card = createStoryCard(item);
+                        break;
+                    case 'stories-base':
+                        card = createStoryBaseCard(item);
                         break;
                     case 'scheduled-posts':
                     case 'scheduled-threads':
@@ -2264,6 +2318,7 @@
             const mediaContainer = document.createElement('div');
             mediaContainer.className = 'media-content';
             const placeholder = 'https://placehold.co/400x640/cccccc/ffffff?text=Indisponível';
+            console.log('url_s3_video', item.url_s3_video);
 
             const urls = item.media_urls || [item.media_url, item.s3_url_video, item.url_s3_video].filter(Boolean);
             if (!urls || urls.length === 0) {
@@ -2271,7 +2326,7 @@
                 return mediaContainer;
             }
 
-            const videos = urls.filter(url => url.endsWith('.mp4') || url.endsWith('.mov') || url.includes('video'));
+            const videos = urls.filter(url => url.endsWith('.mp4') || url.endsWith('.mov') || url.includes('video') || url.includes('VIDEO'));
             const images = urls.filter(url => url.endsWith('.webp') || url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.png') || url.includes('image'));
 
             if (videos.length > 0) { // Prioriza vídeo
@@ -2398,48 +2453,49 @@
             return card;
         }
 
-        function createPostCard(post) { 
-            const card = document.createElement('div'); 
-            card.className = 'card'; 
-            const descriptionNew = getPostDescription(post); 
-            const ordenacaoParaExibir = post.ordenacao_postagem == null ? post.id : post.ordenacao_postagem; 
-            const mediaElement = createSmartMediaElement(post);
-            
-            card.appendChild(mediaElement);
+         function createPostCard(post) { 
+            const card = document.createElement('div'); 
+            card.className = 'card'; 
+            const descriptionNew = getPostDescription(post); 
+            const ordenacaoParaExibir = post.ordenacao_postagem == null ? post.id : post.ordenacao_postagem; 
+            const mediaElement = createSmartMediaElement(post);
+            
+            card.appendChild(mediaElement);
 
-            const contentDiv = document.createElement('div');
-            contentDiv.innerHTML = ` 
-                <label>ID: ${post.id}</label> 
-                <label for="desc-${post.id}">Descrição:</label> 
-                <textarea id="desc-${post.id}">${descriptionNew}</textarea> 
-                <label for="ord-${post.id}">Ordenação:</label> 
-                <input type="number" id="ord-${post.id}" value="${ordenacaoParaExibir}"> 
-                <label for="cat-${post.id}">Categoria:</label> 
-                <input type="text" id="cat-${post.id}" value="${post.categoria || ''}"> 
-                <div> 
-                    <input type="checkbox" id="rev-${post.id}" ${post.check_reviewed ? 'checked' : ''} style="width:auto; margin-right:5px;">
-                    <label for="rev-${post.id}" style="font-weight:normal; display:inline;">Revisado</label> 
-                </div> 
-                <div class="card-buttons"> 
-                    <button class="btn-save" data-id="${post.id}">Salvar Edição</button> 
-                    <label for="upload-${post.id}" style="margin-top:5px; margin-bottom:0; font-size:0.8rem;">Trocar Vídeo:</label> 
-                    <input type="file" id="upload-${post.id}" accept=".mov,.mp4,video/quicktime" data-id="${post.id}" style="padding:5px; font-size:0.85rem;">
-                    <button class="btn-whatsapp" data-id="${post.id}" data-video-url="${post.s3_url_video || ''}">Enviar p/ WhatsApp</button> 
-                    <button class="btn-link" data-id="${post.id}" data-type="post">Incluir Links</button> 
-                    <button class="btn-instagram-post" data-id="${post.id}" ${!post.check_reviewed ? 'disabled' : ''}>Postar este no Instagram</button> 
-                    ${post.conta_clone_url_reels ? `<button onclick="window.open('${post.conta_clone_url_reels}', '_blank')">Ver no Instagram Clone</button>` : ''} 
-                    <button class="btn-delete" data-id="${post.id}">Excluir Item</button> 
-                </div>
-                </div>`; 
-            card.appendChild(contentDiv);
-            card.querySelector('.btn-save').addEventListener('click', handleSalvarEdicaoPost); 
-            card.querySelector('.btn-delete').addEventListener('click', handleExcluirPost); 
-            card.querySelector('.btn-link').addEventListener('click', handleOpenLinkModal); 
-            card.querySelector('.btn-whatsapp').addEventListener('click', handleOpenWhatsAppModal); 
-            card.querySelector('.btn-instagram-post').addEventListener('click', handlePostarUnicoInstagram); 
-            card.querySelector('input[type="file"]').addEventListener('change', handleUploadVideo); 
-            return card; 
-        } 
+            const contentDiv = document.createElement('div');
+            // CORREÇÃO: Usamos '||' para garantir valores padrão e evitar 'undefined' ou 'null'
+            contentDiv.innerHTML = ` 
+                <label>ID: ${post.id || 'N/A'}</label> 
+                <label for="desc-${post.id}">Descrição:</label> 
+                <textarea id="desc-${post.id}">${descriptionNew}</textarea> 
+                <label for="ord-${post.id}">Ordenação:</label> 
+                <input type="number" id="ord-${post.id}" value="${ordenacaoParaExibir}"> 
+                <label for="cat-${post.id}">Categoria:</label> 
+                <input type="text" id="cat-${post.id}" value="${post.categoria || ''}"> 
+                <div> 
+                    <input type="checkbox" id="rev-${post.id}" ${post.check_reviewed ? 'checked' : ''} style="width:auto; margin-right:5px;">
+                    <label for="rev-${post.id}" style="font-weight:normal; display:inline;">Revisado</label> 
+                </div> 
+                <div class="card-buttons"> 
+                    <button class="btn-save" data-id="${post.id}">Salvar Edição</button> 
+                    <label for="upload-${post.id}" style="margin-top:5px; margin-bottom:0; font-size:0.8rem;">Trocar Vídeo:</label> 
+                    <input type="file" id="upload-${post.id}" accept=".mov,.mp4,video/quicktime" data-id="${post.id}" style="padding:5px; font-size:0.85rem;">
+                    <button class="btn-whatsapp" data-id="${post.id}" data-video-url="${post.s3_url_video || ''}">Enviar p/ WhatsApp</button> 
+                    <button class="btn-link" data-id="${post.id}" data-type="post">Incluir Links</button> 
+                    <button class="btn-instagram-post" data-id="${post.id}" ${!post.check_reviewed ? 'disabled' : ''}>Postar este no Instagram</button> 
+                    ${post.conta_clone_url_reels ? `<button onclick="window.open('${post.conta_clone_url_reels}', '_blank')">Ver no Instagram Clone</button>` : ''} 
+                    <button class="btn-delete" data-id="${post.id}">Excluir Item</button> 
+                </div>
+                </div>`; 
+            card.appendChild(contentDiv);
+            card.querySelector('.btn-save').addEventListener('click', handleSalvarEdicaoPost); 
+            card.querySelector('.btn-delete').addEventListener('click', handleExcluirPost); 
+            card.querySelector('.btn-link').addEventListener('click', handleOpenLinkModal); 
+            card.querySelector('.btn-whatsapp').addEventListener('click', handleOpenWhatsAppModal); 
+            card.querySelector('.btn-instagram-post').addEventListener('click', handlePostarUnicoInstagram); 
+            card.querySelector('input[type="file"]').addEventListener('change', handleUploadVideo); 
+            return card; 
+        } 
 
         function createScheduledPostCard(post) {
             if (!post || !post.id) return null; // Validação para evitar cards vazios
@@ -3078,17 +3134,18 @@
                 hideLoading(); 
             } 
         }); 
-        document.getElementById('btnSalvarNovaPalavra').addEventListener('click', async () => { 
-            const palavra = inputNovaPalavra.value.trim(); if (!palavra) { showAlert("Digite uma palavra."); return; } 
-            showLoading("Salvando palavra..."); 
-            try { 
-                const response = await fetchWithAuth(API_URLS.ADD_COMMENT_KEY, { method: "POST", body: JSON.stringify({ palavra }) }); 
-                if (!response.ok) throw new Error(await response.text()); 
-                showAlert("Palavra salva!"); state.palavrasSalvasComentario = palavra; 
-                listaPalavrasDiv.innerHTML = palavra.replace(/\n/g, '<br>'); closeModal(modalPalavraComentario); fetchData(); 
-            } catch (error) { console.error("Erro:", error); showAlert(`Erro: ${error.message}`); } 
-            finally { hideLoading(); } 
-        }); 
+        document.getElementById('btnSalvarNovaPalavra').addEventListener('click', async () => { 
+            const palavra = inputNovaPalavra.value.trim(); if (!palavra) { showAlert("Digite uma palavra."); return; } 
+            showLoading("Salvando palavra..."); 
+            try { 
+                const response = await fetchWithAuth(API_URLS.ADD_COMMENT_KEY, { method: "POST", body: JSON.stringify({ palavra }) }); 
+                if (!response.ok) throw new Error(await response.text()); 
+                showAlert("Palavra salva!"); state.palavrasSalvasComentario = palavra; 
+                listaPalavrasDiv.innerHTML = palavra.replace(/\n/g, '<br>'); closeModal(modalPalavraComentario);
+                await fetchData(); 
+            } catch (error) { console.error("Erro:", error); showAlert(`Erro: ${error.message}`); } 
+            finally { hideLoading(); } 
+        });
         function handleOpenWhatsAppModal(event) { 
             const videoUrl = event.target.dataset.videoUrl; 
             if (!videoUrl || videoUrl === "null" || videoUrl === "undefined") { showAlert("URL de vídeo indisponível."); return; } 
@@ -3326,7 +3383,8 @@
             container.innerHTML = '';
             container.appendChild(table);
 
-            table.querySelectorAll('.btn-edit-wpp, .wpp-image-container').forEach(el => el.addEventListener('click', handleEditWhatsappPost));
+            table.querySelectorAll('.btn-edit-wpp').forEach(btn => btn.addEventListener('click', handleEditWhatsappPost));
+            table.querySelectorAll('.wpp-image-container').forEach(el => el.addEventListener('click', handleEditWhatsappPost));
             table.querySelectorAll('.btn-delete-wpp').forEach(btn => btn.addEventListener('click', handleDeleteWhatsappPost));
             table.querySelectorAll('.btn-post-wpp').forEach(btn => btn.addEventListener('click', handlePostWhatsappAd));
         }
@@ -3516,82 +3574,73 @@
         }
 
         function openGenerateFromLinkModal(preselectedGroup = null) {
-            const modal = document.getElementById('modalGenerateFromLink');
-            const form = document.getElementById('formGenerateFromLink');
-            const groupSelect = document.getElementById('generateFromLinkGroup');
-            
-            form.reset();
-            groupSelect.innerHTML = ''; // Limpa opções antigas
+            const modal = document.getElementById('modalGenerateFromLink');
+            const form = document.getElementById('formGenerateFromLink');
+            const groupSelect = document.getElementById('generateFromLinkGroup');
+            
+            form.reset();
+            groupSelect.innerHTML = ''; // Limpa opções antigas
 
-            // Popula o select com os grupos do WhatsApp
-            if (state.whatsappGroups.length > 0) {
-                // --- CORREÇÃO APLICADA AQUI ---
-                // Ordena os grupos com base no campo 'ordenacao' antes de criar as opções
-                const sortedGroups = [...state.whatsappGroups].sort((a, b) => (a.ordenacao || 999) - (b.ordenacao || 999));
+            if (state.whatsappGroups.length > 0) {
+                // Ordena os grupos pela ordenação definida antes de adicioná-los
+                const sortedGroups = [...state.whatsappGroups].sort((a, b) => (a.ordenacao || 999) - (b.ordenacao || 999));
 
-                sortedGroups.forEach(group => {
-                    const option = document.createElement('option');
-                    option.value = group.group_name;
-                    option.textContent = group.group_name;
-                    groupSelect.appendChild(option);
-                });
-                // --- FIM DA CORREÇÃO ---
+                sortedGroups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group.group_name;
+                    option.textContent = group.group_name;
+                    groupSelect.appendChild(option);
+                });
 
-                // Seleciona o grupo correto
-                if (preselectedGroup) {
-                    groupSelect.value = preselectedGroup;
-                } else {
-                    groupSelect.selectedIndex = 0; // Seleciona o primeiro da lista (agora ordenada) como padrão
-                }
-            } else {
-                // Caso não haja grupos, exibe uma mensagem
-                const option = document.createElement('option');
-                option.textContent = 'Nenhum grupo encontrado';
-                option.disabled = true;
-                groupSelect.appendChild(option);
-            }
-            
-            openModal(modal);
-        }
+                // Define o valor DEPOIS que todas as opções foram adicionadas
+                if (preselectedGroup) {
+                    groupSelect.value = preselectedGroup;
+                }
+            } else {
+                groupSelect.innerHTML = '<option disabled>Nenhum grupo encontrado</option>';
+            }
+            
+            openModal(modal);
+        }
 
         async function handleGenerateAdFromLink(event) {
-            if (event) event.preventDefault();
-            const urlInput = document.getElementById('generateFromLinkUrl');
-            const groupSelect = document.getElementById('generateFromLinkGroup');
-            const url = urlInput.value.trim();
-            const grupo = groupSelect.value;
+            if (event) event.preventDefault();
+            const urlInput = document.getElementById('generateFromLinkUrl');
+            const groupSelect = document.getElementById('generateFromLinkGroup');
+            const url = urlInput.value.trim();
+            const grupo = groupSelect.value;
 
-            if (!url || !grupo) {
-                showAlert("Por favor, preencha o link e selecione um grupo.");
-                return;
-            }
+            if (!url || !grupo) {
+                showAlert("Por favor, preencha o link e selecione um grupo.");
+                return;
+            }
+            
+            // Cria o payload que será enviado
+            const payload = { url: url, grupo: grupo };
+            // LINHA DE DEBUG: Verifique no console do navegador (F12) se o 'grupo' está correto
+            console.log("Enviando payload para gerar oferta:", payload);
 
-            showLoading("Gerando anúncio a partir do link...");
-            try {
-                const response = await fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, {
-                    method: "POST",
-                    body: JSON.stringify({ url: url, grupo: grupo })
-                });
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ message: 'Erro ao gerar anúncio.' }));
-                    throw new Error(errorData.message);
-                }
-                await response.json();
-                
-                showAlert('Oferta gerada com sucesso! A lista será atualizada.');
-                closeModal(document.getElementById('modalGenerateFromLink'));
-                
-                if (state.activeAccount !== 'WhatsApp' || state.activeMediaType !== grupo) {
-                    navigateTo('media', ['WhatsApp', grupo]);
-                } else {
-                    await fetchData();
-                }
-            } catch (error) {
-                showAlert(`Erro: ${error.message}`);
-            } finally {
-                hideLoading();
-            }
-        }
+            showLoading("Gerando anúncio a partir do link...");
+            try {
+                const response = await fetchWithAuth(API_URLS.GENERATE_AD_FROM_LINK, {
+                    method: "POST",
+                    body: JSON.stringify(payload) // Envia o payload criado
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: 'Erro ao gerar anúncio.' }));
+                    throw new Error(errorData.message);
+                }
+                
+                showAlert('Oferta gerada com sucesso! A lista será atualizada.');
+                closeModal(document.getElementById('modalGenerateFromLink'));
+                await fetchData();
+                console.log("Atualização da lista de ofertas concluída.");
+            } catch (error) {
+                showAlert(`Erro: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
 
         async function handleCreateOfferSubmit(event) {
             event.preventDefault();
@@ -3662,20 +3711,16 @@
             
             // Define o título da página
             const mediaLabel = MEDIA_TYPES.find(mt => mt.key === type)?.label || type;
-            let titleText = '';
-            if (decodedAccountName === 'WhatsApp') {
-                titleText = `Ofertas - ${decodeURIComponent(type)}`;
-            } else {
-                if (type === 'threads-feed' || type === 'threads-base-posts' || type === 'scheduled-threads') {
-                    titleText = `Threads - ${decodedAccountName} - ${mediaLabel}`;
-                } else if (type === 'reels' || type === 'stories' || type === 'stories-base' || type === 'scheduled-posts') {
-                    titleText = `Instagram - ${decodedAccountName} - ${mediaLabel}`;
-                }
-            }
-            pageTitle.textContent = titleText;
-            document.title = titleText;
-
-            headerDiv.appendChild(pageTitle); // Adiciona o título primeiro
+            let titleText = '';
+            if (decodedAccountName === 'WhatsApp') {
+                titleText = `Ofertas - ${decodeURIComponent(type)}`;
+            } else {
+                const socialMediaName = state.socialAccounts.find(acc => acc.nome_conta === decodedAccountName)?.social_media || 'Mídia';
+                titleText = `${socialMediaName} - ${decodedAccountName} - ${mediaLabel}`;
+            }
+            pageTitle.textContent = titleText;
+            document.title = titleText;
+            headerDiv.appendChild(pageTitle);
 
             // Lógica condicional para filtros e botões de ação
             if (decodedAccountName === 'WhatsApp') {
@@ -3738,6 +3783,15 @@
                 btnReloadStories.addEventListener('click', handleRecarregarStories);
                 actionsDiv.appendChild(btnReloadStories);
             } else if (type === 'posts') {
+                const btnCreateBasePost = document.createElement('button');
+                btnCreateBasePost.className = 'btn-primary';
+                btnCreateBasePost.textContent = 'Criar Post Base';
+                btnCreateBasePost.addEventListener('click', () => {
+                // Sinaliza que estamos criando um post base, não um agendado
+                state.isCreatingBasePost = true; 
+                handleOpenScheduledPostModal();
+                });
+                actionsDiv.appendChild(btnCreateBasePost)
                 // Adiciona botão "Baixar novas Postagens" apenas na página Postagens Base do Instagram
                 const btnDownloadPosts = document.createElement('button');
                 btnDownloadPosts.className = 'btn-primary';
@@ -4821,52 +4875,70 @@
                     });
                 }
 
-            } else { // Modo Criação
-                document.getElementById('scheduledPostModalTitle').textContent = 'Criar Nova Postagem';
-                document.getElementById('scheduledPostId').value = '';
-            }
+            } else if (state.isCreatingBasePost) { // Modo Criação de Post Base
+                document.getElementById('scheduledPostModalTitle').textContent = 'Criar Novo Post Base';
+                document.getElementById('scheduledPostId').value = '';
+                // Esconde o campo de data e hora
+                document.getElementById('scheduledPostDateTime').parentElement.style.display = 'none';
+            } else { // Modo Criação de Post Agendado
+                document.getElementById('scheduledPostModalTitle').textContent = 'Criar Nova Postagem Agendada';
+                document.getElementById('scheduledPostId').value = '';
+            }
 
             openModal(modalScheduledPost);
         }
 
         async function handleScheduledPostFormSubmit(event) {
-            event.preventDefault();
-            const postId = document.getElementById('scheduledPostId').value;
-            const isEditing = !!postId;
+            event.preventDefault();
+            const postId = document.getElementById('scheduledPostId').value;
+            const isEditing = !!postId;
 
-            showLoading(isEditing ? "Atualizando postagem..." : "Criando postagem...");
+            const mediaBase64Promises = state.scheduledPostFiles.map(file => toBase64(file));
+            const media_base64 = await Promise.all(mediaBase64Promises);
+            
+            let payload = {
+                description: document.getElementById('scheduledPostDescription').value,
+                media_base64: media_base64,
+                conta_user: state.activeAccount
+            };
+            
+            let url;
+            let method;
+            let successMessage;
 
-            const mediaBase64Promises = state.scheduledPostFiles.map(file => toBase64(file));
-            const media_base64 = await Promise.all(mediaBase64Promises);
+            if (state.isCreatingBasePost) {
+                // Se estamos criando um POST BASE
+                url = API_URLS.CREATE_POST_BASE;
+                method = 'POST';
+                successMessage = 'Post Base criado com sucesso!';
+                showLoading("Criando post base...");
+            } else {
+                // Lógica para POSTS AGENDADOS (criar ou editar)
+                url = API_URLS.SCHEDULED_POSTS_CRUD;
+                method = isEditing ? 'PUT' : 'POST';
+                successMessage = isEditing ? 'Postagem atualizada com sucesso!' : 'Postagem criada com sucesso!';
+                payload.schedule_time = document.getElementById('scheduledPostDateTime').value;
+                if(isEditing) {
+                    payload.id = postId;
+                }
+                showLoading(isEditing ? "Atualizando postagem..." : "Criando postagem...");
+            }
 
-            const payload = {
-                description: document.getElementById('scheduledPostDescription').value,
-                schedule_time: document.getElementById('scheduledPostDateTime').value,
-                media_base64: media_base64,
-                conta_user: state.activeAccount
-            };
-
-            let url = API_URLS.SCHEDULED_POSTS_CRUD;
-            let method = isEditing ? 'PUT' : 'POST';
-
-            if(isEditing) {
-                payload.id = postId;
-            }
-
-            try {
-                const response = await fetchWithAuth(url, { method, body: JSON.stringify(payload) });
-                const responseData = await response.json();
-                if (!response.ok) throw new Error(responseData.message || 'Erro no servidor');
-                
-                showAlert(isEditing ? 'Postagem atualizada com sucesso!' : 'Postagem criada com sucesso!');
-                closeModal(modalScheduledPost);
-                await fetchData();
-            } catch (error) {
-                showAlert(`Erro: ${error.message}`);
-            } finally {
-                hideLoading();
-            }
-        }
+            try {
+                const response = await fetchWithAuth(url, { method, body: JSON.stringify(payload) });
+                const responseData = await response.json();
+                if (!response.ok) throw new Error(responseData.message || 'Erro no servidor');
+                
+                showAlert(successMessage);
+                closeModal(modalScheduledPost);
+                state.isCreatingBasePost = false; // Reseta o estado
+                await fetchData();
+            } catch (error) {
+                showAlert(`Erro: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
 
         // NOVO: Função para gerar anúncio a partir de um link
         async function handleGenerateAdFromLink() {
