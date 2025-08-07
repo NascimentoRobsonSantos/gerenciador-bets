@@ -4848,45 +4848,48 @@
 
         // --- Funções para o modal de post agendado ---
         function handleOpenScheduledPostModal(post = null) {
-            formScheduledPost.reset();
-            document.getElementById('media-preview-container').innerHTML = '';
-            state.scheduledPostFiles = [];
+            formScheduledPost.reset();
+            document.getElementById('media-preview-container').innerHTML = '';
+            state.scheduledPostFiles = [];
 
-            if (post) { // Modo Edição
-                document.getElementById('scheduledPostModalTitle').textContent = 'Editar Postagem';
-                document.getElementById('scheduledPostId').value = post.id;
-                document.getElementById('scheduledPostDescription').value = post.description || '';
-                if (post.schedule_time) {
-                    const d = new Date(post.schedule_time);
-                    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-                    document.getElementById('scheduledPostDateTime').value = d.toISOString().slice(0, 16);
-                }
-                if(post.media_urls && Array.isArray(post.media_urls)){
-                    post.media_urls.forEach(url => {
-                        const previewContainer = document.getElementById('media-preview-container');
-                        const itemDiv = document.createElement('div');
-                        itemDiv.className = 'media-preview-item';
-                        if (url.toLowerCase().includes('.mp4') || url.toLowerCase().includes('.mov') || url.toLowerCase().includes('video')) {
-                            itemDiv.innerHTML = `<video src="${url}"></video>`;
-                        } else {
-                            itemDiv.innerHTML = `<img src="${url}" alt="Preview">`;
-                        }
-                        previewContainer.appendChild(itemDiv);
-                    });
-                }
+            // Seleciona o campo de data e seu container
+            const dateTimeInput = document.getElementById('scheduledPostDateTime');
+            const dateTimeContainer = dateTimeInput.parentElement;
 
-            } else if (state.isCreatingBasePost) { // Modo Criação de Post Base
+            if (post) { // Modo Edição (de post agendado)
+                document.getElementById('scheduledPostModalTitle').textContent = 'Editar Postagem Agendada';
+                document.getElementById('scheduledPostId').value = post.id;
+                document.getElementById('scheduledPostDescription').value = post.description || '';
+                
+                // Garante que o campo de data esteja visível e obrigatório
+                dateTimeContainer.style.display = 'block';
+                dateTimeInput.required = true;
+                dateTimeInput.disabled = false;
+
+                if (post.schedule_time) {
+                    const d = new Date(post.schedule_time);
+                    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                    dateTimeInput.value = d.toISOString().slice(0, 16);
+                }
+                // Lógica de preview...
+            } else if (state.isCreatingBasePost) { // Modo Criação de Post Base
                 document.getElementById('scheduledPostModalTitle').textContent = 'Criar Novo Post Base';
                 document.getElementById('scheduledPostId').value = '';
-                // Esconde o campo de data e hora
-                document.getElementById('scheduledPostDateTime').parentElement.style.display = 'none';
+                // Esconde, desabilita e torna o campo de data não-obrigatório
+                dateTimeContainer.style.display = 'none';
+                dateTimeInput.required = false;
+                dateTimeInput.disabled = true;
             } else { // Modo Criação de Post Agendado
                 document.getElementById('scheduledPostModalTitle').textContent = 'Criar Nova Postagem Agendada';
                 document.getElementById('scheduledPostId').value = '';
+                // Garante que o campo de data esteja visível e obrigatório
+                dateTimeContainer.style.display = 'block';
+                dateTimeInput.required = true;
+                dateTimeInput.disabled = false;
             }
 
-            openModal(modalScheduledPost);
-        }
+            openModal(modalScheduledPost);
+        }
 
         async function handleScheduledPostFormSubmit(event) {
             event.preventDefault();
@@ -4895,33 +4898,32 @@
 
             const mediaBase64Promises = state.scheduledPostFiles.map(file => toBase64(file));
             const media_base64 = await Promise.all(mediaBase64Promises);
-            
+
+            // Payload base com os campos comuns
             let payload = {
                 description: document.getElementById('scheduledPostDescription').value,
                 media_base64: media_base64,
-                conta_user: state.activeAccount
+                conta_user: decodeURIComponent(state.activeAccount)
             };
             
-            let url;
-            let method;
-            let successMessage;
+            let url, method, successMessage;
 
             if (state.isCreatingBasePost) {
-                // Se estamos criando um POST BASE
-                url = API_URLS.CREATE_POST_BASE;
+                // --- LÓGICA PARA CRIAR POST BASE ---
+                url = API_URLS.CREATE_POST_BASE; // Usa o novo endpoint
                 method = 'POST';
                 successMessage = 'Post Base criado com sucesso!';
-                showLoading("Criando post base...");
+                showLoading("Criando post base...");
             } else {
-                // Lógica para POSTS AGENDADOS (criar ou editar)
+                // --- LÓGICA PARA POSTS AGENDADOS (EXISTENTE) ---
                 url = API_URLS.SCHEDULED_POSTS_CRUD;
                 method = isEditing ? 'PUT' : 'POST';
-                successMessage = isEditing ? 'Postagem atualizada com sucesso!' : 'Postagem criada com sucesso!';
-                payload.schedule_time = document.getElementById('scheduledPostDateTime').value;
+                successMessage = isEditing ? 'Postagem atualizada!' : 'Postagem agendada!';
+                payload.schedule_time = document.getElementById('scheduledPostDateTime').value; // Adiciona o tempo ao payload
                 if(isEditing) {
                     payload.id = postId;
                 }
-                showLoading(isEditing ? "Atualizando postagem..." : "Criando postagem...");
+                showLoading(isEditing ? "Atualizando postagem..." : "Agendando postagem...");
             }
 
             try {
@@ -4931,13 +4933,64 @@
                 
                 showAlert(successMessage);
                 closeModal(modalScheduledPost);
-                state.isCreatingBasePost = false; // Reseta o estado
-                await fetchData();
+                state.isCreatingBasePost = false; // Limpa o estado para o próximo uso
+                await fetchData(); // Recarrega a lista
             } catch (error) {
                 showAlert(`Erro: ${error.message}`);
             } finally {
                 hideLoading();
             }
+        }
+
+        function handleScheduledPostMediaChange(event) {
+            const files = event.target.files;
+            const previewContainer = document.getElementById('media-preview-container');
+            
+            // Limpa o estado e a pré-visualização anterior para recomeçar com os novos arquivos
+            previewContainer.innerHTML = '';
+            state.scheduledPostFiles = [];
+
+            if (files.length === 0) {
+                return; // Sai se nenhum arquivo foi selecionado
+            }
+
+            // Converte a lista de arquivos (FileList) para um array e armazena no estado global
+            state.scheduledPostFiles = Array.from(files);
+            console.log('Arquivos selecionados e salvos no estado:', state.scheduledPostFiles);
+
+            // Cria a pré-visualização para cada arquivo
+            state.scheduledPostFiles.forEach((file, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'media-preview-item';
+
+                const objectUrl = URL.createObjectURL(file);
+                let mediaElement;
+
+                if (file.type.startsWith('video/')) {
+                    mediaElement = document.createElement('video');
+                    mediaElement.src = objectUrl;
+                } else {
+                    mediaElement = document.createElement('img');
+                    mediaElement.src = objectUrl;
+                    mediaElement.alt = `Preview ${index + 1}`;
+                }
+                mediaElement.onload = () => URL.revokeObjectURL(mediaElement.src); // Libera memória
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-media-btn';
+                removeBtn.innerHTML = '&times;';
+                removeBtn.type = 'button'; // Importante para não submeter o formulário
+                removeBtn.onclick = () => {
+                    itemDiv.remove();
+                    // Remove o arquivo específico da lista no estado
+                    state.scheduledPostFiles = state.scheduledPostFiles.filter(f => f !== file);
+                    console.log('Arquivo removido. Arquivos restantes:', state.scheduledPostFiles);
+                };
+
+                itemDiv.appendChild(mediaElement);
+                itemDiv.appendChild(removeBtn);
+                previewContainer.appendChild(itemDiv);
+            });
         }
 
         // NOVO: Função para gerar anúncio a partir de um link
@@ -5325,9 +5378,7 @@
             });
             
             formScheduledPost.addEventListener('submit', handleScheduledPostFormSubmit);
-            document.getElementById('scheduledPostMedia').addEventListener('change', (event) => {
-                // ... (lógica de preview de mídias)
-            });
+            document.getElementById('scheduledPostMedia').addEventListener('change', handleScheduledPostMediaChange);
 
             document.getElementById('formEditCompanyModules').addEventListener('submit', handleSaveCompanyModules);
             document.getElementById('formEditCompany').addEventListener('submit', handleSaveCompanyData);
