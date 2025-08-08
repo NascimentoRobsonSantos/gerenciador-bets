@@ -1491,6 +1491,10 @@
                             <label for="scheduledPostDateTime">Horário da Postagem:</label>
                             <input type="datetime-local" id="scheduledPostDateTime" step="300" required>
                         </div>
+                        <div id="scheduledPostCategoryContainer" style="display: none;">
+                            <label for="scheduledPostCategory">Categoria:</label>
+                            <input type="text" id="scheduledPostCategory" placeholder="Ex: Cozinha, Casa e Decorações">
+                        </div>
                     </div>
                     <div class="edit-modal-preview">
                         <label for="scheduledPostMedia">Imagens/Vídeos:</label>
@@ -2151,7 +2155,7 @@
                 console.error("mediaItemsWrapper não encontrado!");
                 return;
             }
-
+            
             mediaItemsWrapper.innerHTML = '';
 
             if (state.activeAccount === 'WhatsApp') {
@@ -2318,7 +2322,6 @@
             const mediaContainer = document.createElement('div');
             mediaContainer.className = 'media-content';
             const placeholder = 'https://placehold.co/400x640/cccccc/ffffff?text=Indisponível';
-            console.log('url_s3_video', item.url_s3_video);
 
             const urls = item.media_urls || [item.media_url, item.s3_url_video, item.url_s3_video].filter(Boolean);
             if (!urls || urls.length === 0) {
@@ -2331,7 +2334,7 @@
 
             if (videos.length > 0) { // Prioriza vídeo
                 const videoUrl = videos[0];
-                const thumbUrl = images[0] || item.thumbnail_url || item.story_thumbnail || item.url_s3_thumbnail || item.url_s3_video;
+                const thumbUrl = images[0] || item.thumbnail_url || item.story_thumbnail || item.url_s3_thumbnail;
                 if (thumbUrl) {
                     mediaContainer.innerHTML = `
                         <img src="${thumbUrl}" onerror="this.onerror=null; this.src='${placeholder}';" alt="Thumbnail do vídeo">
@@ -2453,49 +2456,53 @@
             return card;
         }
 
-         function createPostCard(post) { 
-            const card = document.createElement('div'); 
-            card.className = 'card'; 
-            const descriptionNew = getPostDescription(post); 
-            const ordenacaoParaExibir = post.ordenacao_postagem == null ? post.id : post.ordenacao_postagem; 
+        function createPostCard(post) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            const descriptionNew = getPostDescription(post);
+            const formattedDateTime = formatMediaDateTime(post["Created on"]);
+            const ordenacaoParaExibir = post.ordenacao_postagem == null ? post.id : post.ordenacao_postagem;
             const mediaElement = createSmartMediaElement(post);
             
             card.appendChild(mediaElement);
 
             const contentDiv = document.createElement('div');
-            // CORREÇÃO: Usamos '||' para garantir valores padrão e evitar 'undefined' ou 'null'
-            contentDiv.innerHTML = ` 
-                <label>ID: ${post.id || 'N/A'}</label> 
-                <label for="desc-${post.id}">Descrição:</label> 
-                <textarea id="desc-${post.id}">${descriptionNew}</textarea> 
-                <label for="ord-${post.id}">Ordenação:</label> 
-                <input type="number" id="ord-${post.id}" value="${ordenacaoParaExibir}"> 
-                <label for="cat-${post.id}">Categoria:</label> 
-                <input type="text" id="cat-${post.id}" value="${post.categoria || ''}"> 
-                <div> 
-                    <input type="checkbox" id="rev-${post.id}" ${post.check_reviewed ? 'checked' : ''} style="width:auto; margin-right:5px;">
-                    <label for="rev-${post.id}" style="font-weight:normal; display:inline;">Revisado</label> 
-                </div> 
-                <div class="card-buttons"> 
-                    <button class="btn-save" data-id="${post.id}">Salvar Edição</button> 
-                    <label for="upload-${post.id}" style="margin-top:5px; margin-bottom:0; font-size:0.8rem;">Trocar Vídeo:</label> 
-                    <input type="file" id="upload-${post.id}" accept=".mov,.mp4,video/quicktime" data-id="${post.id}" style="padding:5px; font-size:0.85rem;">
-                    <button class="btn-whatsapp" data-id="${post.id}" data-video-url="${post.s3_url_video || ''}">Enviar p/ WhatsApp</button> 
-                    <button class="btn-link" data-id="${post.id}" data-type="post">Incluir Links</button> 
-                    <button class="btn-instagram-post" data-id="${post.id}" ${!post.check_reviewed ? 'disabled' : ''}>Postar este no Instagram</button> 
-                    ${post.conta_clone_url_reels ? `<button onclick="window.open('${post.conta_clone_url_reels}', '_blank')">Ver no Instagram Clone</button>` : ''} 
-                    <button class="btn-delete" data-id="${post.id}">Excluir Item</button> 
-                </div>
-                </div>`; 
+            // --- INÍCIO DA CORREÇÃO DE LAYOUT ---
+            contentDiv.style.display = 'flex';
+            contentDiv.style.flexDirection = 'column';
+            contentDiv.style.flexGrow = '1';
+
+            contentDiv.innerHTML = `
+                <label><span style="font-weight:normal; font-size:0.9em;">ID: ${post.id} | Criado em: ${formattedDateTime}</span></label>
+                <label>ID: ${post.id}</label> 
+                <label for="desc-${post.id}">Descrição:</label> 
+                <textarea id="desc-${post.id}">${descriptionNew}</textarea> 
+                <label for="ord-${post.id}">Ordenação:</label> 
+                <input type="number" id="ord-${post.id}" value="${ordenacaoParaExibir}"> 
+                <label for="cat-${post.id}">Categoria:</label> 
+                <input type="text" id="cat-${post.id}" value="${post.categoria || ''}"> 
+                <div class="card-buttons"> 
+                    <button class="btn-save" data-id="${post.id}">Salvar Edição</button> 
+                    <label for="upload-${post.id}" style="margin-top:5px; margin-bottom:0; font-size:0.8rem;">Trocar Vídeo:</label> 
+                    <input type="file" id="upload-${post.id}" accept=".mov,.mp4,video/quicktime" data-id="${post.id}" style="padding:5px; font-size:0.85rem;">
+                    <button class="btn-whatsapp" data-id="${post.id}" data-video-url="${post.s3_url_video || ''}">Enviar p/ WhatsApp</button> 
+                    <button class="btn-link" data-id="${post.id}" data-type="post">Incluir Links</button> 
+                    <button class="btn-instagram-post" data-id="${post.id}">Postar este no Instagram</button> 
+                    ${post.conta_clone_url_reels ? `<button onclick="window.open('${post.conta_clone_url_reels}', '_blank')">Ver no Instagram Clone</button>` : ''} 
+                    <button class="btn-delete" data-id="${post.id}">Excluir Item</button> 
+                </div>
+            `;
+            // --- FIM DA CORREÇÃO DE LAYOUT ---
+
             card.appendChild(contentDiv);
-            card.querySelector('.btn-save').addEventListener('click', handleSalvarEdicaoPost); 
-            card.querySelector('.btn-delete').addEventListener('click', handleExcluirPost); 
-            card.querySelector('.btn-link').addEventListener('click', handleOpenLinkModal); 
-            card.querySelector('.btn-whatsapp').addEventListener('click', handleOpenWhatsAppModal); 
-            card.querySelector('.btn-instagram-post').addEventListener('click', handlePostarUnicoInstagram); 
-            card.querySelector('input[type="file"]').addEventListener('change', handleUploadVideo); 
-            return card; 
-        } 
+            card.querySelector('.btn-save').addEventListener('click', handleSalvarEdicaoPost);
+            card.querySelector('.btn-delete').addEventListener('click', handleExcluirPost);
+            card.querySelector('.btn-link').addEventListener('click', handleOpenLinkModal);
+            card.querySelector('.btn-whatsapp').addEventListener('click', handleOpenWhatsAppModal);
+            card.querySelector('.btn-instagram-post').addEventListener('click', handlePostarUnicoInstagram);
+            card.querySelector('input[type="file"]').addEventListener('change', handleUploadVideo);
+            return card;
+        }
 
         function createScheduledPostCard(post) {
             if (!post || !post.id) return null; // Validação para evitar cards vazios
@@ -2693,8 +2700,8 @@
         }
 
         async function fetchData() {
-            if (state.isLoading) return;
-            showLoading("Carregando dados...");
+            // if (state.isLoading) return;
+            // showLoading("Carregando dados...");
             if (paginationContainer) paginationContainer.style.display = 'none';
 
             let endpoint = '';
@@ -2738,7 +2745,6 @@
 
                 const responseText = await res.text();
                 const data = responseText ? JSON.parse(responseText) : { data: [], totalItems: 0 };
-
                 state.items = data.data || [];
                 state.totalItems = data.totalItems || 0;
                 state.filteredItems = [...state.items];
@@ -2795,14 +2801,14 @@
                 description: cardElement.querySelector(`#desc-${postId}`).value,
                 ordenacao_postagem: parseInt(cardElement.querySelector(`#ord-${postId}`).value),
                 categoria: cardElement.querySelector(`#cat-${postId}`).value,
-                revisado: cardElement.querySelector(`#rev-${postId}`).checked
             };
             showLoading("Salvando post...");
             try {
                 const response = await fetchWithAuth(API_URLS.UPDATE_POST, { method: "PUT", body: JSON.stringify(payload) });
                 if (!response.ok) throw new Error(await response.text());
                 showAlert('Post atualizado!');
-                await fetchData();
+                console.log('handleSalvarEdicaoPost fetchData');
+                fetchData();
             } catch (error) {
                 if (!error.message.includes("Sessão expirada")) {
                     showAlert(`Erro: ${error.message}`);
@@ -2845,8 +2851,8 @@
             try {
                 const response = await fetchWithAuth(API_URLS.REPOST_STORIES, { method: "POST", body: JSON.stringify(payload) });
                 if (!response.ok) throw new Error(await response.text());
-                showAlert('Story repostado!');
                 await fetchData();
+                showAlert('Story repostado!');
             } catch (error) {
                 showAlert(`Erro: ${error.message}`);
             } finally {
@@ -2929,11 +2935,6 @@
             const post = state.items.find(p => String(p.id) === String(postId));
             if (!post) {
                 showAlert("Post não encontrado.");
-                return;
-            }
-
-            if (state.activeMediaType === 'posts' && !post.check_reviewed) {
-                showAlert("Post precisa ser 'Revisado'.");
                 return;
             }
 
@@ -3406,7 +3407,7 @@
                     <td data-label="URL"><a href="${item.url_production}" target="_blank">Link</a></td>
                     <td data-label="Imagem">${imageHtml}</td>
                     <td data-label="Criado em">${formatMediaDateTime(item["Created on"])}</td>
-                    <td data-label="Ação">
+                    <td data-label="">
                         <div class="action-buttons">
                             <button class="btn-edit-wpp btn-primary" data-id="${item.id}">Editar</button>
                             <button class="btn-delete-wpp btn-delete" data-id="${item.id}">Excluir</button>
@@ -3576,29 +3577,8 @@
         function openGenerateFromLinkModal(preselectedGroup = null) {
             const modal = document.getElementById('modalGenerateFromLink');
             const form = document.getElementById('formGenerateFromLink');
-            const groupSelect = document.getElementById('generateFromLinkGroup');
             
             form.reset();
-            groupSelect.innerHTML = ''; // Limpa opções antigas
-
-            if (state.whatsappGroups.length > 0) {
-                // Ordena os grupos pela ordenação definida antes de adicioná-los
-                const sortedGroups = [...state.whatsappGroups].sort((a, b) => (a.ordenacao || 999) - (b.ordenacao || 999));
-
-                sortedGroups.forEach(group => {
-                    const option = document.createElement('option');
-                    option.value = group.group_name;
-                    option.textContent = group.group_name;
-                    groupSelect.appendChild(option);
-                });
-
-                // Define o valor DEPOIS que todas as opções foram adicionadas
-                if (preselectedGroup) {
-                    groupSelect.value = preselectedGroup;
-                }
-            } else {
-                groupSelect.innerHTML = '<option disabled>Nenhum grupo encontrado</option>';
-            }
             
             openModal(modal);
         }
@@ -3711,12 +3691,23 @@
             
             // Define o título da página
             const mediaLabel = MEDIA_TYPES.find(mt => mt.key === type)?.label || type;
+            const socialMediaName = state.socialAccounts.find(acc => acc.nome_conta === decodedAccountName)?.social_media || 'Mídia';
             let titleText = '';
             if (decodedAccountName === 'WhatsApp') {
                 titleText = `Ofertas - ${decodeURIComponent(type)}`;
             } else {
-                const socialMediaName = state.socialAccounts.find(acc => acc.nome_conta === decodedAccountName)?.social_media || 'Mídia';
-                titleText = `${socialMediaName} - ${decodedAccountName} - ${mediaLabel}`;
+                if (type.startsWith('threads-')) {
+                    titleText = `Threads - ${decodedAccountName} - ${mediaLabel}`;
+                } else if (type === 'scheduled-posts') {
+                    titleText = `${decodedAccountName} - ${mediaLabel}`;
+                } else if (type === 'scheduled-threads') {
+                    titleText = `Threads - ${decodedAccountName} - ${mediaLabel}`;
+                } else  if (type.startsWith('instagram-')) {
+                    titleText = `${socialMediaName} - ${decodedAccountName} - ${mediaLabel}`;
+                } else {
+                    titleText = `${socialMediaName} - ${decodedAccountName} - ${mediaLabel}`;
+                }
+                
             }
             pageTitle.textContent = titleText;
             document.title = titleText;
@@ -3798,6 +3789,17 @@
                 btnDownloadPosts.textContent = '📥 Baixar novas Postagens';
                 btnDownloadPosts.addEventListener('click', handleOpenDownloadPostsModal);
                 actionsDiv.appendChild(btnDownloadPosts);
+                const categoryFilterSelect = document.getElementById('filter-posts-category');
+                if (categoryFilterSelect) {
+                    const categories = [...new Set(state.items.map(item => item.categoria).filter(Boolean))];
+                    categories.sort().forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat;
+                        option.textContent = cat;
+                        categoryFilterSelect.appendChild(option);
+                    });
+                    categoryFilterSelect.addEventListener('change', applyPostsFilters);
+                }
             }
             
             // Adiciona botão "Baixar novas Postagens" apenas na página Postagens Base
@@ -4855,13 +4857,16 @@
             // Seleciona o campo de data e seu container
             const dateTimeInput = document.getElementById('scheduledPostDateTime');
             const dateTimeContainer = dateTimeInput.parentElement;
+            const categoryContainer = document.getElementById('scheduledPostCategoryContainer');
 
             if (post) { // Modo Edição (de post agendado)
                 document.getElementById('scheduledPostModalTitle').textContent = 'Editar Postagem Agendada';
                 document.getElementById('scheduledPostId').value = post.id;
                 document.getElementById('scheduledPostDescription').value = post.description || '';
+                document.getElementById('scheduledPostCategory').value = post.categoria || '';
                 
                 // Garante que o campo de data esteja visível e obrigatório
+                categoryContainer.style.display = 'none';
                 dateTimeContainer.style.display = 'block';
                 dateTimeInput.required = true;
                 dateTimeInput.disabled = false;
@@ -4876,6 +4881,7 @@
                 document.getElementById('scheduledPostModalTitle').textContent = 'Criar Novo Post Base';
                 document.getElementById('scheduledPostId').value = '';
                 // Esconde, desabilita e torna o campo de data não-obrigatório
+                categoryContainer.style.display = 'block';
                 dateTimeContainer.style.display = 'none';
                 dateTimeInput.required = false;
                 dateTimeInput.disabled = true;
@@ -4903,7 +4909,8 @@
             let payload = {
                 description: document.getElementById('scheduledPostDescription').value,
                 media_base64: media_base64,
-                conta_user: decodeURIComponent(state.activeAccount)
+                conta_user: decodeURIComponent(state.activeAccount),
+                category: document.getElementById('scheduledPostCategory').value,
             };
             
             let url, method, successMessage;
