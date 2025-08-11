@@ -92,7 +92,6 @@
 <body>
 
     <div class="header">
-        <h1>Gerenciador de Posts</h1>
         <h2>Download de Arquivos</h2>
     </div>
 
@@ -226,10 +225,12 @@
         }
 
         function renderSinglePostCard(targetDiv, item) {
-            currentItem = item; // Salva o item atual globalmente
+            currentItem = item;
             const card = document.createElement('div');
             card.className = 'card';
+
             const mediaElement = createSmartMediaElement(item);
+            
             const contentDiv = document.createElement('div');
             contentDiv.innerHTML = `
                 <div class="card-buttons">
@@ -237,22 +238,17 @@
                     <button id="btnOpenWhatsAppModal" class="btn-whatsapp">Enviar por WhatsApp</button>
                 </div>
             `;
-            card.appendChild(mediaElement);
+
+            if (mediaElement) {
+                card.appendChild(mediaElement);
+            }
             card.appendChild(contentDiv);
+            targetDiv.innerHTML = '';
             targetDiv.appendChild(card);
 
             document.getElementById('btnDownloadMedia').addEventListener('click', () => {
                 const mediaUrl = (item.media_urls || []).find(url => url.endsWith('.mp4') || url.endsWith('.webp') || url.endsWith('.jpg'));
-                if (mediaUrl) {
-                    const link = document.createElement('a');
-                    link.href = mediaUrl;
-                    link.download = mediaUrl.split('/').pop();
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                } else {
-                    alert('Nenhum arquivo de mídia para baixar.');
-                }
+                handleDownloadMedia(mediaUrl); // Chama a nova função
             });
 
             document.getElementById('btnOpenWhatsAppModal').addEventListener('click', () => {
@@ -260,6 +256,55 @@
                 modal.style.display = 'flex';
                 document.getElementById('whatsappNumber').focus();
             });
+        }
+
+        async function handleDownloadMedia(mediaUrl) {
+            if (!mediaUrl) {
+                alert('Nenhum arquivo de mídia para baixar.');
+                return;
+            }
+
+            const fileName = mediaUrl.split('/').pop();
+            showLoading("Preparando download...");
+
+            try {
+                // Busca o arquivo como um "blob" (conjunto de dados binários)
+                const response = await fetch(mediaUrl);
+                if (!response.ok) {
+                    throw new Error('Falha ao buscar a mídia.');
+                }
+                const blob = await response.blob();
+                const file = new File([blob], fileName, { type: blob.type });
+
+                // Tenta usar a API de Compartilhamento Nativo (ideal para mobile)
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Salvar Mídia',
+                    });
+                    hideLoading();
+                    return; // Encerra a função aqui se o compartilhamento funcionar
+                }
+
+                // Fallback para o método de download tradicional (desktop)
+                const link = document.createElement('a');
+                const url = window.URL.createObjectURL(blob);
+                link.href = url;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url); // Limpa a memória
+
+            } catch (error) {
+                console.error('Erro no download:', error);
+                // Se o usuário cancelar o compartilhamento, pode gerar um erro "AbortError", que não precisa de alerta.
+                if (error.name !== 'AbortError') {
+                alert('Não foi possível iniciar o download. Tente novamente.');
+                }
+            } finally {
+                hideLoading();
+            }
         }
 
         async function handleSendToWhatsApp(event) {
