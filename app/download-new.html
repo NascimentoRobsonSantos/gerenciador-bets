@@ -126,24 +126,45 @@
                 alert('Nenhum arquivo de mídia para baixar.');
                 return;
             }
+
             const fileName = mediaUrl.split('/').pop();
             showLoading("Preparando download...");
+
             try {
-                const response = await fetch(mediaUrl, { mode: 'cors' });
+                const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+                
+                const response = await fetch(mediaUrl);
                 if (!response.ok) throw new Error('Falha ao buscar a mídia.');
                 const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
+
+                // Se for mobile e a API de compartilhamento existir, usa ela
+                if (isMobile && navigator.share) {
+                    const file = new File([blob], fileName, { type: blob.type });
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Salvar Mídia',
+                        });
+                        hideLoading();
+                        return; // Sucesso no mobile, encerra aqui
+                    }
+                }
+
+                // Fallback para desktop (ou mobile sem API de share) - FORÇA O DOWNLOAD
                 const link = document.createElement('a');
+                const url = window.URL.createObjectURL(blob);
                 link.href = url;
                 link.download = fileName;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                window.URL.revokeObjectURL(url);
+                window.URL.revokeObjectURL(url); // Limpa a memória
+
             } catch (error) {
                 console.error('Erro no download:', error);
-                alert('Não foi possível iniciar o download. Tentando abrir em nova aba.');
-                window.open(mediaUrl, '_blank');
+                if (error.name !== 'AbortError') {
+                alert('Não foi possível iniciar o download. Tente novamente.');
+                }
             } finally {
                 hideLoading();
             }
