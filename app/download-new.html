@@ -10,23 +10,37 @@
             --text-color: #e4e6eb;
             --card-bg-color: #242526;
             --border-color: #3a3b3c;
+            --btn-whatsapp-bg: #25D366;
             --btn-download-bg: #dc3545;
             --btn-text-color: #ffffff;
+        }
+        html {
+            box-sizing: border-box;
+        }
+        *, *:before, *:after {
+            box-sizing: inherit;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 20px;
+            /* AJUSTE: Padding horizontal menor para telas pequenas */
+            padding: 20px 15px; 
             display: flex;
             flex-direction: column;
             align-items: center;
-            box-sizing: border-box;
-            touch-action: manipulation;
+            min-height: 100vh;
+            /* ADICIONADO PARA BLOQUEAR AÇÕES DE TOQUE */
+            touch-action: manipulation; 
         }
-        .header { text-align: center; margin-bottom: 20px; }
-        .header h2 { font-weight: 400; }
+        .header { text-align: center; margin-bottom: 20px; width: 100%; }
+        .header h2 { font-weight: 400; margin: 0; }
+        #downloadCardContainer {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
         .card {
             background-color: var(--card-bg-color);
             border: 1px solid var(--border-color);
@@ -34,50 +48,20 @@
             padding: 15px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             width: 100%;
-            max-width: 380px;
+            /* AJUSTE: Largura máxima um pouco menor */
+            max-width: 370px; 
         }
-        .media-container {
-            width: 100%;
-            height: auto;
-            aspect-ratio: 9 / 16;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            background-color: var(--bg-color);
-            overflow: hidden;
-            position: relative;
+        .card .media-content {
+            width: 100%; height: auto;
+            /* AJUSTE: Proporção um pouco menos esticada para caber mais na tela */
+            aspect-ratio: 4 / 5.5; 
+            border-radius: 8px; margin-bottom: 15px; background-color: var(--bg-color);
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; position: relative;
         }
-        .media-container .media-item {
-            width: 100%;
-            height: 100%;
-            display: none; /* Escondido por padrão */
+        .card .media-content img, .card .media-content video {
+            width: 100%; height: 100%; object-fit: cover;
         }
-        .media-container .media-item.active {
-            display: block; /* Mostra o item ativo */
-        }
-        .media-container img, .media-container video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .carousel-arrow {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background-color: rgba(0, 0, 0, 0.5);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            font-size: 24px;
-            cursor: pointer;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .carousel-arrow.prev { left: 10px; }
-        .carousel-arrow.next { right: 10px; }
         .card-buttons { display: flex; flex-direction: column; gap: 12px; }
         button {
             cursor: pointer; padding: 14px 15px; border-radius: 8px; border: none;
@@ -86,6 +70,13 @@
         }
         button:hover { opacity: 0.9; }
         .btn-download { background-color: var(--btn-download-bg); }
+        .btn-whatsapp { background-color: var(--btn-whatsapp-bg); }
+        .play-button-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.3); display: flex;
+            justify-content: center; align-items: center; cursor: pointer;
+        }
+        .play-button-overlay svg { width: 60px; height: 60px; fill: white; }
         .loading-overlay-full {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.7); color: white;
