@@ -268,25 +268,26 @@
             showLoading("Preparando download...");
 
             try {
-                // Busca o arquivo como um "blob" (conjunto de dados binários)
+                const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+                
                 const response = await fetch(mediaUrl);
-                if (!response.ok) {
-                    throw new Error('Falha ao buscar a mídia.');
-                }
+                if (!response.ok) throw new Error('Falha ao buscar a mídia.');
                 const blob = await response.blob();
-                const file = new File([blob], fileName, { type: blob.type });
 
-                // Tenta usar a API de Compartilhamento Nativo (ideal para mobile)
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file],
-                        title: 'Salvar Mídia',
-                    });
-                    hideLoading();
-                    return; // Encerra a função aqui se o compartilhamento funcionar
+                // Se for mobile e a API de compartilhamento existir, usa ela
+                if (isMobile && navigator.share) {
+                    const file = new File([blob], fileName, { type: blob.type });
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Salvar Mídia',
+                        });
+                        hideLoading();
+                        return; // Sucesso no mobile, encerra aqui
+                    }
                 }
 
-                // Fallback para o método de download tradicional (desktop)
+                // Fallback para desktop (ou mobile sem API de share) - FORÇA O DOWNLOAD
                 const link = document.createElement('a');
                 const url = window.URL.createObjectURL(blob);
                 link.href = url;
@@ -298,7 +299,6 @@
 
             } catch (error) {
                 console.error('Erro no download:', error);
-                // Se o usuário cancelar o compartilhamento, pode gerar um erro "AbortError", que não precisa de alerta.
                 if (error.name !== 'AbortError') {
                 alert('Não foi possível iniciar o download. Tente novamente.');
                 }
@@ -384,18 +384,35 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadMedia();
 
-            // Listeners do modal de WhatsApp
+            // --- CÓDIGO PARA ADICIONAR ---
+            // Bloqueia o gesto de pinça para zoom
+            document.addEventListener('gesturestart', function (e) {
+                e.preventDefault();
+            });
+            // Bloqueia o zoom com múltiplos toques
+            document.body.addEventListener('touchstart', function(e) {
+                if (e.touches.length > 1) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            // Bloqueia o zoom com duplo clique
+            document.addEventListener('dblclick', function(e) {
+                e.preventDefault();
+            }, { passive: false });
+            // --- FIM DO BLOCO A SER ADICIONADO ---
+
+            // Listeners do modal de WhatsApp (seu código existente)
             const modalWhatsApp = document.getElementById('modalSendWhatsApp');
             modalWhatsApp.querySelector('.modal-close-btn').addEventListener('click', () => modalWhatsApp.style.display = 'none');
             modalWhatsApp.querySelector('.modal-close-btn-alternative').addEventListener('click', () => modalWhatsApp.style.display = 'none');
             document.getElementById('formSendWhatsApp').addEventListener('submit', handleSendToWhatsApp);
 
-            // Máscara para o campo de telefone
+            // Máscara para o campo de telefone (seu código existente)
             const whatsappNumberInput = document.getElementById('whatsappNumber');
             whatsappNumberInput.addEventListener('input', (e) => {
                 let value = e.target.value.replace(/\D/g, '');
                 value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
-                if (value.length > 9) {
+                if (value.length > 10) { // Ajustado para números com 9 dígitos + DDD
                     value = value.replace(/(\d{5})(\d)/, '$1-$2');
                 } else {
                     value = value.replace(/(\d{4})(\d)/, '$1-$2');
@@ -403,6 +420,7 @@
                 e.target.value = value.slice(0, 15);
             });
         });
+
     </script>
 </body>
 </html>
