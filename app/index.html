@@ -5024,35 +5024,128 @@
 
         // --- Funções do Dashboard ---
         async function showDashboardPage() {
-            dashboardContentArea.style.display = 'block';
-            await fetchDashboardMetrics();
-        }
+            dashboardContentArea.style.display = 'block';
+            await fetchDashboardMetrics(); // Busca os dados mais recentes
+        }
 
         async function fetchDashboardMetrics() {
-            showLoading("Carregando métricas...");
-            try {
-                const response = await fetchWithAuth(API_URLS.GET_DASHBOARD_METRICS);
-                if (!response.ok) throw new Error("Não foi possível carregar as métricas.");
-                
-                const metricsResponse = await response.json();
-                
-                // Armazena a resposta completa no estado para re-filtragem
-                state.allMetrics = metricsResponse || [];
+            showLoading("Carregando métricas...");
+            try {
+                const response = await fetchWithAuth(API_URLS.GET_DASHBOARD_METRICS);
+                if (!response.ok) throw new Error("Não foi possível carregar as métricas.");
+                
+                const metricsResponse = await response.json();
+                
+                state.allMetrics = metricsResponse || [];
 
-                // Agrega (soma) os dados de todas as redes sociais para a exibição inicial
-                const aggregatedMetrics = aggregateMetrics(state.allMetrics);
-                
-                renderDashboard(aggregatedMetrics); // Renderiza com os dados agregados
+                // Chama a nova função de renderização com todos os dados
+                renderDashboard(state.allMetrics);
 
-            } catch (error) {
-                if (!error.message.includes("Sessão expirada")) {
-                    showAlert(`Erro ao carregar métricas: ${error.message}`);
-                }
-                dashboardContentArea.innerHTML = '<p>Não foi possível carregar as métricas do dashboard.</p>';
-            } finally {
-                hideLoading();
-            }
-        }
+            } catch (error) {
+                if (!error.message.includes("Sessão expirada")) {
+                    showAlert(`Erro ao carregar métricas: ${error.message}`);
+                }
+                dashboardContentArea.innerHTML = '<p>Não foi possível carregar as métricas do dashboard.</p>';
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function renderDashboard(metrics) {
+            // Função auxiliar para formatar os nomes das redes
+            const formatNetworkName = (name) => name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+            const socialNetworkOptions = [...new Set(metrics.map(m => m.social_network))]
+                .map(network => `<option value="${network}">${formatNetworkName(network)}</option>`)
+                .join('');
+
+            // Estrutura principal do HTML do dashboard
+            dashboardContentArea.innerHTML = `
+                <div class="page-header">
+                    <h2>Dashboard</h2>
+                </div>
+                <div class="filters-container" style="margin-bottom: 20px; grid-template-columns: 1fr;">
+                    <div>
+                        <label for="dashboard-social-network">Filtrar por Rede Social:</label>
+                        <select id="dashboard-social-network">
+                            <option value="todos">Todas as Redes</option>
+                            ${socialNetworkOptions}
+                        </select>
+                    </div>
+                </div>
+                <div id="dashboard-charts-grid" class="dashboard-grid" style="gap: 30px;"></div>
+            `;
+
+            const chartsGrid = document.getElementById('dashboard-charts-grid');
+            if (!metrics || metrics.length === 0) {
+                chartsGrid.innerHTML = "<p>Nenhuma métrica encontrada.</p>";
+                return;
+            }
+
+            // 1. Cria os elementos HTML para cada rede social
+            metrics.forEach(networkData => {
+                const card = document.createElement('div');
+                card.className = 'chart-card-wrapper'; // Usamos uma classe wrapper
+                card.dataset.network = networkData.social_network; // Para o filtro
+                card.innerHTML = `
+                    <h3 style="text-align:center; margin-bottom: 20px;">${formatNetworkName(networkData.social_network)}</h3>
+                    <div class="dashboard-container">
+                        <div class="chart-card">
+                            <h4>Publicações na Semana</h4>
+                            <canvas id="weekChart-${networkData.social_network}"></canvas>
+                        </div>
+                        <div class="chart-card">
+                            <h4>Publicações no Mês</h4>
+                            <canvas id="monthChart-${networkData.social_network}"></canvas>
+                        </div>
+                    </div>
+                `;
+                chartsGrid.appendChild(card);
+            });
+
+            // 2. Renderiza os gráficos nos elementos recém-criados
+            metrics.forEach(networkData => {
+                // Dados da Semana
+                const weekData = {
+                    labels: ['Posts', 'Stories', 'Reels'],
+                    values: [
+                        parseInt(networkData.postsWeek, 10),
+                        parseInt(networkData.storiesWeek, 10),
+                        parseInt(networkData.reelsWeek, 10)
+                    ]
+                };
+                if (weekData.values.some(v => v > 0)) {
+                    const weekCtx = document.getElementById(`weekChart-${networkData.social_network}`).getContext('2d');
+                    new Chart(weekCtx, { type: 'doughnut', data: { labels: weekData.labels, datasets: [{ data: weekData.values, backgroundColor: ['#E1306C', '#4267B2', '#833AB4'] }] } });
+                }
+
+                // Dados do Mês
+                const monthData = {
+                    labels: ['Posts', 'Stories', 'Reels'],
+                    values: [
+                        parseInt(networkData.postsMonth, 10),
+                        parseInt(networkData.storiesMonth, 10),
+                        parseInt(networkData.reelsMonth, 10)
+                    ]
+                };
+                if (monthData.values.some(v => v > 0)) {
+                    const monthCtx = document.getElementById(`monthChart-${networkData.social_network}`).getContext('2d');
+                    new Chart(monthCtx, { type: 'bar', data: { labels: monthData.labels, datasets: [{ label: 'Total', data: monthData.values, backgroundColor: 'rgba(0, 123, 255, 0.7)' }] }, options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } } });
+                }
+            });
+            
+            // 3. Lógica do filtro
+            document.getElementById('dashboard-social-network').addEventListener('change', function() {
+                const selectedNetwork = this.value;
+                document.querySelectorAll('.chart-card-wrapper').forEach(card => {
+                    if (selectedNetwork === 'todos' || card.dataset.network === selectedNetwork) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        }
 
         function aggregateMetrics(metricsArray) {
             // Objeto inicial com todas as chaves zeradas

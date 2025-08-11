@@ -11,82 +11,109 @@
             --card-bg-color: #242526;
             --border-color: #3a3b3c;
             --btn-whatsapp-bg: #25D366;
-            --btn-delete-bg: #dc3545; /* Vermelho para download/delete */
+            --btn-delete-bg: #dc3545;
             --btn-text-color: #ffffff;
-            --input-bg-color: #3a3b3c;
-            --input-border-color: #4d4d4d;
         }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100%;
             background-color: var(--bg-color);
             color: var(--text-color);
-            margin: 0;
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
+            box-sizing: border-box;
         }
-        .header { text-align: center; margin-bottom: 20px; }
+        .header {
+            text-align: center;
+            padding: 20px 10px;
+        }
+        .header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+        .header h2 {
+            font-size: 1.2rem;
+            margin: 5px 0 0 0;
+            font-weight: 400;
+        }
+        #downloadCardContainer {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            padding: 0 15px 20px 15px;
+            box-sizing: border-box;
+        }
         .card {
             background-color: var(--card-bg-color);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: 12px;
             padding: 15px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            display: flex;
-            flex-direction: column;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             width: 100%;
-            max-width: 400px;
+            max-width: 380px;
         }
         .card .media-content {
-            width: 100%; height: auto; aspect-ratio: 5 / 8;
-            border-radius: 6px; margin-bottom: 10px; background-color: var(--bg-color);
-            display: flex; align-items: center; justify-content: center;
-            overflow: hidden; position: relative;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 9 / 16;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background-color: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
         }
         .card .media-content img, .card .media-content video {
-            width: 100%; height: 100%; object-fit: cover;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
-        .card-buttons { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .card-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
         button {
-            cursor: pointer; padding: 12px 15px; border-radius: 6px; border: none;
-            color: var(--btn-text-color); font-size: 16px; font-weight: 600; transition: opacity 0.2s;
+            cursor: pointer;
+            padding: 14px 15px;
+            border-radius: 8px;
+            border: none;
+            color: var(--btn-text-color);
+            font-size: 1rem;
+            font-weight: 600;
+            transition: opacity 0.2s;
         }
         button:hover { opacity: 0.9; }
         .btn-download { background-color: var(--btn-delete-bg); }
         .btn-whatsapp { background-color: var(--btn-whatsapp-bg); }
         .play-button-overlay {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0, 0, 0, 0.3); display: flex;
-            justify-content: center; align-items: center; cursor: pointer;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
         }
         .play-button-overlay svg { width: 60px; height: 60px; fill: white; }
         .loading-overlay-full {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7); color: white; font-size: 20px;
-            z-index: 9999; flex-direction: column; justify-content: center; align-items: center;
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            color: white; font-size: 20px;
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
         .loading-overlay-full.active { display: flex; }
-        .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.6); z-index: 1050;
-            justify-content: center; align-items: center;
-        }
-        .modal-content {
-            background-color: var(--card-bg-color); padding: 25px; border-radius: 8px;
-            width: 90%; max-width: 400px; position: relative;
-        }
-        .modal-close-btn {
-            position: absolute; top: 10px; right: 15px; font-size: 24px;
-            font-weight: bold; background: none; border: none; cursor: pointer; color: #888;
-        }
-        .modal-actions { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; }
-        .btn-cancel { background-color: #6c757d; }
-        .btn-confirm { background-color: #007bff; }
-        input[type="tel"] {
-            width: 100%; padding: 10px; border-radius: 4px; border: 1px solid var(--input-border-color);
-            background-color: var(--input-bg-color); color: var(--text-color); font-size: 16px;
-        }
     </style>
 </head>
 <body>
@@ -225,7 +252,6 @@
         }
 
         function renderSinglePostCard(targetDiv, item) {
-            currentItem = item;
             const card = document.createElement('div');
             card.className = 'card';
 
@@ -235,7 +261,7 @@
             contentDiv.innerHTML = `
                 <div class="card-buttons">
                     <button id="btnDownloadMedia" class="btn-download">Baixar Mídia</button>
-                    <button id="btnOpenWhatsAppModal" class="btn-whatsapp">Enviar por WhatsApp</button>
+                    <button id="btnSendMediaWhatsApp" class="btn-whatsapp">Enviar por WhatsApp</button>
                 </div>
             `;
 
@@ -248,13 +274,31 @@
 
             document.getElementById('btnDownloadMedia').addEventListener('click', () => {
                 const mediaUrl = (item.media_urls || []).find(url => url.endsWith('.mp4') || url.endsWith('.webp') || url.endsWith('.jpg'));
-                handleDownloadMedia(mediaUrl); // Chama a nova função
+                if (mediaUrl) {
+                    const link = document.createElement('a');
+                    link.href = mediaUrl;
+                    link.download = mediaUrl.split('/').pop();
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    alert('Nenhum arquivo de mídia para baixar.');
+                }
             });
 
-            document.getElementById('btnOpenWhatsAppModal').addEventListener('click', () => {
-                const modal = document.getElementById('modalSendWhatsApp');
-                modal.style.display = 'flex';
-                document.getElementById('whatsappNumber').focus();
+            // --- LÓGICA DO BOTÃO WHATSAPP CORRIGIDA ---
+            document.getElementById('btnSendMediaWhatsApp').addEventListener('click', () => {
+                const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+                const message = encodeURIComponent(`quero receber o video do id = ${item.id}`);
+                const numeroTelefone = "5511989200952"; // Substitua pelo número de destino
+
+                // Se for mobile, usa o link "api.whatsapp.com" para abrir o app
+                // Se for desktop, usa "web.whatsapp.com" para abrir a nova aba
+                const whatsappUrl = isMobile 
+                    ? `https://api.whatsapp.com/send?phone=${numeroTelefone}&text=${message}`
+                    : `https://web.whatsapp.com/send?phone=${numeroTelefone}&text=${message}`;
+
+                window.open(whatsappUrl, '_blank');
             });
         }
 
