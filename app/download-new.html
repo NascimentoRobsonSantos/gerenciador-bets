@@ -291,13 +291,11 @@
                 const params = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
                 const postId = params.get('id');
                 const socialMedia = params.get('social_media');
-                let accountName = params.get('account_name');
-                if (!accountName) accountName = 'Carla Indica';
 
 
                 if (!postId || !socialMedia) throw new Error("Parâmetros inválidos na URL.");
 
-                const endpoint = `${API_URLS.GET_SINGLE_POST}?id=${postId}&social_media=${socialMedia}&conta_user=${accountName}`;
+                const endpoint = `${API_URLS.GET_SINGLE_POST}?id=${postId}&social_media=${socialMedia}`;
                 const response = await fetch(endpoint);
                 if (!response.ok) throw new Error(`Erro ao buscar mídia: ${response.statusText}`);
                 
