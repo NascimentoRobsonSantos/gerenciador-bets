@@ -30,7 +30,7 @@
             align-items: center;
             justify-content: center;
             gap: 15px; /* Espaçamento entre o logo e o título */
-            margin-bottom: 15px; /* Margem inferior reduzida */
+            margin-bottom: 5px; /* Margem inferior reduzida */
         }
         .header h2 { font-weight: 300; font-size: 1.5rem; }
         .logo-image {
@@ -56,7 +56,7 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             width: 100%;
             max-width: 300px;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
         .media-container {
             width: 100%;
@@ -291,7 +291,9 @@
                 const params = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
                 const postId = params.get('id');
                 const socialMedia = params.get('social_media');
-                const accountName = params.get('account_name');
+                let accountName = params.get('account_name');
+                if (!accountName) accountName = 'Carla Indica';
+
 
                 if (!postId || !socialMedia) throw new Error("Parâmetros inválidos na URL.");
 
