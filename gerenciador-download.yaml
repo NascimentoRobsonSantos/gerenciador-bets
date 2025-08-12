@@ -20,8 +20,8 @@ services:
         - "traefik.enable=true"
         - "traefik.docker.network=StoreProDigitalNet"
 
-        # --- Roteador para app.carlaindicaofertas.com.br ---
-        - "traefik.http.routers.gerenciador-download-secure.rule=Host(`app.carlaindicaofertas.com.br`)"
+        # --- Roteador para download.carlaindicaofertas.com.br ---
+        - "traefik.http.routers.gerenciador-download-secure.rule=Host(`download.carlaindicaofertas.com.br`)"
         - "traefik.http.routers.gerenciador-download-secure.entrypoints=websecure"
         - "traefik.http.routers.gerenciador-download-secure.tls=true"
         - "traefik.http.routers.gerenciador-download-secure.tls.certresolver=zerosslresolver"
