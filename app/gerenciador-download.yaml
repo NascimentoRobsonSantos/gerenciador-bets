@@ -10,6 +10,8 @@ services:
     networks:
       # Conecta o serviço à rede do Traefik
       - StoreProDigitalNet
+    ports:
+      - 81:81
     deploy:
       restart_policy:
         condition: any
