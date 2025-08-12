@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  # Nome do nosso serviço
+  gerenciador-download:
+    # IMPORTANTE: A imagem deve ser construída manualmente na VPS antes do deploy.
+    # O Portainer usará esta imagem que já existe localmente.
+    # O nome da imagem é 'gerenciador-download-frontend:latest'
+    image: gerenciador-download:latest
+    networks:
+      # Conecta o serviço à rede do Traefik
+      - StoreProDigitalNet
+    deploy:
+      restart_policy:
+        condition: any
+      labels:
+        # --- Configurações do Traefik ---
+        - "traefik.enable=true"
+        - "traefik.docker.network=StoreProDigitalNet"
+
+        # --- Roteador para app.carlaindicaofertas.com.br ---
+        - "traefik.http.routers.gerenciador-download-secure.rule=Host(`app.carlaindicaofertas.com.br`)"
+        - "traefik.http.routers.gerenciador-download-secure.entrypoints=websecure"
+        - "traefik.http.routers.gerenciador-download-secure.tls=true"
+        - "traefik.http.routers.gerenciador-download-secure.tls.certresolver=zerosslresolver"
+        - "traefik.http.routers.gerenciador-download-secure.service=gerenciador-download-service"
+
+        # --- Serviço do Traefik ---
+        - "traefik.http.services.gerenciador-download-service.loadbalancer.server.port=80"
+        - "traefik.http.services.gerenciador-download-service.loadbalancer.passHostHeader=true"
+
+networks:
+  # Declara que a rede é externa, pois ela já foi criada pelo Traefik
+  StoreProDigitalNet:
+    external: true

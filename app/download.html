@@ -10,108 +10,108 @@
             --text-color: #e4e6eb;
             --card-bg-color: #242526;
             --border-color: #3a3b3c;
-            --btn-whatsapp-bg: #25D366;
-            --btn-delete-bg: #dc3545;
+            --btn-download-bg: #cebd26;
             --btn-text-color: #ffffff;
         }
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            min-height: 100%;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 5px;
             display: flex;
             flex-direction: column;
             align-items: center;
             box-sizing: border-box;
+            touch-action: manipulation;
         }
         .header {
-            text-align: center;
-            padding: 20px 10px;
-        }
-        .header h1 {
-            font-size: 1.5rem;
-            margin: 0;
-        }
-        .header h2 {
-            font-size: 1.2rem;
-            margin: 5px 0 0 0;
-            font-weight: 400;
-        }
-        #downloadCardContainer {
-            width: 100%;
             display: flex;
+            align-items: center;
             justify-content: center;
-            padding: 0 15px 20px 15px;
-            box-sizing: border-box;
+            gap: 15px; /* Espaçamento entre o logo e o título */
+           /* margin-bottom: 5px;  Margem inferior reduzida */
+        }
+        .header h2 { font-weight: 200; font-size: 1.2rem; }
+        .logo-image {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-download {
+            background-color: #a1941e; /* Cor marrom/dourada do seu logo */
+        }
+
+        .btn-whatsapp {
+            background-color: #199647; /* Cor verde do WhatsApp */
         }
         .card {
             background-color: var(--card-bg-color);
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            padding: 15px;
+            padding: 5px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             width: 100%;
-            max-width: 380px;
+            max-width: 250px;
+            margin-bottom: 5px;
         }
-        .card .media-content {
+        .media-container {
             width: 100%;
             height: auto;
             aspect-ratio: 9 / 16;
             border-radius: 8px;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             background-color: var(--bg-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
             overflow: hidden;
             position: relative;
         }
-        .card .media-content img, .card .media-content video {
+        .media-container .media-item {
+            width: 100%;
+            height: 100%;
+            display: none; /* Escondido por padrão */
+        }
+        .media-container .media-item.active {
+            display: block; /* Mostra o item ativo */
+        }
+        .media-container img, .media-container video {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        .card-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        button {
-            cursor: pointer;
-            padding: 14px 15px;
-            border-radius: 8px;
+        .carousel-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
             border: none;
-            color: var(--btn-text-color);
-            font-size: 1rem;
-            font-weight: 600;
+            border-radius: 50%;
+            width: 35px;
+            height: 25px;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .carousel-arrow.prev { left: 10px; }
+        .carousel-arrow.next { right: 10px; }
+        .card-buttons { display: flex; flex-direction: column; gap: 12px; }
+        button {
+            cursor: pointer; padding: 10px 12px; border-radius: 8px; border: none;
+            color: var(--btn-text-color); font-size: 1rem; font-weight: 550;
             transition: opacity 0.2s;
         }
-        button:hover { opacity: 0.9; }
-        .btn-download { background-color: var(--btn-delete-bg); }
-        .btn-whatsapp { background-color: var(--btn-whatsapp-bg); }
-        .play-button-overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0, 0, 0, 0.3);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-        }
-        .play-button-overlay svg { width: 60px; height: 60px; fill: white; }
+        button:hover { opacity: 0.7; }
+        .btn-download { background-color: var(--btn-download-bg); }
         .loading-overlay-full {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            color: white; font-size: 20px;
-            z-index: 9999;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7); color: white;
+            z-index: 9999; flex-direction: column; justify-content: center; align-items: center;
         }
         .loading-overlay-full.active { display: flex; }
     </style>
@@ -119,41 +119,18 @@
 <body>
 
     <div class="header">
-        <h2>Download de Arquivos</h2>
+        <img id="pageLogo" src="" alt="Logo" class="logo-image">
+        <h2 id="pageTitle">Download de Arquivos</h2>
     </div>
 
-    <div id="downloadCardContainer">
-        </div>
-
-    <div id="modalSendWhatsApp" class="modal-overlay">
-        <div class="modal-content">
-            <button class="modal-close-btn" data-modal-id="modalSendWhatsApp">&times;</button>
-            <h3>Enviar Mídia por WhatsApp</h3>
-            <form id="formSendWhatsApp">
-                <div style="margin-top: 15px;">
-                    <label for="whatsappNumber">Número do Celular:</label>
-                    <input type="tel" id="whatsappNumber" placeholder="(XX) X XXXX-XXXX" required>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn-cancel modal-close-btn-alternative" data-modal-id="modalSendWhatsApp">Cancelar</button>
-                    <button type="submit" class="btn-confirm">Enviar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="loadingOverlayFull" class="loading-overlay-full">
-        <p>Carregando...</p>
-    </div>
+    <div id="downloadCardContainer"></div>
+    <div id="loadingOverlayFull" class="loading-overlay-full"><p>Carregando...</p></div>
 
     <script>
         const API_URLS = {
-            GET_SINGLE_POST: "https://webhook.storeprodigital.site/webhook/download-file-media",
-            SEND_WHATSAPP: "https://webhook.storeprodigital.site/webhook/send-whatsapp-download-file-media"
+            GET_SINGLE_POST: "https://webhook.storeprodigital.site/webhook/download-file-media"
         };
-
         const loadingOverlay = document.getElementById('loadingOverlayFull');
-        let currentItem = null; // Variável global para armazenar o item carregado
 
         function showLoading(message = "Carregando...") {
             if (loadingOverlay) {
@@ -161,145 +138,10 @@
                 loadingOverlay.classList.add('active');
             }
         }
-
         function hideLoading() {
             if (loadingOverlay) {
                 loadingOverlay.classList.remove('active');
             }
-        }
-
-        async function handleDownloadMedia(mediaUrl) {
-            if (!mediaUrl) {
-                alert('Nenhum arquivo de mídia para baixar.');
-                return;
-            }
-
-            const fileName = mediaUrl.split('/').pop();
-            
-            showLoading("Preparando download...");
-
-            try {
-                // Busca o arquivo como um Blob
-                const response = await fetch(mediaUrl);
-                if (!response.ok) {
-                    throw new Error('Falha ao buscar a mídia.');
-                }
-                const blob = await response.blob();
-                const file = new File([blob], fileName, { type: blob.type });
-
-                // Tenta usar a API de Compartilhamento Nativo (ideal para mobile)
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file],
-                        title: 'Salvar Mídia',
-                        text: 'Confira esta mídia!',
-                    });
-                    hideLoading();
-                    return; // Sucesso, encerra a função aqui
-                }
-
-                // Fallback para o método de download tradicional (desktop e navegadores sem Share API)
-                const link = document.createElement('a');
-                const url = window.URL.createObjectURL(blob);
-                link.href = url;
-                link.download = fileName;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(url); // Limpa a memória
-
-            } catch (error) {
-                console.error('Erro no download:', error);
-                // Se o usuário cancelar o compartilhamento, pode gerar um erro "AbortError", que não precisa de alerta.
-                if (error.name !== 'AbortError') {
-                   alert('Não foi possível iniciar o download. Tente novamente.');
-                }
-            } finally {
-                hideLoading();
-            }
-        }
-        
-        function createSmartMediaElement(item) {
-            const mediaContainer = document.createElement('div');
-            mediaContainer.className = 'media-content';
-            const placeholder = 'https://placehold.co/400x640/cccccc/ffffff?text=Indisponível';
-            const urls = item.media_urls || [];
-            
-            if (!urls.length) {
-                mediaContainer.innerHTML = '<span>Mídia indisponível</span>';
-                return mediaContainer;
-            }
-
-            const videoUrl = urls.find(url => url.endsWith('.mp4') || url.endsWith('.mov'));
-            const imageUrl = urls.find(url => url.endsWith('.webp') || url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.png'));
-
-            if (videoUrl) {
-                mediaContainer.innerHTML = `
-                    <img src="${imageUrl || placeholder}" alt="Thumbnail do vídeo" style="width:100%; height:100%; object-fit:cover;">
-                    <div class="play-button-overlay">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
-                    </div>`;
-                mediaContainer.querySelector('.play-button-overlay').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    mediaContainer.innerHTML = `<video src="${videoUrl}" controls autoplay style="width:100%; height:100%;"></video>`;
-                });
-            } else if (imageUrl) {
-                mediaContainer.innerHTML = `<img src="${imageUrl}" alt="Mídia do post">`;
-            } else {
-                mediaContainer.innerHTML = '<span>Mídia indisponível</span>';
-            }
-            return mediaContainer;
-        }
-
-        function renderSinglePostCard(targetDiv, item) {
-            const card = document.createElement('div');
-            card.className = 'card';
-
-            const mediaElement = createSmartMediaElement(item);
-            
-            const contentDiv = document.createElement('div');
-            contentDiv.innerHTML = `
-                <div class="card-buttons">
-                    <button id="btnDownloadMedia" class="btn-download">Baixar Mídia</button>
-                    <button id="btnSendMediaWhatsApp" class="btn-whatsapp">Enviar por WhatsApp</button>
-                </div>
-            `;
-
-            if (mediaElement) {
-                card.appendChild(mediaElement);
-            }
-            card.appendChild(contentDiv);
-            targetDiv.innerHTML = '';
-            targetDiv.appendChild(card);
-
-            document.getElementById('btnDownloadMedia').addEventListener('click', () => {
-                const mediaUrl = (item.media_urls || []).find(url => url.endsWith('.mp4') || url.endsWith('.webp') || url.endsWith('.jpg'));
-                if (mediaUrl) {
-                    const link = document.createElement('a');
-                    link.href = mediaUrl;
-                    link.download = mediaUrl.split('/').pop();
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                } else {
-                    alert('Nenhum arquivo de mídia para baixar.');
-                }
-            });
-
-            // --- LÓGICA DO BOTÃO WHATSAPP CORRIGIDA ---
-            document.getElementById('btnSendMediaWhatsApp').addEventListener('click', () => {
-                const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
-                const message = encodeURIComponent(`quero receber o video do id = ${item.id}`);
-                const numeroTelefone = "5511989200952"; // Substitua pelo número de destino
-
-                // Se for mobile, usa o link "api.whatsapp.com" para abrir o app
-                // Se for desktop, usa "web.whatsapp.com" para abrir a nova aba
-                const whatsappUrl = isMobile 
-                    ? `https://api.whatsapp.com/send?phone=${numeroTelefone}&text=${message}`
-                    : `https://web.whatsapp.com/send?phone=${numeroTelefone}&text=${message}`;
-
-                window.open(whatsappUrl, '_blank');
-            });
         }
 
         async function handleDownloadMedia(mediaUrl) {
@@ -350,47 +192,98 @@
                 hideLoading();
             }
         }
-
-        async function handleSendToWhatsApp(event) {
-            event.preventDefault();
-            const whatsappNumberInput = document.getElementById('whatsappNumber');
-            let number = whatsappNumberInput.value.replace(/\D/g, ''); // Remove todos os não-dígitos
-
-            if (number.length < 10 || !currentItem) {
-                alert("Número de telefone inválido ou mídia não carregada.");
-                return;
-            }
-
-            showLoading("Enviando...");
-            try {
-                const payload = {
-                    numero_telefone: number,
-                    links: {
-                        media_urls: currentItem.media_urls || []
-                    }
-                };
-                
-                const response = await fetch(API_URLS.SEND_WHATSAPP, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(errorText || 'Falha no envio.');
-                }
-
-                alert('Mídia enviada com sucesso!');
-                document.getElementById('modalSendWhatsApp').style.display = 'none';
-
-            } catch (error) {
-                alert(`Erro ao enviar: ${error.message}`);
-            } finally {
-                hideLoading();
-            }
-        }
         
+        function renderSinglePostCard(targetDiv, item) {
+            currentItem = item;
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            const mediaContainer = document.createElement('div');
+            mediaContainer.className = 'media-container';
+            
+            // Inverte a ordem do array media_urls
+            const urls = [...(item.media_urls || [])].reverse();
+            let currentIndex = 0;
+
+            urls.forEach((url, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'media-item';
+                if (index === 0) {
+                    itemDiv.classList.add('active');
+                }
+                if (url.endsWith('.mp4') || url.endsWith('.mov')) {
+                    itemDiv.innerHTML = `<video src="${url}" controls></video>`;
+                } else {
+                    itemDiv.innerHTML = `<img src="${url}" alt="Mídia">`;
+                }
+                mediaContainer.appendChild(itemDiv);
+            });
+
+            if (urls.length > 1) {
+                mediaContainer.innerHTML += `
+                    <button class="carousel-arrow prev">&#10094;</button>
+                    <button class="carousel-arrow next">&#10095;</button>
+                `;
+            }
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'card-buttons';
+            
+            // --- BOTÃO DO GRUPO VIP ADICIONADO AQUI ---
+            contentDiv.innerHTML = `
+                <button id="btnJoinVip" class="btn-whatsapp">Entrar no Grupo Vip</button>
+            `;
+            
+            card.appendChild(mediaContainer);
+            card.appendChild(contentDiv);
+            targetDiv.innerHTML = '';
+            targetDiv.appendChild(card);
+
+            // Lógica do Carrossel e Botão de Download
+            const mediaItems = card.querySelectorAll('.media-item');
+            
+            function updateDownloadButton() {
+                // Encontra o botão de entrar no grupo para não removê-lo
+                const vipButton = contentDiv.querySelector('#btnJoinVip');
+                contentDiv.innerHTML = ''; // Limpa botões antigos
+                
+                const currentMediaSrc = mediaItems[currentIndex].querySelector('img, video')?.src;
+                if (currentMediaSrc) {
+                    const downloadButton = document.createElement('button');
+                    downloadButton.id = 'btnDownloadMedia';
+                    downloadButton.className = 'btn-download';
+                    downloadButton.textContent = 'Baixar Mídia Atual';
+                    downloadButton.addEventListener('click', () => handleDownloadMedia(currentMediaSrc));
+                    contentDiv.appendChild(downloadButton); // Adiciona o botão de download
+                }
+                if (vipButton) {
+                    contentDiv.appendChild(vipButton); // Readiciona o botão VIP
+                }
+            }
+
+            if (urls.length > 1) {
+                card.querySelector('.prev').addEventListener('click', () => {
+                    mediaItems[currentIndex].classList.remove('active');
+                    currentIndex = (currentIndex > 0) ? currentIndex - 1 : mediaItems.length - 1;
+                    mediaItems[currentIndex].classList.add('active');
+                    updateDownloadButton();
+                });
+                card.querySelector('.next').addEventListener('click', () => {
+                    mediaItems[currentIndex].classList.remove('active');
+                    currentIndex = (currentIndex < mediaItems.length - 1) ? currentIndex + 1 : 0;
+                    mediaItems[currentIndex].classList.add('active');
+                    updateDownloadButton();
+                });
+            }
+            
+            updateDownloadButton(); // Gera o(s) botão(ões) para o primeiro item
+            
+            // Listener para o botão do grupo VIP
+            document.getElementById('btnJoinVip').addEventListener('click', () => {
+                window.open('https://chat.whatsapp.com/EQXc8JagROKEdbpmAwUT20', '_blank');
+            });
+        }
+
         async function loadMedia() {
             const container = document.getElementById('downloadCardContainer');
             showLoading();
@@ -399,22 +292,23 @@
                 const postId = params.get('id');
                 const socialMedia = params.get('social_media');
 
-                if (!postId || !socialMedia) {
-                    throw new Error("ID do post ou rede social não fornecidos na URL.");
-                }
+
+                if (!postId || !socialMedia) throw new Error("Parâmetros inválidos na URL.");
 
                 const endpoint = `${API_URLS.GET_SINGLE_POST}?id=${postId}&social_media=${socialMedia}`;
-                
                 const response = await fetch(endpoint);
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Erro ao buscar mídia: ${errorText || response.statusText}`);
-                }
+                if (!response.ok) throw new Error(`Erro ao buscar mídia: ${response.statusText}`);
                 
                 const item = await response.json();
-                
-                if (!item || !item.id) {
-                    throw new Error("Mídia não encontrada com o ID fornecido.");
+                if (!item || !item.id) throw new Error("Mídia não encontrada.");
+
+                // --- CORREÇÃO APLICADA AQUI ---
+                // Pega o logo e o nome da conta diretamente da resposta da API
+                if (item.url_logo) {
+                    document.getElementById('pageLogo').src = item.url_logo;
+                }
+                if (item.account_name) {
+                    document.getElementById('pageTitle').textContent = item.account_name;
                 }
                 
                 renderSinglePostCard(container, item);
@@ -427,44 +321,12 @@
         
         document.addEventListener('DOMContentLoaded', () => {
             loadMedia();
-
-            // --- CÓDIGO PARA ADICIONAR ---
-            // Bloqueia o gesto de pinça para zoom
-            document.addEventListener('gesturestart', function (e) {
-                e.preventDefault();
-            });
-            // Bloqueia o zoom com múltiplos toques
-            document.body.addEventListener('touchstart', function(e) {
-                if (e.touches.length > 1) {
-                    e.preventDefault();
-                }
+            document.addEventListener('gesturestart', (e) => e.preventDefault());
+            document.body.addEventListener('touchstart', (e) => {
+                if (e.touches.length > 1) e.preventDefault();
             }, { passive: false });
-            // Bloqueia o zoom com duplo clique
-            document.addEventListener('dblclick', function(e) {
-                e.preventDefault();
-            }, { passive: false });
-            // --- FIM DO BLOCO A SER ADICIONADO ---
-
-            // Listeners do modal de WhatsApp (seu código existente)
-            const modalWhatsApp = document.getElementById('modalSendWhatsApp');
-            modalWhatsApp.querySelector('.modal-close-btn').addEventListener('click', () => modalWhatsApp.style.display = 'none');
-            modalWhatsApp.querySelector('.modal-close-btn-alternative').addEventListener('click', () => modalWhatsApp.style.display = 'none');
-            document.getElementById('formSendWhatsApp').addEventListener('submit', handleSendToWhatsApp);
-
-            // Máscara para o campo de telefone (seu código existente)
-            const whatsappNumberInput = document.getElementById('whatsappNumber');
-            whatsappNumberInput.addEventListener('input', (e) => {
-                let value = e.target.value.replace(/\D/g, '');
-                value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
-                if (value.length > 10) { // Ajustado para números com 9 dígitos + DDD
-                    value = value.replace(/(\d{5})(\d)/, '$1-$2');
-                } else {
-                    value = value.replace(/(\d{4})(\d)/, '$1-$2');
-                }
-                e.target.value = value.slice(0, 15);
-            });
+            document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
         });
-
     </script>
 </body>
 </html>

@@ -23,4 +23,4 @@ jobs:
 
       - name: Rodar script remoto via SSH
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "bash /root/gerenciador-post/deploy.sh"
+          ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "bash /root/gerenciador-download/deploy.sh"
