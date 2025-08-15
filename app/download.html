@@ -48,6 +48,9 @@
         .btn-whatsapp {
             background-color: #199647; /* Cor verde do WhatsApp */
         }
+        .btn-shopee {
+            background-color: #EE4D2D; /* Cor laranja da shopee */
+        }
         .card {
             background-color: var(--card-bg-color);
             border: 1px solid var(--border-color);
@@ -232,6 +235,7 @@
             // --- BOTÃO DO GRUPO VIP ADICIONADO AQUI ---
             contentDiv.innerHTML = `
                 <button id="btnJoinVip" class="btn-whatsapp">Grupo Vip Whats Ofertas</button>
+                <button id="btnLinkShopee" class="btn-shopee">Link Coleção Shopee</button>
             `;
             
             card.appendChild(mediaContainer);
@@ -245,6 +249,7 @@
             function updateDownloadButton() {
                 // Encontra o botão de entrar no grupo para não removê-lo
                 const vipButton = contentDiv.querySelector('#btnJoinVip');
+                const shopeeButton = contentDiv.querySelector('#btnLinkShopee');
                 contentDiv.innerHTML = ''; // Limpa botões antigos
                 
                 const currentMediaSrc = mediaItems[currentIndex].querySelector('img, video')?.src;
@@ -258,6 +263,9 @@
                 }
                 if (vipButton) {
                     contentDiv.appendChild(vipButton); // Readiciona o botão VIP
+                }
+                if (shopeeButton) {
+                    contentDiv.appendChild(shopeeButton); // Readiciona o botão Shopee
                 }
             }
 
@@ -281,6 +289,9 @@
             // Listener para o botão do grupo VIP
             document.getElementById('btnJoinVip').addEventListener('click', () => {
                 window.open('https://chat.whatsapp.com/EQXc8JagROKEdbpmAwUT20', '_blank');
+            });
+            document.getElementById('btnLinkShopee').addEventListener('click', () => {
+                window.open('https://collshp.com/unboxforfamily', '_blank');
             });
         }
 
