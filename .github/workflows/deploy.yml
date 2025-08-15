@@ -3,7 +3,7 @@ name: Deploy automático para VPS
 on:
   push:
     branches:
-      - main  # ou outra branch principal
+      - main # ou outra branch principal
 
 jobs:
   deploy:
@@ -23,4 +23,4 @@ jobs:
 
       - name: Rodar script remoto via SSH
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "bash /root/gerenciador-download/deploy.sh"
+          ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "bash /root/gerenciador-downloads/deploy.sh"
