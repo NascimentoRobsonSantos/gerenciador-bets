@@ -248,7 +248,134 @@
         //         hideLoading();
         //     }
         // }
+
+        async function generateVideoThumbnail(videoUrl) {
+            return new Promise((resolve) => {
+                const video = document.createElement("video");
+                video.src = videoUrl;
+                video.crossOrigin = "anonymous";
+                video.muted = true;
+                video.playsInline = true;
+
+                // Quando carregar os metadados, força ir para o tempo 0
+                video.addEventListener("loadeddata", () => {
+                    video.currentTime = 0;
+                });
+
+                // Quando chegar no tempo 0, desenha no canvas
+                video.addEventListener("seeked", () => {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    resolve(canvas.toDataURL("image/jpeg")); // Retorna o preview
+                });
+            });
+        }
+
+        function renderSinglePostCard(targetDiv, item) {
+            currentItem = item;
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            const mediaContainer = document.createElement('div');
+            mediaContainer.className = 'media-container';
+            
+            // Inverte a ordem do array media_urls
+            const urls = [...(item.media_urls || [])].reverse();
+            let currentIndex = 0;
+
+            // 🚀 Torna o forEach assíncrono para poder esperar o thumbnail
+            (async () => {
+                for (let index = 0; index < urls.length; index++) {
+                    const url = urls[index];
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'media-item';
+                    if (index === 0) {
+                        itemDiv.classList.add('active');
+                    }
+
+                    if (url.endsWith('.mp4') || url.endsWith('.mov')) {
+                        // Gera thumbnail automaticamente
+                        const thumbUrl = await generateVideoThumbnail(url);
+                        itemDiv.innerHTML = `<video src="${url}" controls preload="metadata" poster="${thumbUrl}"></video>`;
+                    } else {
+                        itemDiv.innerHTML = `<img src="${url}" alt="Mídia">`;
+                    }
+                    mediaContainer.appendChild(itemDiv);
+                }
+
+                if (urls.length > 1) {
+                    mediaContainer.innerHTML += `
+                        <button class="carousel-arrow prev">&#10094;</button>
+                        <button class="carousel-arrow next">&#10095;</button>
+                    `;
+                }
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'card-buttons';
+                
+                // --- BOTÕES FIXOS ---
+                contentDiv.innerHTML = `
+                    <button id="btnJoinVip" class="btn-whatsapp">Grupo Vip Whats Ofertas</button>
+                    <button id="btnLinkShopee" class="btn-shopee">Melhores Produtos Aqui</button>
+                `;
+                
+                card.appendChild(mediaContainer);
+                card.appendChild(contentDiv);
+                targetDiv.innerHTML = '';
+                targetDiv.appendChild(card);
+
+                // Lógica do Carrossel e Botão de Download
+                const mediaItems = card.querySelectorAll('.media-item');
+                
+                function updateDownloadButton() {
+                    const vipButton = contentDiv.querySelector('#btnJoinVip');
+                    const shopeeButton = contentDiv.querySelector('#btnLinkShopee');
+                    contentDiv.innerHTML = ''; 
+                    
+                    const currentMediaSrc = mediaItems[currentIndex].querySelector('img, video')?.src;
+                    if (currentMediaSrc) {
+                        const downloadButton = document.createElement('button');
+                        downloadButton.id = 'btnDownloadMedia';
+                        downloadButton.className = 'btn-download';
+                        downloadButton.textContent = 'Baixar Wallpaper';
+                        downloadButton.addEventListener('click', () => handleDownloadMedia(currentMediaSrc));
+                        contentDiv.appendChild(downloadButton);
+                    }
+                    if (vipButton) contentDiv.appendChild(vipButton);
+                    if (shopeeButton) contentDiv.appendChild(shopeeButton);
+                }
+
+                if (urls.length > 1) {
+                    card.querySelector('.prev').addEventListener('click', () => {
+                        mediaItems[currentIndex].classList.remove('active');
+                        currentIndex = (currentIndex > 0) ? currentIndex - 1 : mediaItems.length - 1;
+                        mediaItems[currentIndex].classList.add('active');
+                        updateDownloadButton();
+                    });
+                    card.querySelector('.next').addEventListener('click', () => {
+                        mediaItems[currentIndex].classList.remove('active');
+                        currentIndex = (currentIndex < mediaItems.length - 1) ? currentIndex + 1 : 0;
+                        mediaItems[currentIndex].classList.add('active');
+                        updateDownloadButton();
+                    });
+                }
+                
+                updateDownloadButton();
+                
+                // Listeners dos botões fixos
+                document.getElementById('btnJoinVip').addEventListener('click', () => {
+                    window.open('https://chat.whatsapp.com/EQXc8JagROKEdbpmAwUT20', '_blank');
+                });
+                document.getElementById('btnLinkShopee').addEventListener('click', () => {
+                    window.open('https://collshp.com/unboxforfamily', '_blank');
+                });
+            })();
+        }
         
+        /*
         function renderSinglePostCard(targetDiv, item) {
             currentItem = item;
             const card = document.createElement('div');
@@ -310,7 +437,7 @@
                     const downloadButton = document.createElement('button');
                     downloadButton.id = 'btnDownloadMedia';
                     downloadButton.className = 'btn-download';
-                    downloadButton.textContent = 'Baixar Mídia Atual';
+                    downloadButton.textContent = 'Baixar Wallpaper';
                     downloadButton.addEventListener('click', () => handleDownloadMedia(currentMediaSrc));
                     contentDiv.appendChild(downloadButton); // Adiciona o botão de download
                 }
@@ -347,6 +474,7 @@
                 window.open('https://collshp.com/unboxforfamily', '_blank');
             });
         }
+        **/
 
         async function loadMedia() {
             const container = document.getElementById('downloadCardContainer');
