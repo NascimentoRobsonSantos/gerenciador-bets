@@ -158,25 +158,29 @@
 
             try {
                 const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
-                
+                const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
                 const response = await fetch(mediaUrl);
                 if (!response.ok) throw new Error('Falha ao buscar a mídia.');
                 const blob = await response.blob();
 
-                // Se for mobile e a API de compartilhamento existir, usa ela
-                if (isMobile && navigator.share) {
-                    const file = new File([blob], fileName, { type: blob.type });
-                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                // 📲 Se for iOS, dá a opção de salvar como "vídeo para papel de parede"
+                if (isIOS) {
+                    const file = new File([blob], fileName.replace(/\.\w+$/, ".mov"), { type: "video/quicktime" });
+
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                         await navigator.share({
                             files: [file],
-                            title: 'Salvar Mídia',
+                            title: "Salvar como Live Wallpaper"
                         });
                         hideLoading();
-                        return; // Sucesso no mobile, encerra aqui
+                        return;
+                    } else {
+                        alert("No iPhone, baixe o vídeo .MOV e defina manualmente como Papel de Parede animado.");
                     }
                 }
 
-                // Fallback para desktop (ou mobile sem API de share) - FORÇA O DOWNLOAD
+                // 🌐 Fallback para Android ou Desktop
                 const link = document.createElement('a');
                 const url = window.URL.createObjectURL(blob);
                 link.href = url;
@@ -184,17 +188,66 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                window.URL.revokeObjectURL(url); // Limpa a memória
+                window.URL.revokeObjectURL(url);
 
             } catch (error) {
                 console.error('Erro no download:', error);
                 if (error.name !== 'AbortError') {
-                alert('Não foi possível iniciar o download. Tente novamente.');
+                    alert('Não foi possível iniciar o download. Tente novamente.');
                 }
             } finally {
                 hideLoading();
             }
         }
+
+        // async function handleDownloadMedia(mediaUrl) {
+        //     if (!mediaUrl) {
+        //         alert('Nenhum arquivo de mídia para baixar.');
+        //         return;
+        //     }
+
+        //     const fileName = mediaUrl.split('/').pop();
+        //     showLoading("Preparando download...");
+
+        //     try {
+        //         const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+                
+        //         const response = await fetch(mediaUrl);
+        //         if (!response.ok) throw new Error('Falha ao buscar a mídia.');
+        //         const blob = await response.blob();
+
+        //         // Se for mobile e a API de compartilhamento existir, usa ela
+        //         if (isMobile && navigator.share) {
+        //             const file = new File([blob], fileName, { type: blob.type });
+        //             if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        //                 await navigator.share({
+        //                     files: [file],
+        //                     title: 'Salvar Mídia',
+        //                 });
+        //                 hideLoading();
+        //                 return; // Sucesso no mobile, encerra aqui
+        //             }
+        //         }
+
+        //         // Fallback para desktop (ou mobile sem API de share) - FORÇA O DOWNLOAD
+        //         const link = document.createElement('a');
+        //         const url = window.URL.createObjectURL(blob);
+        //         link.href = url;
+        //         link.download = fileName;
+        //         document.body.appendChild(link);
+        //         link.click();
+        //         document.body.removeChild(link);
+        //         window.URL.revokeObjectURL(url); // Limpa a memória
+
+        //     } catch (error) {
+        //         console.error('Erro no download:', error);
+        //         if (error.name !== 'AbortError') {
+        //         alert('Não foi possível iniciar o download. Tente novamente.');
+        //         }
+        //     } finally {
+        //         hideLoading();
+        //     }
+        // }
         
         function renderSinglePostCard(targetDiv, item) {
             currentItem = item;
