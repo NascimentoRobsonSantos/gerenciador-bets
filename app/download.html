@@ -129,6 +129,26 @@
     <div id="downloadCardContainer"></div>
     <div id="loadingOverlayFull" class="loading-overlay-full"><p>Carregando...</p></div>
 
+    <div id="download-container" class="download-section">
+        <!-- Instruções para iPhone -->
+        <div id="ios-instructions" style="margin-top:20px; display:none;">
+            <h3>📲 Como usar como Papel de Parede Animado no iPhone</h3>
+            <ol style="text-align:left; max-width:400px; margin:auto; font-size:14px;">
+            <li>Baixe o vídeo acima normalmente.</li>
+            <li>Instale o aplicativo <b>intoLive</b> no seu iPhone.</li>
+            <li>Abra o <b>intoLive</b> e importe o vídeo baixado.</li>
+            <li>Exporte como <b>Live Photo</b> dentro do app.</li>
+            <li>Abra o app <b>Fotos</b>, selecione a Live Photo exportada e toque em <b>Usar como Papel de Parede</b>.</li>
+            <li>Escolha <b>Tela Bloqueada</b> e ative a opção <b>Live</b>.</li>
+            </ol>
+            <a href="https://apps.apple.com/br/app/intolive-live-wallpaper/id1206850573" 
+            target="_blank" 
+            style="display:inline-block; margin-top:10px; padding:10px 15px; background:#007aff; color:#fff; border-radius:8px; text-decoration:none; font-weight:bold;">
+            📲 Baixar intoLive na App Store
+            </a>
+        </div>
+    </div>
+
     <script>
         const API_URLS = {
             GET_SINGLE_POST: "https://webhook.storeprodigital.site/webhook/download-file-media"
@@ -164,23 +184,20 @@
                 if (!response.ok) throw new Error('Falha ao buscar a mídia.');
                 const blob = await response.blob();
 
-                // 📲 Se for iOS, dá a opção de salvar como "vídeo para papel de parede"
-                if (isIOS) {
-                    const file = new File([blob], fileName.replace(/\.\w+$/, ".mov"), { type: "video/quicktime" });
-
-                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                // Mobile com Share API
+                if (isMobile && navigator.share) {
+                    const file = new File([blob], fileName, { type: blob.type });
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
                         await navigator.share({
                             files: [file],
-                            title: "Salvar como Live Wallpaper"
+                            title: 'Salvar Mídia',
                         });
                         hideLoading();
                         return;
-                    } else {
-                        alert("No iPhone, baixe o vídeo .MOV e defina manualmente como Papel de Parede animado.");
                     }
                 }
 
-                // 🌐 Fallback para Android ou Desktop
+                // Fallback para download normal
                 const link = document.createElement('a');
                 const url = window.URL.createObjectURL(blob);
                 link.href = url;
@@ -189,6 +206,11 @@
                 link.click();
                 document.body.removeChild(link);
                 window.URL.revokeObjectURL(url);
+
+                // Se for iPhone, mostra instruções extras
+                if (isIOS) {
+                    document.getElementById("ios-instructions").style.display = "block";
+                }
 
             } catch (error) {
                 console.error('Erro no download:', error);
@@ -264,11 +286,16 @@
             urls.forEach((url, index) => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'media-item';
-                if (index === 0) {
-                    itemDiv.classList.add('active');
-                }
+                if (index === 0) itemDiv.classList.add('active');
+
                 if (url.endsWith('.mp4') || url.endsWith('.mov')) {
-                    itemDiv.innerHTML = `<video src="${url}" controls></video>`;
+                    // Se tiver thumbnail_url, usa como poster
+                    if (item.thumbnail_url) {
+                        itemDiv.innerHTML = `<video src="${url}" controls preload="metadata" poster="${item.thumbnail_url}"></video>`;
+                    } else {
+                        // Se não tiver thumbnail, renderiza normal (sem poster)
+                        itemDiv.innerHTML = `<video src="${url}" controls preload="metadata"></video>`;
+                    }
                 } else {
                     itemDiv.innerHTML = `<img src="${url}" alt="Mídia">`;
                 }
@@ -281,11 +308,11 @@
                     <button class="carousel-arrow next">&#10095;</button>
                 `;
             }
-            
+
             const contentDiv = document.createElement('div');
             contentDiv.className = 'card-buttons';
             
-            // --- BOTÃO DO GRUPO VIP ADICIONADO AQUI ---
+            // --- BOTÕES FIXOS ---
             contentDiv.innerHTML = `
                 <button id="btnJoinVip" class="btn-whatsapp">Grupo Vip Whats Ofertas</button>
                 <button id="btnLinkShopee" class="btn-shopee">Melhores Produtos Aqui</button>
@@ -300,10 +327,9 @@
             const mediaItems = card.querySelectorAll('.media-item');
             
             function updateDownloadButton() {
-                // Encontra o botão de entrar no grupo para não removê-lo
                 const vipButton = contentDiv.querySelector('#btnJoinVip');
                 const shopeeButton = contentDiv.querySelector('#btnLinkShopee');
-                contentDiv.innerHTML = ''; // Limpa botões antigos
+                contentDiv.innerHTML = ''; 
                 
                 const currentMediaSrc = mediaItems[currentIndex].querySelector('img, video')?.src;
                 if (currentMediaSrc) {
@@ -312,14 +338,10 @@
                     downloadButton.className = 'btn-download';
                     downloadButton.textContent = 'Baixar Wallpaper';
                     downloadButton.addEventListener('click', () => handleDownloadMedia(currentMediaSrc));
-                    contentDiv.appendChild(downloadButton); // Adiciona o botão de download
+                    contentDiv.appendChild(downloadButton);
                 }
-                if (vipButton) {
-                    contentDiv.appendChild(vipButton); // Readiciona o botão VIP
-                }
-                if (shopeeButton) {
-                    contentDiv.appendChild(shopeeButton); // Readiciona o botão Shopee
-                }
+                if (vipButton) contentDiv.appendChild(vipButton);
+                if (shopeeButton) contentDiv.appendChild(shopeeButton);
             }
 
             if (urls.length > 1) {
@@ -337,9 +359,9 @@
                 });
             }
             
-            updateDownloadButton(); // Gera o(s) botão(ões) para o primeiro item
+            updateDownloadButton();
             
-            // Listener para o botão do grupo VIP
+            // Listeners dos botões fixos
             document.getElementById('btnJoinVip').addEventListener('click', () => {
                 window.open('https://chat.whatsapp.com/EQXc8JagROKEdbpmAwUT20', '_blank');
             });
