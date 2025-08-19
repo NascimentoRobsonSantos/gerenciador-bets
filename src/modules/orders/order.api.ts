@@ -56,7 +56,7 @@ export async function getOrderStatistics(
 ): Promise<ApiResponse> {
   let url = `https://webhook.clientes.acontece.ai/webhook/orders?start_date=${startDate}&end_date=${endDate}`;
   if (origin) {
-    url += `&order-origin=${origin}`;
+    url += `&order-origem=${origin}`;
   }
   console.log('Request URL:', url);
 

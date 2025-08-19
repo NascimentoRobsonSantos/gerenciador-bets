@@ -115,7 +115,21 @@ export default function OrderStatisticsPage() {
     return [...Array.from(marketplaces)];
   }, [orders]);
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF1919'];
+  const marketplaceValueData = useMemo(() => {
+    const marketplaceMap = new Map<string, { count: number; total: number }>();
+
+    orders.forEach((order) => {
+      const current = marketplaceMap.get(order.order_origem) || { count: 0, total: 0 };
+      current.count += 1;
+      current.total += Number(order.total_amount);
+      marketplaceMap.set(order.order_origem, current);
+    });
+
+    return marketplaceMap;
+  }, [orders]);
+
+  const COLORS = { mercado_livre: '#FFD700', shopee: '#FFA500' };
+  const BAR_COLORS = { mercado_livre: '#FFD700', shopee: '#FFA500' };
 
   if (loading) {
     return <div className="p-4 text-center">Carregando Dashboard...</div>;
@@ -124,21 +138,21 @@ export default function OrderStatisticsPage() {
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Dashboard de Pedidos</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-card p-4 rounded-md shadow-md">
           <h2 className="text-lg font-semibold mb-2">Total de Pedidos</h2>
           <p className="text-3xl font-bold">{totalOrdersCount}</p>
         </div>
         <div className="bg-card p-4 rounded-md shadow-md">
           <h2 className="text-lg font-semibold mb-2">Valor Total dos Pedidos</h2>
-          <p className="text-3xl font-bold">R$ {totalAmountSum !== undefined && totalAmountSum !== null ? totalAmountSum.toFixed(2) : '0.00'}</p>
+          <p className="text-3xl font-bold">
+            R$ {totalAmountSum !== undefined && totalAmountSum !== null ? totalAmountSum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'}
+          </p>
         </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-card p-4 rounded-md shadow-md">
+        <div className="bg-card p-4 rounded-md shadow-md md:col-span-2">
           <h2 className="text-lg font-semibold mb-2">Filtros</h2>
-          <div className="flex flex-col gap-4">
-            <div>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
               <Label htmlFor="startDate">Data Início</Label>
               <Input
                 id="startDate"
@@ -148,7 +162,7 @@ export default function OrderStatisticsPage() {
                 className="bg-gray-800 border-gray-600 text-white"
               />
             </div>
-            <div>
+            <div className="flex-1">
               <Label htmlFor="endDate">Data Fim</Label>
               <Input
                 id="endDate"
@@ -158,14 +172,14 @@ export default function OrderStatisticsPage() {
                 className="bg-gray-800 border-gray-600 text-white"
               />
             </div>
-            <div>
+            <div className="flex-1">
               <Label htmlFor="marketplace">Marketplace</Label>
               <Select value={selectedMarketplace} onValueChange={setSelectedMarketplace}>
                 <SelectTrigger className="w-full bg-gray-800 border-gray-600 text-white">
                   <SelectValue placeholder="Selecione um Marketplace" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600 text-white">
-                    <SelectItem key="all" value="all">Todos</SelectItem>
+                  <SelectItem key="all" value="all">Todos</SelectItem>
                   {uniqueMarketplaces.map((mp) => (
                     <SelectItem key={mp} value={mp}>
                       {mp}
@@ -174,11 +188,13 @@ export default function OrderStatisticsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleFilter}>Filtrar</Button>
+            <Button onClick={handleFilter} className="self-end">Filtrar</Button>
           </div>
         </div>
+      </div>
 
-        <div className="bg-card p-4 rounded-md shadow-md md:col-span-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="bg-card p-4 rounded-md shadow-md">
           <h2 className="text-lg font-semibold mb-2">Pedidos por Marketplace</h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -193,7 +209,7 @@ export default function OrderStatisticsPage() {
                 label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
               >
                 {marketplaceData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={COLORS[entry.name.toLowerCase() as keyof typeof COLORS]} />
                 ))}
               </Pie>
               <Tooltip />
@@ -201,21 +217,33 @@ export default function OrderStatisticsPage() {
             </PieChart>
           </ResponsiveContainer>
         </div>
+        <div className="bg-card p-4 rounded-md shadow-md">
+          <h2 className="text-lg font-semibold mb-2">Detalhes por Marketplace</h2>
+          <div>
+            {Array.from(marketplaceValueData.entries()).map(([name, data]) => (
+              <div key={name} className="mb-2">
+                <h3 className="font-semibold">{name}</h3>
+                <p>Total de Pedidos: {data.count}</p>
+                <p>Valor Total: R$ {data.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="bg-card p-4 rounded-md shadow-md mt-4">
         <h2 className="text-lg font-semibold mb-2">Pedidos por Período</h2>
         <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={periodData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#4a4a4a" />
-              <XAxis dataKey="date" stroke="#ffffff" />
-              <YAxis stroke="#ffffff" />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="mercado_livre" stackId="a" fill="#82ca9d" />
-              <Bar dataKey="shopee" stackId="a" fill="#8884d8" />
-            </BarChart>
-          </ResponsiveContainer>
+          <BarChart data={periodData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#4a4a4a" />
+            <XAxis dataKey="date" stroke="#ffffff" />
+            <YAxis stroke="#ffffff" />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="mercado_livre" stackId="a" fill={BAR_COLORS.mercado_livre} />
+            <Bar dataKey="shopee" stackId="a" fill={BAR_COLORS.shopee} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
