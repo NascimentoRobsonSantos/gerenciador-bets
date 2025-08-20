@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useState, useEffect } from 'react';
 import { formatCurrencyPtBr } from '@/lib/utils';
+import { useTheme } from 'next-themes';
 
 interface EditModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ interface EditModalProps {
 export function EditModal({ isOpen, onClose, order }: EditModalProps) {
   const [editedOrder, setEditedOrder] = useState<Order | null>(order);
   const [isLoading, setIsLoading] = useState(false);
+  const { theme } = useTheme();
 
   useEffect(() => {
     setEditedOrder(order);
@@ -32,7 +34,8 @@ export function EditModal({ isOpen, onClose, order }: EditModalProps) {
     setEditedOrder(prev => {
       if (!prev) return null;
       if (name === 'total_amount') {
-        return { ...prev, [name]: parseFloat(value.replace('.', '').replace(',', '.')) };
+        const parsedValue = parseFloat(value.replace('.', '').replace(',', '.'));
+        return { ...prev, [name]: isNaN(parsedValue) ? 0 : parsedValue };
       }
       return { ...prev, [name]: value };
     });
@@ -82,7 +85,7 @@ export function EditModal({ isOpen, onClose, order }: EditModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-6xl bg-gray-900 text-white border-gray-700">
+      <DialogContent className="sm:max-w-6xl bg-card">
         <DialogHeader>
           <DialogTitle>Editar Pedido</DialogTitle>
         </DialogHeader>
@@ -94,62 +97,69 @@ export function EditModal({ isOpen, onClose, order }: EditModalProps) {
           </TabsList>
           <TabsContent value="geral">
             <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto">
+              {editedOrder.integration_error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                  <strong className="font-bold">Erro de Integração:</strong>
+                  <span className="block sm:inline"> {editedOrder.integration_error}</span>
+                </div>
+              )}
+
               {/* Client Data */}
               <div className="flex flex-col gap-2 col-span-full">
                 <Label htmlFor="buyer_name">Cliente</Label>
-                <Input id="buyer_name" name="buyer_name" value={editedOrder.buyer_name} onChange={handleInputChange} className="bg-gray-800 border-gray-600" disabled={editedOrder.order_destiny_created} />
+                <Input id="buyer_name" name="buyer_name" value={editedOrder.buyer_name} onChange={handleInputChange} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} disabled={editedOrder.order_destiny_created} />
               </div>
               <div className="flex flex-col gap-2 col-span-full">
                 <Label htmlFor="buyer_cnpj_cpf">CNPJ/CPF</Label>
-                <Input id="buyer_cnpj_cpf" name="buyer_cnpj_cpf" value={editedOrder.buyer_cnpj_cpf} onChange={handleInputChange} className="bg-gray-800 border-gray-600" disabled={editedOrder.order_destiny_created} />
+                <Input id="buyer_cnpj_cpf" name="buyer_cnpj_cpf" value={editedOrder.buyer_cnpj_cpf} onChange={handleInputChange} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} disabled={editedOrder.order_destiny_created} />
               </div>
 
               {/* Order Details */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 col-span-full">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="order_id_origem">N° Pedido</Label>
-                  <Input id="order_id_origem" name="order_id_origem" value={editedOrder.order_id_origem} onChange={handleInputChange} className="bg-gray-800 border-gray-600" disabled={editedOrder.order_destiny_created} />
+                  <Input id="order_id_origem" name="order_id_origem" value={editedOrder.order_id_origem} onChange={handleInputChange} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} disabled={editedOrder.order_destiny_created} />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="order_origem">Origem</Label>
-                  <Input id="order_origem" name="order_origem" value={editedOrder.order_origem} onChange={handleInputChange} className="bg-gray-800 border-gray-600" disabled={editedOrder.order_destiny_created} />
+                  <Input id="order_origem" name="order_origem" value={editedOrder.order_origem} onChange={handleInputChange} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} disabled={editedOrder.order_destiny_created} />
                 </div>
                 
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="total_amount">Valor Total</Label>
-                  <Input id="total_amount" name="total_amount" value={formatCurrencyPtBr(editedOrder.total_amount) || ''} onChange={handleInputChange} className="bg-gray-800 border-gray-600" disabled={editedOrder.order_destiny_created} />
+                  <Input id="total_amount" name="total_amount" value={editedOrder.total_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} onChange={handleInputChange} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} disabled={editedOrder.order_destiny_created} />
                 </div>
               </div>
 
               {/* Address Fields */}
               <div className="flex flex-col gap-2 col-span-full">
                 <Label htmlFor="address_street">Endereço</Label>
-                <Input id="address_street" name="address_street" value={editedOrder.address_street} onChange={handleInputChange} className="bg-gray-800 border-gray-600" disabled={editedOrder.order_destiny_created} />
+                <Input id="address_street" name="address_street" value={editedOrder.address_street} onChange={handleInputChange} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} disabled={editedOrder.order_destiny_created} />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 col-span-full">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="address_number">Número</Label>
-                  <Input id="address_number" name="address_number" value={editedOrder.address_number} onChange={handleInputChange} className="bg-gray-800 border-gray-600" disabled={editedOrder.order_destiny_created} />
+                  <Input id="address_number" name="address_number" value={editedOrder.address_number} onChange={handleInputChange} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} disabled={editedOrder.order_destiny_created} />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="address_complement">Complemento</Label>
-                  <Input id="address_complement" name="address_complement" value={editedOrder.address_complement || ''} onChange={handleInputChange} className="bg-gray-800 border-gray-600" disabled={editedOrder.order_destiny_created} />
+                  <Input id="address_complement" name="address_complement" value={editedOrder.address_complement || ''} onChange={handleInputChange} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} disabled={editedOrder.order_destiny_created} />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="address_neighborhood">Bairro</Label>
-                  <Input id="address_neighborhood" name="address_neighborhood" value={editedOrder.address_neighborhood || ''} onChange={handleInputChange} className="bg-gray-800 border-gray-600" disabled={editedOrder.order_destiny_created} />
+                  <Input id="address_neighborhood" name="address_neighborhood" value={editedOrder.address_neighborhood || ''} onChange={handleInputChange} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} disabled={editedOrder.order_destiny_created} />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="address_city">Cidade</Label>
-                  <Input id="address_city" name="address_city" value={editedOrder.address_city || ''} onChange={handleInputChange} className="bg-gray-800 border-gray-600" disabled={editedOrder.order_destiny_created} />
+                  <Input id="address_city" name="address_city" value={editedOrder.address_city || ''} onChange={handleInputChange} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} disabled={editedOrder.order_destiny_created} />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="address_state">Estado</Label>
-                  <Input id="address_state" name="address_state" value={editedOrder.address_state || ''} onChange={handleInputChange} className="bg-gray-800 border-gray-600" disabled={editedOrder.order_destiny_created} />
+                  <Input id="address_state" name="address_state" value={editedOrder.address_state || ''} onChange={handleInputChange} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} disabled={editedOrder.order_destiny_created} />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="address_zipcode">CEP</Label>
-                  <Input id="address_zipcode" name="address_zipcode" value={editedOrder.address_zipcode || ''} onChange={handleInputChange} className="bg-gray-800 border-gray-600" disabled={editedOrder.order_destiny_created} />
+                  <Input id="address_zipcode" name="address_zipcode" value={editedOrder.address_zipcode || ''} onChange={handleInputChange} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} disabled={editedOrder.order_destiny_created} />
                 </div>
               </div>
             </div>
@@ -159,11 +169,11 @@ export function EditModal({ isOpen, onClose, order }: EditModalProps) {
               <h3 className="text-lg font-medium mb-2">Produtos</h3>
               <div className="grid grid-cols-1 gap-2 max-h-[20vh] overflow-y-auto">
                 {editedOrder.produtos.map((product, index) => (
-                  <div key={product.id} className="grid grid-cols-12 items-center gap-2 p-2 rounded-md bg-gray-800">
-                    <Input name="product_sku" placeholder="SKU" value={product.product_sku || ''} onChange={(e) => handleProductChange(index, e)} className="col-span-2 bg-gray-700 border-gray-600" disabled={editedOrder.order_destiny_created} />
-                    <Input name="product_title" placeholder="Título" value={product.product_title || ''} onChange={(e) => handleProductChange(index, e)} className="col-span-7 bg-gray-700 border-gray-600" disabled={editedOrder.order_destiny_created} />
-                    <Input name="quantity" placeholder="Qtd" value={product.quantity || 0} onChange={(e) => handleProductChange(index, e)} className="col-span-1 bg-gray-700 border-gray-600" disabled={editedOrder.order_destiny_created} />
-                    <Input name="unit_price" placeholder="Preço" value={product.unit_price || 0} onChange={(e) => handleProductChange(index, e)} className="col-span-2 bg-gray-700 border-gray-600" disabled={editedOrder.order_destiny_created} />
+                  <div key={product.id} className={`grid grid-cols-12 items-center gap-2 p-2 rounded-md ${theme === 'dark' ? 'bg-gray-800' : ''}`}>
+                    <Input name="product_sku" placeholder="SKU" value={product.product_sku || ''} onChange={(e) => handleProductChange(index, e)} className={`col-span-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : ''}`} disabled={editedOrder.order_destiny_created} />
+                    <Input name="product_title" placeholder="Título" value={product.product_title || ''} onChange={(e) => handleProductChange(index, e)} className={`col-span-7 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : ''}`} disabled={editedOrder.order_destiny_created} />
+                    <Input name="quantity" placeholder="Qtd" value={product.quantity || 0} onChange={(e) => handleProductChange(index, e)} className={`col-span-1 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : ''}`} disabled={editedOrder.order_destiny_created} />
+                    <Input name="unit_price" placeholder="Preço" value={product.unit_price || 0} onChange={(e) => handleProductChange(index, e)} className={`col-span-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : ''}`} disabled={editedOrder.order_destiny_created} />
                   </div>
                 ))}
               </div>
@@ -180,7 +190,7 @@ export function EditModal({ isOpen, onClose, order }: EditModalProps) {
                   rows={3}
                   value={(editedOrder as any).additional_information || ''}
                   onChange={handleInputChange}
-                  className="w-full bg-gray-800 border-gray-600 rounded-md p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''}`}
                   disabled={editedOrder.order_destiny_created}
                 ></textarea>
               </div>
@@ -192,7 +202,7 @@ export function EditModal({ isOpen, onClose, order }: EditModalProps) {
                   rows={3}
                   value={(editedOrder as any).observations || ''}
                   onChange={handleInputChange}
-                  className="w-full bg-gray-800 border-gray-600 rounded-md p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''}`}
                   disabled={editedOrder.order_destiny_created}
                 ></textarea>
               </div>

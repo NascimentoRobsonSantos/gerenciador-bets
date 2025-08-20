@@ -31,12 +31,22 @@ export async function getOrders(
     // The API returns an array with a single object containing totalItems and data
     // We need to handle the case where the array is empty or the structure is different
     if (Array.isArray(data) && data.length > 0) {
-      return data[0] as ApiResponse;
+      const apiResponse = data[0] as ApiResponse;
+      apiResponse.data = apiResponse.data.map(order => ({
+        ...order,
+        total_amount: parseFloat(order.total_amount as any),
+      }));
+      return apiResponse;
     }
 
     // If the API returns a single object directly
     if (typeof data === 'object' && data !== null && 'data' in data) {
-        return data as ApiResponse;
+        const apiResponse = data as ApiResponse;
+        apiResponse.data = apiResponse.data.map(order => ({
+          ...order,
+          total_amount: parseFloat(order.total_amount as any),
+        }));
+        return apiResponse;
     }
 
     // Return a default structure if the response is not as expected
@@ -70,11 +80,21 @@ export async function getOrderStatistics(
     const data = await response.json();
     
     if (Array.isArray(data) && data.length > 0) {
-      return data[0] as ApiResponse;
+      const apiResponse = data[0] as ApiResponse;
+      apiResponse.data = apiResponse.data.map(order => ({
+        ...order,
+        total_amount: parseFloat(order.total_amount as any),
+      }));
+      return apiResponse;
     }
 
     if (typeof data === 'object' && data !== null && 'data' in data) {
-        return data as ApiResponse;
+        const apiResponse = data as ApiResponse;
+        apiResponse.data = apiResponse.data.map(order => ({
+          ...order,
+          total_amount: parseFloat(order.total_amount as any),
+        }));
+        return apiResponse;
     }
 
     return { totalItems: '0', data: [] };

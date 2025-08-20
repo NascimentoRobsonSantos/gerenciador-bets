@@ -14,11 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Order } from '@/modules/orders/order.model';
 import { CheckCircle, XCircle, Edit, RefreshCw } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { formatDateTimePtBr, formatCurrencyPtBr } from '@/lib/utils';
 
 const EditModal = dynamic(() => import('@/components/Modal').then(mod => mod.EditModal), { ssr: false });
@@ -33,13 +30,11 @@ interface OrdersTableProps {
   isFilterLoading: boolean;
 }
 
-export function OrdersTable({ orders, totalItems, searchParams }: OrdersTableProps) {
+export function OrdersTable({ orders, totalItems }: OrdersTableProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [isIntegrating, setIsIntegrating] = useState<string | null>(null);
   const router = useRouter();
-  const pathname = usePathname();
   const currentSearchParams = useSearchParams();
 
   const handleEditClick = (order: Order) => {
@@ -74,7 +69,7 @@ export function OrdersTable({ orders, totalItems, searchParams }: OrdersTablePro
         toast.error(`Falha ao integrar o pedido: ${errorData.message}` );
       }
     } catch (error) {
-      toast.error('Erro ao integrar o pedido.');
+      toast.error('Erro ao integrar o pedido.' + error);
     } finally {
       setIsIntegrating(null);
     }
@@ -106,7 +101,7 @@ export function OrdersTable({ orders, totalItems, searchParams }: OrdersTablePro
                 <TableCell className="text-center">{formatDateTimePtBr(order.order_created)}</TableCell>
                 <TableCell className="text-center">{order.order_id_origem}</TableCell>
                 <TableCell className="text-center">{order.buyer_name}</TableCell>
-                <TableCell className="text-center">R$ {formatCurrencyPtBr(order.total_amount)}</TableCell>
+                <TableCell className="text-center">{formatCurrencyPtBr(order.total_amount)}</TableCell>
                 <TableCell className="text-center">
                   {order.order_destiny_created ? (
                     <span className="flex items-center justify-center text-green-500">
@@ -114,7 +109,10 @@ export function OrdersTable({ orders, totalItems, searchParams }: OrdersTablePro
                       Integrado
                     </span>
                   ) : (
-                    <span className="flex items-center justify-center text-red-500">
+                    <span
+                      className="flex items-center justify-center text-red-500"
+                      title={order.integration_error || 'Motivo do erro não disponível'}
+                    >
                       <XCircle className="h-4 w-4 mr-1" />
                       Não Integrado
                     </span>

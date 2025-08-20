@@ -29,6 +29,23 @@ import {
   Cell,
 } from 'recharts';
 
+const CustomLegend = ({ payload, data, formatter }: any) => {
+  return (
+    <ul className="flex flex-col gap-2">
+      {payload.map((entry: any, index: number) => {
+        const { name, value } = data[index];
+        const formattedValue = formatter ? formatter(value) : value;
+        return (
+          <li key={`item-${index}`} className="flex items-center gap-2">
+            <span style={{ backgroundColor: entry.color }} className="w-4 h-4 rounded-full"></span>
+            <span>{name}: {formattedValue}</span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+};
+
 export default function OrderStatisticsPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +100,12 @@ export default function OrderStatisticsPage() {
     const periodMap = new Map<string, { mercado_livre: number; shopee: number }>();
 
     orders.forEach((order) => {
-      const date = new Date(order.order_created).toLocaleDateString(); // Group by day
+      const orderDate = new Date(order.order_created);
+      const year = orderDate.getFullYear();
+      const month = (orderDate.getMonth() + 1).toString().padStart(2, '0');
+      const day = orderDate.getDate().toString().padStart(2, '0');
+      const date = `${year}-${month}-${day}`;
+
       if (!periodMap.has(date)) {
         periodMap.set(date, { mercado_livre: 0, shopee: 0 });
       }
@@ -96,9 +118,16 @@ export default function OrderStatisticsPage() {
     });
 
     periodMap.forEach((value, key) => {
-      data.push({ date: key, mercado_livre: value.mercado_livre, shopee: value.shopee });
+      const [year, month, day] = key.split('-');
+      const formattedDate = `${day}/${month}/${year}`;
+      data.push({ date: formattedDate, mercado_livre: value.mercado_livre, shopee: value.shopee });
     });
-    return data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return data.sort((a, b) => {
+      const [dayA, monthA, yearA] = a.date.split('/');
+      const [dayB, monthB, yearB] = b.date.split('/');
+      return new Date(`${yearA}-${monthA}-${dayA}`).getTime() - new Date(`${yearB}-${monthB}-${dayB}`).getTime();
+    });
   }, [orders]);
 
   const totalAmountSum = useMemo(() => {
@@ -128,8 +157,23 @@ export default function OrderStatisticsPage() {
     return marketplaceMap;
   }, [orders]);
 
-  const COLORS = { mercado_livre: '#FFD700', shopee: '#FFA500' };
-  const BAR_COLORS = { mercado_livre: '#FFD700', shopee: '#FFA500' };
+  const marketplaceTotalValueData = useMemo(() => {
+    const data: { name: string; value: number }[] = [];
+    const marketplaceMap = new Map<string, number>();
+
+    orders.forEach((order) => {
+      const currentTotal = marketplaceMap.get(order.order_origem) || 0;
+      marketplaceMap.set(order.order_origem, currentTotal + Number(order.total_amount));
+    });
+
+    marketplaceMap.forEach((value, key) => {
+      data.push({ name: key, value });
+    });
+    return data;
+  }, [orders]);
+
+  const COLORS = { mercado_livre: '#FACC15', shopee: '#FFA500' };
+  const BAR_COLORS = { mercado_livre: '#FACC15', shopee: '#FFA500' };
 
   if (loading) {
     return <div className="p-4 text-center">Carregando Dashboard...</div>;
@@ -196,37 +240,52 @@ export default function OrderStatisticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-card p-4 rounded-md shadow-md">
           <h2 className="text-lg font-semibold mb-2">Pedidos por Marketplace</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={marketplaceData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-              >
-                {marketplaceData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[entry.name.toLowerCase() as keyof typeof COLORS]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="grid grid-cols-2 items-center">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={marketplaceData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                >
+                  {marketplaceData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[entry.name.toLowerCase() as keyof typeof COLORS]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <CustomLegend payload={marketplaceData.map(entry => ({ color: COLORS[entry.name.toLowerCase() as keyof typeof COLORS] }))} data={marketplaceData} />
+          </div>
         </div>
         <div className="bg-card p-4 rounded-md shadow-md">
-          <h2 className="text-lg font-semibold mb-2">Detalhes por Marketplace</h2>
-          <div>
-            {Array.from(marketplaceValueData.entries()).map(([name, data]) => (
-              <div key={name} className="mb-2">
-                <h3 className="font-semibold">{name}</h3>
-                <p>Total de Pedidos: {data.count}</p>
-                <p>Valor Total: R$ {data.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-              </div>
-            ))}
+          <h2 className="text-lg font-semibold mb-2">Valor Total por Marketplace</h2>
+          <div className="grid grid-cols-2 items-center">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={marketplaceTotalValueData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                >
+                  {marketplaceTotalValueData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[entry.name.toLowerCase() as keyof typeof COLORS]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+              </PieChart>
+            </ResponsiveContainer>
+            <CustomLegend payload={marketplaceTotalValueData.map(entry => ({ color: COLORS[entry.name.toLowerCase() as keyof typeof COLORS] }))} data={marketplaceTotalValueData} formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
           </div>
         </div>
       </div>

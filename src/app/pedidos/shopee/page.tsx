@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Filter } from 'lucide-react';
+import { useTheme } from 'next-themes';
 
 import { useEffect } from 'react';
 import { Order } from '@/modules/orders/order.model';
@@ -18,6 +19,7 @@ export default function ShopeePage({ searchParams }: { searchParams: { [key: str
   const router = useRouter();
   const pathname = usePathname();
   const currentSearchParams = useSearchParams();
+  const { theme } = useTheme();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -99,7 +101,7 @@ export default function ShopeePage({ searchParams }: { searchParams: { [key: str
       </Suspense>
 
       <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
-        <DialogContent className="sm:max-w-md bg-gray-900 text-white border-gray-700">
+        <DialogContent className={`sm:max-w-md ${theme === 'dark' ? 'bg-gray-900 text-white border-gray-700' : ''}`}>
           <DialogHeader>
             <DialogTitle>Filtros de Data</DialogTitle>
             <DialogDescription>Selecione o período para filtrar os pedidos.</DialogDescription>
@@ -107,11 +109,11 @@ export default function ShopeePage({ searchParams }: { searchParams: { [key: str
           <div className="grid gap-4 py-4">
             <div>
               <Label htmlFor="start-date">Data de Início</Label>
-              <Input id="start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-gray-800 border-gray-600 text-white" />
+              <Input id="start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} />
             </div>
             <div>
               <Label htmlFor="end-date">Data de Fim</Label>
-              <Input id="end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-gray-800 border-gray-600 text-white" />
+              <Input id="end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} />
             </div>
           </div>
           <DialogFooter>
