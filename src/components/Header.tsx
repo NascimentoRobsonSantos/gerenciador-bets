@@ -69,7 +69,7 @@ export default function Header() {
         <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-foreground">
           <Settings className="h-6 w-6" />
         </button>
-        <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
+        <h1 className="text-xl font-semibold text-foreground">Gerenciador</h1>
       </div>
       <div className="relative">
         <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex items-center space-x-2 text-foreground">
