@@ -7,6 +7,8 @@ services:
     # O Portainer usará esta imagem que já existe localmente.
     # O nome da imagem é 'order_manager_marketplace-frontend:latest'
     image: order_manager_marketplace:latest
+    ports:
+      - "3000:3000"
     networks:
       # Conecta o serviço à rede do Traefik
       - traefik_public
