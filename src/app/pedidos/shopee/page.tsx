@@ -28,6 +28,7 @@ export default function ShopeePage({ searchParams }: { searchParams: { [key: str
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [startDate, setStartDate] = useState(currentSearchParams.get('start_date') || '');
   const [endDate, setEndDate] = useState(currentSearchParams.get('end_date') || '');
+  const [orderIdOrigem, setOrderIdOrigem] = useState(currentSearchParams.get('order_id_origem') || '');
   const [isFilterLoading, setIsFilterLoading] = useState(false);
 
   const handleFilter = () => {
@@ -43,6 +44,11 @@ export default function ShopeePage({ searchParams }: { searchParams: { [key: str
     } else {
       params.delete('end_date');
     }
+    if (orderIdOrigem) {
+      params.set('order_id_origem', orderIdOrigem);
+    } else {
+      params.delete('order_id_origem');
+    }
     params.set('page', '1');
     router.push(`${pathname}?${params.toString()}`);
     setIsFilterModalOpen(false);
@@ -55,9 +61,10 @@ export default function ShopeePage({ searchParams }: { searchParams: { [key: str
       const limit = Number(currentSearchParams.get('limit')) || 10;
       const start = currentSearchParams.get('start_date') as string;
       const end = currentSearchParams.get('end_date') as string;
+      const order_id_origem = currentSearchParams.get('order_id_origem') as string;
 
       try {
-        const apiResponse = await getOrders(page, limit, 'shopee', start, end);
+        const apiResponse = await getOrders(page, limit, 'shopee', start, end, order_id_origem);
         setOrders(apiResponse.data);
         setTotalItems(Number(apiResponse.totalItems));
       } catch (error) {
@@ -101,7 +108,7 @@ export default function ShopeePage({ searchParams }: { searchParams: { [key: str
       </Suspense>
 
       <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
-        <DialogContent className={`sm:max-w-md ${theme === 'dark' ? 'bg-gray-900 text-white border-gray-700' : ''}`}>
+        <DialogContent className={`sm:max-w-md ${theme === 'dark' ? 'bg-gray-900 text-white border-gray-700' : 'bg-white text-gray-900 border-gray-200'}`}>
           <DialogHeader>
             <DialogTitle>Filtros de Data</DialogTitle>
             <DialogDescription>Selecione o período para filtrar os pedidos.</DialogDescription>
@@ -114,6 +121,10 @@ export default function ShopeePage({ searchParams }: { searchParams: { [key: str
             <div>
               <Label htmlFor="end-date">Data de Fim</Label>
               <Input id="end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} />
+            </div>
+            <div>
+              <Label htmlFor="order-id-origem">Número do Pedido</Label>
+              <Input id="order-id-origem" type="text" value={orderIdOrigem} onChange={(e) => setOrderIdOrigem(e.target.value)} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} />
             </div>
           </div>
           <DialogFooter>
