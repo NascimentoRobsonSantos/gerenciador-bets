@@ -63,7 +63,6 @@ export function OrdersTable({ orders, totalItems }: OrdersTableProps) {
 
       if (response.ok) {
         toast.success('Pedido integrado com sucesso!');
-        router.refresh();
       } else {
         const errorData = await response.json();
         toast.error(`Falha ao integrar o pedido: ${errorData.message}` );
@@ -71,7 +70,10 @@ export function OrdersTable({ orders, totalItems }: OrdersTableProps) {
     } catch (error) {
       toast.error('Erro ao integrar o pedido.' + error);
     } finally {
-      setIsIntegrating(null);
+      setTimeout(() => {
+        router.refresh();
+        setIsIntegrating(null);
+      }, 30000);
     }
   };
 
