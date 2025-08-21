@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useState, useEffect } from 'react';
 import { formatCurrencyPtBr } from '@/lib/utils';
 import { useTheme } from 'next-themes';
+import { authenticatedFetch } from '@/lib/api';
 
 interface EditModalProps {
   isOpen: boolean;
@@ -62,7 +63,7 @@ export function EditModal({ isOpen, onClose, order }: EditModalProps) {
     if (!editedOrder) return;
     setIsLoading(true);
     try {
-      const response = await fetch('https://webhook.clientes.acontece.ai/webhook/orders', {
+      const response = await authenticatedFetch('https://webhook.clientes.acontece.ai/webhook/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

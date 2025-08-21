@@ -1,4 +1,5 @@
 import { ApiResponse } from './order.model';
+import { authenticatedFetch } from '@/lib/api';
 
 export async function getOrders(
   page: number = 1,
@@ -17,10 +18,9 @@ export async function getOrders(
   if (end_date) {
     url += `&end_date=${end_date}`;
   }
-  console.log('Request URL:', url);
 
   try {
-    const response = await fetch(url);
+    const response = await authenticatedFetch(url);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -68,10 +68,9 @@ export async function getOrderStatistics(
   if (origin) {
     url += `&order-origem=${origin}`;
   }
-  console.log('Request URL:', url);
 
   try {
-    const response = await fetch(url);
+    const response = await authenticatedFetch(url);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

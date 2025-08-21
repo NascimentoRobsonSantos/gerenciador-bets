@@ -17,6 +17,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { formatDateTimePtBr, formatCurrencyPtBr } from '@/lib/utils';
+import { authenticatedFetch } from '@/lib/api';
 
 const EditModal = dynamic(() => import('@/components/Modal').then(mod => mod.EditModal), { ssr: false });
 
@@ -53,7 +54,7 @@ export function OrdersTable({ orders, totalItems }: OrdersTableProps) {
         url += '_shopee';
       }
 
-      const response = await fetch(url, {
+      const response = await authenticatedFetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
