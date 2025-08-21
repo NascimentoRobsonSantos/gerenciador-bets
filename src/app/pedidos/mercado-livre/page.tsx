@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Filter } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -30,6 +31,7 @@ export default function MercadoLivrePage({ searchParams }: { searchParams: { [ke
   const [startDate, setStartDate] = useState(currentSearchParams.get('start_date') || '');
   const [endDate, setEndDate] = useState(currentSearchParams.get('end_date') || '');
   const [orderIdOrigem, setOrderIdOrigem] = useState(currentSearchParams.get('order_id_origem') || '');
+  const [integrationStatus, setIntegrationStatus] = useState(currentSearchParams.get('integration_status') || '');
   const [isFilterLoading, setIsFilterLoading] = useState(false);
 
   const handleFilter = () => {
@@ -50,6 +52,11 @@ export default function MercadoLivrePage({ searchParams }: { searchParams: { [ke
     } else {
       params.delete('order_id_origem');
     }
+    if (integrationStatus && integrationStatus !== 'all') {
+      params.set('integration_status', integrationStatus);
+    } else {
+      params.delete('integration_status');
+    }
     params.set('page', '1');
     router.push(`${pathname}?${params.toString()}`);
     setIsFilterModalOpen(false);
@@ -63,9 +70,10 @@ export default function MercadoLivrePage({ searchParams }: { searchParams: { [ke
       const start_date = currentSearchParams.get('start_date') as string;
       const end_date = currentSearchParams.get('end_date') as string;
       const order_id_origem = currentSearchParams.get('order_id_origem') as string;
+      const integration_status = currentSearchParams.get('integration_status') as string;
 
       try {
-        const apiResponse = await getOrders(page, limit, 'mercado_livre', start_date, end_date, order_id_origem);
+        const apiResponse = await getOrders(page, limit, 'mercado_livre', start_date, end_date, order_id_origem, integration_status);
         setOrders(apiResponse.data);
         setTotalItems(Number(apiResponse.totalItems));
       } catch (error) {
@@ -126,6 +134,19 @@ export default function MercadoLivrePage({ searchParams }: { searchParams: { [ke
             <div>
               <Label htmlFor="order-id-origem">Número do Pedido</Label>
               <Input id="order-id-origem" type="text" value={orderIdOrigem} onChange={(e) => setOrderIdOrigem(e.target.value)} className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''} />
+            </div>
+            <div>
+              <Label htmlFor="integration-status">Status da Integração</Label>
+              <Select value={integrationStatus} onValueChange={setIntegrationStatus}>
+                <SelectTrigger id="integration-status" className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''}>
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent className={theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : ''}>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="integrated">Integrado</SelectItem>
+                  <SelectItem value="not_integrated">Não Integrado</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

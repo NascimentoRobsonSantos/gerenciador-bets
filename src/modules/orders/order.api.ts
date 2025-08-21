@@ -7,7 +7,8 @@ export async function getOrders(
   origin?: 'mercado_livre' | 'shopee',
   start_date?: string,
   end_date?: string,
-  order_id_origem?: string
+  order_id_origem?: string,
+  integration_status?: string
 ): Promise<ApiResponse> {
   let url = `https://webhook.clientes.acontece.ai/webhook/orders?page=${page}&limit=${limit}`;
   if (origin) {
@@ -21,6 +22,9 @@ export async function getOrders(
   }
   if (order_id_origem) {
     url += `&order_id_origem=${order_id_origem}`;
+  }
+  if (integration_status) {
+    url += `&integration_status=${integration_status}`;
   }
 
   try {
