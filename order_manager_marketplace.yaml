@@ -28,7 +28,7 @@ services:
         - "traefik.http.routers.order_manager_marketplace-secure.service=order_manager_marketplace-service"
 
         # --- Serviço do Traefik ---
-        - "traefik.http.services.order_manager_marketplace-service.loadbalancer.server.port=80"
+        - "traefik.http.services.order_manager_marketplace-service.loadbalancer.server.port=3000"
         - "traefik.http.services.order_manager_marketplace-service.loadbalancer.passHostHeader=true"
 
 networks:
