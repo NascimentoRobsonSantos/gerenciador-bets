@@ -66,10 +66,7 @@ export default function Header() {
   return (
     <header className="flex items-center justify-between p-4 bg-background border-b">
       <div className="flex items-center space-x-4">
-        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-foreground">
-          <Settings className="h-6 w-6" />
-        </button>
-        <h1 className="text-xl font-semibold text-foreground">Gerenciador</h1>
+        <h1 className="text-xl font-semibold text-foreground">Gerenciador Neo Brasil</h1>
       </div>
       <div className="relative">
         <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex items-center space-x-2 text-foreground">
