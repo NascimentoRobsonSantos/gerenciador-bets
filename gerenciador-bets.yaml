@@ -11,8 +11,7 @@ services:
       - "3000:3000"
     networks:
       # Conecta o serviço à rede do Traefik
-      - traefik_public
-      - app_network
+      - StoreProDigitalNet
     deploy:
       restart_policy:
         condition: any
@@ -33,9 +32,5 @@ services:
 
 networks:
   # Declara que a rede é externa, pois ela já foi criada pelo Traefik
-  traefik_public:
+  StoreProDigitalNet:
     external: true
-    name: externa
-  app_network:
-    external: true
-    name: interna
