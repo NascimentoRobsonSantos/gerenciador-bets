@@ -440,9 +440,10 @@ export default function EntriesTableClient({
             const minutosArr = Array.isArray(e.minutos) ? e.minutos : e.minutos == null ? [] : [Number(e.minutos)];
             const idx = e.minuto_green != null ? minutosArr.findIndex((m) => Number(m) === Number(e.minuto_green)) : -1;
             const attempt = toAttemptLabel(idx >= 0 ? idx : null);
-              const oddNum = Number(e.odd ?? 0) || 0;
-              const perdido = Number(e.valor_perdido ?? 0) || 0;
-              const finalVal = (Number(e.valor_ganhos ?? 0) || 0) - perdido - (Number(e.valor_entrada ?? 0) || 0);
+            const hasAttemptGreen = e.minuto_green != null && minutosArr.some((m) => Number(m) === Number(e.minuto_green));
+            const oddNum = Number(e.odd ?? 0) || 0;
+            const perdido = Number(e.valor_perdido ?? 0) || 0;
+            const finalVal = (Number(e.valor_ganhos ?? 0) || 0) - perdido - (Number(e.valor_entrada ?? 0) || 0);
             const isGreen = e.status === 'green';
             const isRed = e.status === 'red';
             return (
@@ -454,8 +455,10 @@ export default function EntriesTableClient({
                       <span className="inline-flex items-center rounded px-2 py-0.5 bg-b365-green/15 text-b365-green">Green</span>
                     ) : isRed ? (
                       <span className="inline-flex items-center rounded px-2 py-0.5 bg-red-500/15 text-red-600">Red</span>
+                    ) : hasAttemptGreen ? (
+                      <span className="inline-flex items-center rounded px-2 py-0.5 bg-b365-green/15 text-b365-green">Não entrei/Green</span>
                     ) : (
-                      <span className="inline-flex items-center rounded px-2 py-0.5 bg-yellow-400/15 text-b365-yellow">Não entrei</span>
+                      <span className="inline-flex items-center rounded px-2 py-0.5 bg-red-500/15 text-red-600">Não entrei/Red</span>
                     )}
                   </div>
                 </div>
