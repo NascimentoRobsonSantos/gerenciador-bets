@@ -294,7 +294,7 @@ export default function EntriesTableClient({
         <button onClick={() => setFiltersOpen(true)} className="ml-auto inline-flex items-center gap-2 rounded-md border border-neutral-700 px-3 py-1 text-sm hover:bg-neutral-800/60" title="Filtros">
           <Filter className="h-4 w-4" /> Filtros
         </button>
-        <div className="grid grid-cols-1 sm:grid-cols-8 gap-3 text-sm w-full">
+        <div className="grid grid-cols-2 sm:grid-cols-8 gap-3 text-sm w-full">
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Entradas (página/filtradas)</div>
             <div className="font-medium">{totals.count}</div>
