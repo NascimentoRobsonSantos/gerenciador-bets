@@ -153,9 +153,8 @@ export default function EntriesTableClient({
       setModalFinalInput(String(Number(next.valor_final ?? 0)));
     } else if (field === 'valor_perdido') {
       next.valor_perdido = String(value).trim() === '' ? null : Number(value);
-      next.valor_final = Math.round(((Number(next.valor_ganhos ?? 0) || 0) - (Number(next.valor_perdido ?? 0) || 0)) * 100) / 100;
-      const lucroCalc = (Number(next.valor_final ?? 0) || 0) - (Number(next.valor_entrada ?? 0) || 0);
-      setModalLucroInput(String(Number.isFinite(lucroCalc) ? lucroCalc : ""));
+      next.valor_final = Math.round((((Number(next.valor_ganhos ?? 0) || 0) - (Number(next.valor_perdido ?? 0) || 0) - (Number(next.valor_entrada ?? 0) || 0)) * 100)) / 100;
+      setModalFinalInput(String(Number(next.valor_final ?? 0)));
     } else {
       (next as any)[field] = value;
     }
@@ -596,28 +595,16 @@ export default function EntriesTableClient({
                   <option value="red">Red</option>
                 </select>
               </label>
-              {modalRow.status === 'red' ? (
-                <label className="text-sm">
-                  <div className="text-xs text-foreground">Valor Final (prejuízo)</div>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="w-full rounded border form-input px-2 py-1 text-red-300"
-                    value={modalFinalInput}
-                    onChange={(e) => updateModalFinal(e.target.value)}
-                  />
-                  <div className="mt-1 text-xs text-foreground/70">Use número negativo para prejuízo (ex.: -10). Se digitar positivo, será convertido para negativo.</div>
-                </label>
-              ) : (
-                <div className="text-sm">
-                  <div className="text-xs text-foreground">Valor Final</div>
-                  {(() => {
-                    const vf = ((Number(modalRow.valor_ganhos ?? 0) || 0) - (Number(modalRow.valor_perdido ?? 0) || 0) - (Number(modalRow.valor_entrada ?? 0) || 0));
-                    const cls = vf >= 0 ? 'text-b365-green' : 'text-red-400';
-                    return <div className={`mt-1 font-medium ${cls}`}>{formatCurrency(vf)}</div>;
-                  })()}
-                </div>
-              )}
+              <label className="text-sm">
+                <div className="text-xs text-foreground">Valor Final (ganhos - perdido - entrada)</div>
+                <input
+                  type="number"
+                  step="0.01"
+                  className={`w-full rounded border form-input px-2 py-1 ${Number(modalFinalInput || 0) < 0 ? 'text-red-300' : 'text-b365-green'}`}
+                  value={modalFinalInput}
+                  onChange={(e) => updateModalFinal(e.target.value)}
+                />
+              </label>
               <label className="text-sm">
                 <div className="text-xs text-foreground">Valor Perdido</div>
                 <input
