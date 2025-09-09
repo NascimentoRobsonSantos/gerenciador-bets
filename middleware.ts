@@ -7,7 +7,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Rotas que não precisam de autenticação
-  const publicPaths = ['/login'];
+  const publicPaths = ['/', '/entradas/virtual', '/login'];
 
   // Se a rota é pública, permite o acesso
   if (publicPaths.includes(pathname)) {
@@ -27,5 +27,5 @@ export function middleware(request: NextRequest) {
 
 // Configuração do matcher para o middleware
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };

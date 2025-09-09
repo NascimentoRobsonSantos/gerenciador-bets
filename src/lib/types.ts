@@ -1,0 +1,20 @@
+export type Entry = {
+  id: number;
+  campeonato: string | null;
+  hora: number | null;
+  minutos: number[] | number | null;
+  minuto_green: number | null;
+  tipo_entrada: string | null;
+  odd: number | string | null;
+  placar: string | null;
+  gestao: string | null;
+  valor_entrada: number | null;
+  valor_ganhos: number | null;
+  valor_final?: number | null;
+  valor_perdido?: number | null;
+  status: 'green' | 'red' | null;
+  created_at: string | null;
+  updated_at: string | null;
+  bet_origin?: string | null;
+  bet_type?: string | null;
+};

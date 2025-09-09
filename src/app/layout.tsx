@@ -1,74 +1,30 @@
-"use client";
-
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "../components/ThemeProvider";
-import Header from "../components/Header";
-import Sidebar from "../components/Sidebar";
-import { Toaster } from "../components/ui/sonner";
-import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import Sidebar from "@/components/Sidebar";
+import Header from "@/components/Header";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
-const inter = Inter({ subsets: ["latin"] });
-
-// Metadata não pode ser exportada de um Client Component, então vou movê-la
-// para um arquivo separado ou remover se não for estritamente necessária aqui.
-// Por enquanto, vou comentar para evitar o erro.
-// export const metadata: Metadata = {
-//   title: "AconteceAi - Gerenciador de Pedidos",
-//   description: "Gerenciador de Pedidos da Integração com Marketplace",
-// };
+export const metadata: Metadata = {
+  title: "Gerenciador Bets",
+  description: "Dashboard e gerenciamento de entradas",
+};
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  const pathname = usePathname();
-  const isLoginPage = pathname === '/login';
-
-  const [initialTheme, setInitialTheme] = useState<"dark" | "light" | undefined>(undefined);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const userString = localStorage.getItem('user');
-      if (userString) {
-        try {
-          const user = JSON.parse(userString);
-          if (user.dark_theme !== undefined) {
-            setInitialTheme(user.dark_theme ? "dark" : "light");
-          }
-        } catch (e) {
-          console.error("Failed to parse user from localStorage", e);
-        }
-      }
-    }
-  }, []);
-
+}) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme={initialTheme || "dark"}
-          enableSystem
-          disableTransitionOnChange
-        >
-          {isLoginPage ? (
-            children
-          ) : (
-            <div className="flex flex-col min-h-screen bg-background">
+    <html lang="pt-BR" suppressHydrationWarning>
+      <body className="min-h-dvh bg-background text-foreground antialiased">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          <div className="flex min-h-dvh">
+            <Sidebar />
+            <div className="flex-1 flex flex-col min-w-0">
               <Header />
-              <div className="flex flex-1">
-                <Sidebar />
-                <main className="flex-1 p-4">
-                  {children}
-                </main>
-              </div>
+              <main className="p-4 md:p-6 lg:p-8 min-w-0">{children}</main>
             </div>
-          )}
-          <Toaster />
+          </div>
         </ThemeProvider>
       </body>
     </html>
