@@ -449,7 +449,7 @@ export default function EntriesTableClient({
             return (
               <div key={e.id} className="p-3 rounded-lg border border-neutral-800 bg-neutral-900/20">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="font-medium truncate">{e.tipo_entrada ?? '-'}</div>
+                  <div className="font-medium truncate">{e.bet_origin ?? '-'}</div>
                   <div>
                     {isGreen ? (
                       <span className="inline-flex items-center rounded px-2 py-0.5 bg-b365-green/15 text-b365-green">Green</span>
@@ -476,13 +476,8 @@ export default function EntriesTableClient({
                   </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-xs text-neutral-400">
-                  <div className="truncate">{e.bet_origin ?? '-'}</div>
-                  <div className="flex items-center gap-2">
-                    <span>{e.campeonato ?? '-'}</span>
-                    <span>· {e.hora ?? '-'}h</span>
-                    <span>· Tentativa {attempt}</span>
-                    <button onClick={() => startEdit(e.id)} className="ml-2 rounded-md border border-neutral-700 px-2 py-0.5 text-xs hover:bg-neutral-800/60">Editar</button>
-                  </div>
+                  <div className="truncate">{`${e.campeonato ?? '-' } - ${e.hora ?? '-' }h - ${e.minuto_green ?? '-' } - ${attempt}`}</div>
+                  <button onClick={() => startEdit(e.id)} className="ml-2 rounded-md border border-neutral-700 px-2 py-0.5 text-xs hover:bg-neutral-800/60">Editar</button>
                 </div>
               </div>
             );
