@@ -9,12 +9,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const status = (Array.isArray(sp.status) ? sp.status[0] : sp.status) as 'green'|'red'|'null'|undefined;
   const startDate = (Array.isArray(sp.startDate) ? sp.startDate[0] : sp.startDate) as string | undefined;
   const endDate = (Array.isArray(sp.endDate) ? sp.endDate[0] : sp.endDate) as string | undefined;
-  const { entries, error } = await getEntries({ page: 1, limit: 500, status: (status ?? 'all') as any, startDate, endDate });
+  const bet_origin = (Array.isArray(sp.bet_origin) ? sp.bet_origin[0] : sp.bet_origin) as string | undefined;
+  const { entries, error } = await getEntries({ page: 1, limit: 500, status: (status ?? 'all') as any, startDate, endDate, bet_origin });
 
   const total = entries.length;
   const greens = entries.filter((e) => e.status === 'green').length;
   const reds = entries.filter((e) => e.status === 'red').length;
-  const lucroTotal = entries.reduce((acc, e) => acc + (((Number(e.valor_ganhos ?? 0) || 0) - (Number(e.valor_entrada ?? 0) || 0)) - (Number((e as any).valor_perdido ?? 0) || 0)), 0);
+  const totalFinal = entries.reduce((acc, e) => acc + (((Number(e.valor_ganhos ?? 0) || 0) - (Number((e as any).valor_perdido ?? 0) || 0))), 0);
+  const lucroTotal = entries.reduce((acc, e) => acc + (((Number(e.valor_ganhos ?? 0) || 0) - (Number((e as any).valor_perdido ?? 0) || 0) - (Number(e.valor_entrada ?? 0) || 0))), 0);
   const totalPerdido = entries.reduce((acc, e) => acc + (Number((e as any).valor_perdido ?? 0) || 0), 0);
   const totalEntrada = entries.reduce((acc, e) => acc + (Number(e.valor_entrada ?? 0) || 0), 0);
   const totalGanhos = entries.reduce((acc, e) => acc + (Number(e.valor_ganhos ?? 0) || 0), 0);
@@ -57,7 +59,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </div>
 
       {/* Filters */}
-      <DashboardFilters initialStatus={(status ?? 'all') as any} initialStartDate={startDate} initialEndDate={endDate} />
+      <DashboardFilters initialStatus={(status ?? 'all') as any} initialStartDate={startDate} initialEndDate={endDate} initialBetOrigin={bet_origin} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <SummaryCard title="Entradas" value={total} />
@@ -66,10 +68,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <SummaryCard title="Lucro do Período" value={lucroTotal} isCurrency accent="brand" />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <SummaryCard title="Total Entrada" value={totalEntrada} isCurrency />
         <SummaryCard title="Total Ganhos" value={totalGanhos} isCurrency />
         <SummaryCard title="Total Perdido" value={totalPerdido} isCurrency />
+        <SummaryCard title="Total Final" value={totalFinal} isCurrency />
         <SummaryCard title="Não Entrou" value={naoEntrou.length} />
         <SummaryCard title="Não Entrou/Green" value={naoEntrouGreen} />
       </div>

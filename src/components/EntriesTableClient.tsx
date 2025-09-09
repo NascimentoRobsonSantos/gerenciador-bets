@@ -199,8 +199,8 @@ export default function EntriesTableClient({
     const entrada = Number(row.valor_entrada ?? 0) || 0;
     const ganhos = Number(row.valor_ganhos ?? 0) || 0;
     const perdido = Number(row.valor_perdido ?? 0) || 0;
-    const lucro = Math.round(((ganhos - entrada - perdido) + Number.EPSILON) * 100) / 100;
-    const payload = { ...row, valor_ganhos: lucro, updated_at: new Date().toISOString() };
+    const valor_final = Math.round(((ganhos - perdido) + Number.EPSILON) * 100) / 100;
+    const payload = { ...row, valor_final, updated_at: new Date().toISOString() };
 
     try {
       const res = await fetch("/api/entries/update", {
@@ -239,8 +239,8 @@ export default function EntriesTableClient({
     const entrada = Number(modalRow.valor_entrada ?? 0) || 0;
     const ganhos = Number(modalRow.valor_ganhos ?? 0) || 0;
     const perdido = Number(modalRow.valor_perdido ?? 0) || 0;
-    const lucro = Math.round(((ganhos - entrada - perdido) + Number.EPSILON) * 100) / 100;
-    const payload = { ...modalRow, valor_ganhos: lucro, updated_at: new Date().toISOString() };
+    const valor_final = Math.round(((ganhos - perdido) + Number.EPSILON) * 100) / 100;
+    const payload = { ...modalRow, valor_final, updated_at: new Date().toISOString() };
     try {
       const res = await fetch("/api/entries/update", {
         method: "POST",
@@ -376,7 +376,7 @@ export default function EntriesTableClient({
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-6 gap-3 text-sm">
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Entradas (página/filtradas)</div>
             <div className="font-medium">{totals.count}</div>
@@ -392,6 +392,10 @@ export default function EntriesTableClient({
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Total Perdido</div>
             <div className="font-medium text-red-400">{formatCurrency(totals.totalPerdido)}</div>
+          </div>
+          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+            <div className="text-xs text-neutral-400">Total Final</div>
+            <div className="font-medium">{formatCurrency(totals.totalFinal)}</div>
           </div>
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Total Lucro</div>
@@ -416,7 +420,7 @@ export default function EntriesTableClient({
               <th className="px-3 py-2">Valor Entrada</th>
               <th className="px-3 py-2">Valor Ganhos</th>
               <th className="px-3 py-2">Valor Perdido</th>
-              <th className="px-3 py-2">Valor Lucro</th>
+              <th className="px-3 py-2">Valor Final</th>
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2"></th>
             </tr>
@@ -429,7 +433,8 @@ export default function EntriesTableClient({
               const attempt = toAttemptLabel(idx >= 0 ? idx : null);
               const oddNum = Number(e.odd ?? 0) || 0;
               const perdido = Number(e.valor_perdido ?? 0) || 0;
-              const lucro = ((Number(e.valor_ganhos ?? 0) || 0) - (Number(e.valor_entrada ?? 0) || 0)) - perdido;
+              const finalVal = (Number(e.valor_ganhos ?? 0) || 0) - perdido;
+              const lucro = finalVal - (Number(e.valor_entrada ?? 0) || 0);
               return (
                 <tr key={e.id} className="border-t border-neutral-800/70 hover:bg-neutral-900/40">
                   <td className="px-3 py-2">{e.id}</td>
@@ -482,7 +487,7 @@ export default function EntriesTableClient({
                     )}
                   </td>
                   <td className="px-3 py-2 font-medium text-red-400">{formatCurrency(perdido)}</td>
-                  <td className={`px-3 py-2 font-medium ${e.status === 'green' ? 'bg-b365-green/15 text-b365-green font-semibold' : e.status === 'red' ? 'bg-red-500/15 text-red-600 font-semibold' : (lucro >= 0 ? 'text-b365-yellow' : 'text-red-400')}`}>{formatCurrency(lucro)}</td>
+                  <td className={`px-3 py-2 font-medium ${e.status === 'green' ? 'bg-b365-green/15 text-b365-green font-semibold' : e.status === 'red' ? 'bg-red-500/15 text-red-600 font-semibold' : (finalVal >= 0 ? 'text-b365-yellow' : 'text-red-400')}`}>{formatCurrency(finalVal)}</td>
                   <td className="px-3 py-2">
                     {(() => {
                       if (e.status === 'green') {
