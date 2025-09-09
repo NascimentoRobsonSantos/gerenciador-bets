@@ -91,3 +91,5 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     </div>
   );
 }
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;

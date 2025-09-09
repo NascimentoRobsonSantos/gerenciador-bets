@@ -39,3 +39,5 @@ export default async function EntradasVirtualPage({
     </div>
   );
 }
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;

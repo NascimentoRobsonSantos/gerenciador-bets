@@ -506,8 +506,14 @@ export default function EntriesTableClient({
               value={limit}
               onChange={(e) => {
                 const newLimit = Number(e.target.value) || 50;
-                // Ao mudar o limite, volta para a primeira página
-                router.push(`/entradas/virtual?page=1&limit=${newLimit}`);
+                const qs = new URLSearchParams();
+                qs.set('page', '1');
+                qs.set('limit', String(newLimit));
+                if (status !== 'all') qs.set('status', status);
+                if (startDate) qs.set('startDate', startDate);
+                if (endDate) qs.set('endDate', endDate);
+                if (betOrigin) qs.set('bet_origin', betOrigin);
+                router.push(`/entradas/virtual?${qs.toString()}`);
               }}
               className="rounded border form-input px-2 py-1 text-sm"
             >
@@ -520,13 +526,13 @@ export default function EntriesTableClient({
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href={{ pathname: "/entradas/virtual", query: { page: Math.max(1, page - 1), limit } }}
+            href={{ pathname: "/entradas/virtual", query: { page: Math.max(1, page - 1), limit, ...(status !== 'all' ? { status } : {}), ...(startDate ? { startDate } : {}), ...(endDate ? { endDate } : {}), ...(betOrigin ? { bet_origin: betOrigin } : {}) } }}
             className={`rounded-md border border-neutral-800 px-3 py-1 text-sm hover:bg-neutral-800/60 ${page <= 1 ? "pointer-events-none opacity-50" : ""}`}
           >
             Anterior
           </Link>
           <Link
-            href={{ pathname: "/entradas/virtual", query: { page: Math.min(totalPages, page + 1), limit } }}
+            href={{ pathname: "/entradas/virtual", query: { page: Math.min(totalPages, page + 1), limit, ...(status !== 'all' ? { status } : {}), ...(startDate ? { startDate } : {}), ...(endDate ? { endDate } : {}), ...(betOrigin ? { bet_origin: betOrigin } : {}) } }}
             className={`rounded-md border border-neutral-800 px-3 py-1 text-sm hover:bg-neutral-800/60 ${page >= totalPages ? "pointer-events-none opacity-50" : ""}`}
           >
             Próxima
