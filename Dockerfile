@@ -28,7 +28,7 @@ RUN npm install --omit=dev --legacy-peer-deps
 
 # Copiar artefatos gerados no build
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
+# COPY --from=builder /app/public ./public
 
 # Porta usada pelo Next.js
 EXPOSE 3000
