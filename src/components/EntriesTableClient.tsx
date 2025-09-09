@@ -85,6 +85,13 @@ export default function EntriesTableClient({
     return () => window.removeEventListener('keydown', onKey);
   }, [modalOpen]);
 
+  // Open filters modal on global event (from page header button)
+  useEffect(() => {
+    const open = () => setFiltersOpen(true);
+    window.addEventListener('open-entries-filters', open as any);
+    return () => window.removeEventListener('open-entries-filters', open as any);
+  }, []);
+
   function prevRowOrInitial(row: Entry) {
     const orig = initialEntries.find((e) => e.id === row.id);
     return orig ?? row;
@@ -273,11 +280,8 @@ export default function EntriesTableClient({
       {errorMsg ? <div className="text-sm text-red-400">{errorMsg}</div> : null}
 
       {/* Totais + botão de filtros */}
-      <div className="flex items-start justify-between gap-3 rounded-lg border border-neutral-800 bg-neutral-900/30 p-3">
-        <button onClick={() => setFiltersOpen(true)} className="ml-auto inline-flex items-center gap-2 rounded-md border border-neutral-700 px-3 py-1 text-sm hover:bg-neutral-800/60" title="Filtros">
-          <Filter className="h-4 w-4" /> Filtros
-        </button>
-        <div className="grid grid-cols-2 sm:grid-cols-9 gap-3 text-sm w-full">
+      <div className="rounded-lg border border-neutral-800 bg-neutral-900/30 p-3">
+        <div className="grid grid-cols-3 sm:grid-cols-9 gap-3 text-sm w-full">
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Entradas (página/filtradas)</div>
             <div className="font-medium">{totals.count}</div>
@@ -442,7 +446,7 @@ export default function EntriesTableClient({
             const isGreen = e.status === 'green';
             const isRed = e.status === 'red';
             return (
-              <div key={e.id} className="p-3">
+              <div key={e.id} className="p-3 rounded-lg border border-neutral-800 bg-neutral-900/20">
                 <div className="flex items-center justify-between gap-2">
                   <div className="font-medium truncate">{e.tipo_entrada ?? '-'}</div>
                   <div>

@@ -1,5 +1,6 @@
 import { getEntries } from "@/lib/entries";
 import EntriesTableClient from "@/components/EntriesTableClient";
+import EntriesFiltersButton from "@/components/EntriesFiltersButton";
 
 export default async function EntradasVirtualPage({
   searchParams,
@@ -24,7 +25,10 @@ export default async function EntradasVirtualPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl md:text-3xl font-semibold">Entradas · Virtual</h1>
-        <div className="flex items-center gap-3 text-sm text-neutral-400">{totalItems ?? 0} itens {error ? <span className="text-red-400">· {error}</span> : null}</div>
+        <div className="flex items-center gap-3 text-sm text-neutral-400">
+          {totalItems ?? 0} itens {error ? <span className="text-red-400">· {error}</span> : null}
+          <span className="md:hidden"><EntriesFiltersButton /></span>
+        </div>
       </div>
       <EntriesTableClient
         initialEntries={entries}

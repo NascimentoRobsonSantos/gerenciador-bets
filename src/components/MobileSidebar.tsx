@@ -6,9 +6,9 @@ import { BarChart3, List, X } from "lucide-react";
 export default function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 md:hidden" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/50" />
-      <aside className="absolute left-0 top-0 h-full w-72 border-r border-neutral-800 p-4 shadow-lg" style={{backgroundColor: 'var(--background)', color: 'var(--foreground)'}} onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] md:hidden" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60" />
+      <aside className="absolute left-0 top-0 h-full w-72 border-r border-neutral-800 p-4 shadow-2xl bg-background text-foreground" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <span className="font-semibold">Gerenciador Bets</span>
           <button onClick={onClose} className="rounded-md border border-neutral-700 p-1 hover:bg-neutral-800/60" aria-label="Fechar">
