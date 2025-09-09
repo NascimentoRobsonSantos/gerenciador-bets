@@ -129,31 +129,33 @@ export default function EntriesTableClient({
     if (field === 'valor_entrada') {
       const entradaNum = String(value).trim() === '' ? null : Number(value);
       next.valor_entrada = entradaNum;
-      if (!modalTouchedGanhos && !((Number(next.valor_ganhos ?? 0) || 0) > 0)) {
-        const oddNum = Number(next.odd ?? 0) || 0;
-        const baseEntrada = Number(entradaNum ?? 0) || 0;
-        next.valor_ganhos = Math.round(baseEntrada * oddNum * 100) / 100;
-      }
-      // Atualiza lucro mostrado = ganhos - entrada - perdido
-      const lucroCalc = ((Number(next.valor_ganhos ?? 0) || 0) - (Number(next.valor_entrada ?? 0) || 0) - (Number(next.valor_perdido ?? 0) || 0));
+      // Regra: calcular automaticamente valor_ganhos = odd * valor_entrada
+      const oddNum = Number(next.odd ?? 0) || 0;
+      const baseEntrada = Number(entradaNum ?? 0) || 0;
+      next.valor_ganhos = Math.round(baseEntrada * oddNum * 100) / 100;
+      // Atualiza valor_final e lucro mostrado
+      next.valor_final = Math.round(((Number(next.valor_ganhos ?? 0) || 0) - (Number(next.valor_perdido ?? 0) || 0)) * 100) / 100;
+      const lucroCalc = (Number(next.valor_final ?? 0) || 0) - (Number(next.valor_entrada ?? 0) || 0);
       setModalLucroInput(String(Number.isFinite(lucroCalc) ? lucroCalc : ""));
     } else if (field === 'odd') {
       const oddNum = String(value).trim() === '' ? null : Number(value);
       next.odd = oddNum;
-      if (!modalTouchedGanhos && !((Number(next.valor_ganhos ?? 0) || 0) > 0)) {
-        const entradaNum = Number(next.valor_entrada ?? 0) || 0;
-        next.valor_ganhos = Math.round(entradaNum * (Number(oddNum || 0)) * 100) / 100;
-      }
-      const lucroCalc = ((Number(next.valor_ganhos ?? 0) || 0) - (Number(next.valor_entrada ?? 0) || 0) - (Number(next.valor_perdido ?? 0) || 0));
+      // Regra: calcular automaticamente valor_ganhos = odd * valor_entrada
+      const entradaNum = Number(next.valor_entrada ?? 0) || 0;
+      next.valor_ganhos = Math.round(entradaNum * (Number(oddNum || 0)) * 100) / 100;
+      next.valor_final = Math.round(((Number(next.valor_ganhos ?? 0) || 0) - (Number(next.valor_perdido ?? 0) || 0)) * 100) / 100;
+      const lucroCalc = (Number(next.valor_final ?? 0) || 0) - (Number(next.valor_entrada ?? 0) || 0);
       setModalLucroInput(String(Number.isFinite(lucroCalc) ? lucroCalc : ""));
     } else if (field === 'valor_ganhos') {
       setModalTouchedGanhos(true);
       next.valor_ganhos = String(value).trim() === '' ? null : Number(value);
-      const lucroCalc = ((Number(next.valor_ganhos ?? 0) || 0) - (Number(next.valor_entrada ?? 0) || 0) - (Number(next.valor_perdido ?? 0) || 0));
+      next.valor_final = Math.round(((Number(next.valor_ganhos ?? 0) || 0) - (Number(next.valor_perdido ?? 0) || 0)) * 100) / 100;
+      const lucroCalc = (Number(next.valor_final ?? 0) || 0) - (Number(next.valor_entrada ?? 0) || 0);
       setModalLucroInput(String(Number.isFinite(lucroCalc) ? lucroCalc : ""));
     } else if (field === 'valor_perdido') {
       next.valor_perdido = String(value).trim() === '' ? null : Number(value);
-      const lucroCalc = ((Number(next.valor_ganhos ?? 0) || 0) - (Number(next.valor_entrada ?? 0) || 0) - (Number(next.valor_perdido ?? 0) || 0));
+      next.valor_final = Math.round(((Number(next.valor_ganhos ?? 0) || 0) - (Number(next.valor_perdido ?? 0) || 0)) * 100) / 100;
+      const lucroCalc = (Number(next.valor_final ?? 0) || 0) - (Number(next.valor_entrada ?? 0) || 0);
       setModalLucroInput(String(Number.isFinite(lucroCalc) ? lucroCalc : ""));
     } else {
       (next as any)[field] = value;
@@ -528,7 +530,7 @@ export default function EntriesTableClient({
             <select
               value={limit}
               onChange={(e) => {
-                const newLimit = Number(e.target.value) || 20;
+                const newLimit = Number(e.target.value) || 50;
                 // Ao mudar o limite, volta para a primeira página
                 router.push(`/entradas/virtual?page=1&limit=${newLimit}`);
               }}
@@ -635,6 +637,14 @@ export default function EntriesTableClient({
                   })()}
                 </div>
               )}
+              <div className="text-sm">
+                <div className="text-xs text-foreground">Valor Final (ganhos - perdido)</div>
+                {(() => {
+                  const vf = ((Number(modalRow.valor_ganhos ?? 0) || 0) - (Number(modalRow.valor_perdido ?? 0) || 0));
+                  const cls = vf >= 0 ? 'text-b365-green' : 'text-red-400';
+                  return <div className={`mt-1 font-medium ${cls}`}>{formatCurrency(vf)}</div>;
+                })()}
+              </div>
               <label className="text-sm">
                 <div className="text-xs text-foreground">Valor Perdido</div>
                 <input
