@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  # Nome do nosso serviço
+  gerenciador-bets:
+    # IMPORTANTE: A imagem deve ser construída manualmente na VPS antes do deploy.
+    # O Portainer usará esta imagem que já existe localmente.
+    # O nome da imagem é 'gerenciador-bets-frontend:latest'
+    image: gerenciador-bets:latest
+    ports:
+      - "3000:3000"
+    networks:
+      # Conecta o serviço à rede do Traefik
+      - traefik_public
+      - app_network
+    deploy:
+      restart_policy:
+        condition: any
+      labels:
+        # --- Configurações do Traefik ---
+        - "traefik.enable=true"
+
+        # --- Roteador para app.neobrasil.acontece.ai ---
+        - "traefik.http.routers.gerenciador-bets-secure.rule=Host(`bet.storeprodigital.site`)"
+        - "traefik.http.routers.gerenciador-bets-secure.entrypoints=websecure"
+        - "traefik.http.routers.gerenciador-bets-secure.tls=true"
+        - "traefik.http.routers.gerenciador-bets-secure.tls.certresolver=zerosslresolver"
+        - "traefik.http.routers.gerenciador-bets-secure.service=gerenciador-bets-service"
+
+        # --- Serviço do Traefik ---
+        - "traefik.http.services.gerenciador-bets-service.loadbalancer.server.port=3000"
+        - "traefik.http.services.gerenciador-bets-service.loadbalancer.passHostHeader=true"
+
+networks:
+  # Declara que a rede é externa, pois ela já foi criada pelo Traefik
+  traefik_public:
+    external: true
+    name: externa
+  app_network:
+    external: true
+    name: interna
