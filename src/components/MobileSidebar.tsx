@@ -8,7 +8,7 @@ export default function MobileSidebar({ open, onClose }: { open: boolean; onClos
   return (
     <div className="fixed inset-0 z-50 md:hidden" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50" />
-      <aside className="absolute left-0 top-0 h-full w-72 bg-background border-r border-neutral-800 p-4" onClick={(e) => e.stopPropagation()}>
+      <aside className="absolute left-0 top-0 h-full w-72 bg-background text-foreground border-r border-neutral-800 p-4 shadow-lg" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <span className="font-semibold">Gerenciador Bets</span>
           <button onClick={onClose} className="rounded-md border border-neutral-700 p-1 hover:bg-neutral-800/60" aria-label="Fechar">
@@ -24,4 +24,3 @@ export default function MobileSidebar({ open, onClose }: { open: boolean; onClos
     </div>
   );
 }
-

@@ -8,7 +8,7 @@ export default async function EntradasVirtualPage({
 }) {
   const sp = await searchParams;
   const page = Number(sp.page ?? 1) || 1;
-  const limit = Number(sp.limit ?? 10) || 10;
+  const limit = Number(sp.limit ?? 50) || 50;
   const rawStatus = (Array.isArray(sp.status) ? sp.status[0] : sp.status) as
     | 'green'
     | 'red'

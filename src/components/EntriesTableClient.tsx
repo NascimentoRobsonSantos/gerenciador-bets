@@ -5,6 +5,7 @@ import { Entry } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Filter } from "lucide-react";
 
 function toAttemptLabel(idxZeroBased: number | null) {
   if (idxZeroBased == null || idxZeroBased < 0) return "-";
@@ -46,6 +47,7 @@ export default function EntriesTableClient({
   const [modalTouchedGanhos, setModalTouchedGanhos] = useState(false);
   const [modalLucroInput, setModalLucroInput] = useState<string>("");
   const [betOrigin, setBetOrigin] = useState<string>(initialBetOrigin ?? "");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil((totalItems ?? 0) / Math.max(1, limit))), [totalItems, limit]);
 
@@ -188,7 +190,9 @@ export default function EntriesTableClient({
     const totalLucro = rows.reduce((acc, r) => acc + ((Number(totalFinal) ? 0 : 0)), 0);
     // totalLucro = (ganhos - perdido) - entrada
     const totalLucroCalc = rows.reduce((acc, r) => acc + ((((Number(r.valor_ganhos ?? 0) || 0) - (Number(r.valor_perdido ?? 0) || 0)) - (Number(r.valor_entrada ?? 0) || 0))), 0);
-    return { count, totalEntrada, totalGanhos, totalPerdido, totalFinal, totalLucro: totalLucroCalc };
+    const greens = rows.filter((r) => r.status === 'green').length;
+    const reds = rows.filter((r) => r.status === 'red').length;
+    return { count, totalEntrada, totalGanhos, totalPerdido, totalFinal, totalLucro: totalLucroCalc, greens, reds };
   }, [rows]);
 
   async function saveRow(id: number) {
@@ -291,94 +295,12 @@ export default function EntriesTableClient({
     <div className="space-y-4">
       {errorMsg ? <div className="text-sm text-red-400">{errorMsg}</div> : null}
 
-      {/* Filters + Totals */}
-      <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-neutral-800 bg-neutral-900/30 p-3">
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <div className="text-xs text-neutral-400">De</div>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="rounded border form-input px-2 py-1 text-sm"
-            />
-          </div>
-          <div>
-            <div className="text-xs text-neutral-400">Até</div>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="rounded border form-input px-2 py-1 text-sm"
-            />
-          </div>
-          <div>
-            <div className="text-xs text-neutral-400">Bet Origin</div>
-            <input
-              type="text"
-              value={betOrigin}
-              onChange={(e) => setBetOrigin(e.target.value)}
-              placeholder="Ex.: MR TIPS"
-              className="rounded border form-input px-2 py-1 text-sm"
-            />
-          </div>
-          <div>
-            <div className="text-xs text-neutral-400">Status</div>
-            <select
-              value={status}
-              onChange={(e) => {
-                const val = e.target.value as any;
-                setStatus(val);
-                const qs = new URLSearchParams();
-                qs.set('page', '1');
-                qs.set('limit', String(limit));
-                if (val !== 'all') qs.set('status', val);
-                if (startDate) qs.set('startDate', startDate);
-                if (endDate) qs.set('endDate', endDate);
-                if (betOrigin) qs.set('bet_origin', betOrigin);
-                const query = qs.toString();
-                router.push(`/entradas/virtual${query ? `?${query}` : ''}`);
-              }}
-              className="rounded border form-input px-2 py-1 text-sm"
-            >
-              <option value="all">Todos</option>
-              <option value="null">Não entrei</option>
-              <option value="green">Green</option>
-              <option value="red">Red</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2 mt-5">
-            <button
-              onClick={() => {
-                const qs = new URLSearchParams();
-                qs.set('page', '1');
-                qs.set('limit', String(limit));
-                if (status !== 'all') qs.set('status', status);
-                if (startDate) qs.set('startDate', startDate);
-                if (endDate) qs.set('endDate', endDate);
-                if (betOrigin) qs.set('bet_origin', betOrigin);
-                const query = qs.toString();
-                router.push(`/entradas/virtual${query ? `?${query}` : ''}`);
-              }}
-              className="rounded-md border border-neutral-700 bg-b365-green/20 px-3 py-1 text-sm hover:bg-b365-green/30"
-            >
-              Aplicar filtros
-            </button>
-            <button
-              onClick={() => {
-                setStartDate("");
-                setEndDate("");
-                setStatus("all");
-                setBetOrigin("");
-                router.push(`/entradas/virtual?page=1&limit=${limit}`);
-              }}
-              className="rounded-md border border-neutral-700 px-3 py-1 text-sm hover:bg-neutral-800/60"
-            >
-              Limpar filtros
-            </button>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-6 gap-3 text-sm">
+      {/* Totais + botão de filtros */}
+      <div className="flex items-start justify-between gap-3 rounded-lg border border-neutral-800 bg-neutral-900/30 p-3">
+        <button onClick={() => setFiltersOpen(true)} className="ml-auto inline-flex items-center gap-2 rounded-md border border-neutral-700 px-3 py-1 text-sm hover:bg-neutral-800/60" title="Filtros">
+          <Filter className="h-4 w-4" /> Filtros
+        </button>
+        <div className="grid grid-cols-1 sm:grid-cols-8 gap-3 text-sm w-full">
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Entradas (página/filtradas)</div>
             <div className="font-medium">{totals.count}</div>
@@ -403,11 +325,19 @@ export default function EntriesTableClient({
             <div className="text-xs text-neutral-400">Total Lucro</div>
             <div className="font-medium">{formatCurrency(totals.totalLucro)}</div>
           </div>
+          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+            <div className="text-xs text-neutral-400">Greens</div>
+            <div className="font-medium text-b365-green">{totals.greens}</div>
+          </div>
+          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+            <div className="text-xs text-neutral-400">Reds</div>
+            <div className="font-medium text-red-500">{totals.reds}</div>
+          </div>
         </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-neutral-800">
-        <table className="min-w-full text-sm">
+        <table className="min-w-full text-sm hidden md:table">
           <thead className="bg-neutral-900/60">
             <tr className="text-left">
               <th className="px-3 py-2">ID</th>
@@ -520,6 +450,58 @@ export default function EntriesTableClient({
             })}
           </tbody>
         </table>
+        {/* Mobile card list */}
+        <div className="md:hidden divide-y divide-neutral-800">
+          {rows.map((e) => {
+            const minutosArr = Array.isArray(e.minutos) ? e.minutos : e.minutos == null ? [] : [Number(e.minutos)];
+            const idx = e.minuto_green != null ? minutosArr.findIndex((m) => Number(m) === Number(e.minuto_green)) : -1;
+            const attempt = toAttemptLabel(idx >= 0 ? idx : null);
+            const oddNum = Number(e.odd ?? 0) || 0;
+            const perdido = Number(e.valor_perdido ?? 0) || 0;
+            const finalVal = (Number(e.valor_ganhos ?? 0) || 0) - perdido;
+            const lucro = finalVal - (Number(e.valor_entrada ?? 0) || 0);
+            const isGreen = e.status === 'green';
+            const isRed = e.status === 'red';
+            return (
+              <div key={e.id} className="p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-medium truncate">{e.tipo_entrada ?? '-'}</div>
+                  <div>
+                    {isGreen ? (
+                      <span className="inline-flex items-center rounded px-2 py-0.5 bg-b365-green/15 text-b365-green">Green</span>
+                    ) : isRed ? (
+                      <span className="inline-flex items-center rounded px-2 py-0.5 bg-red-500/15 text-red-600">Red</span>
+                    ) : (
+                      <span className="inline-flex items-center rounded px-2 py-0.5 bg-yellow-400/15 text-b365-yellow">Não entrei</span>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                  <div className="rounded border border-neutral-800 bg-neutral-900/40 p-2"><div className="text-xs text-neutral-400">Odd</div><div>{oddNum ? oddNum.toFixed(2) : e.odd ?? '-'}</div></div>
+                  <div className="rounded border border-neutral-800 bg-neutral-900/40 p-2"><div className="text-xs text-neutral-400">Entrada</div><div>{formatCurrency(e.valor_entrada ?? 0)}</div></div>
+                  <div className={`rounded border border-neutral-800 p-2 ${isGreen ? 'bg-b365-green/15' : isRed ? 'bg-red-500/15' : 'bg-neutral-900/40'}`}>
+                    <div className="text-xs text-neutral-400">Ganhos</div>
+                    <div className={`${isGreen ? 'text-b365-green font-semibold' : isRed ? 'text-red-600 font-semibold' : ''}`}>{formatCurrency(e.valor_ganhos ?? 0)}</div>
+                  </div>
+                  <div className="rounded border border-neutral-800 bg-neutral-900/40 p-2"><div className="text-xs text-neutral-400">Perdido</div><div className="text-red-400">{formatCurrency(perdido)}</div></div>
+                  <div className={`rounded border border-neutral-800 p-2 col-span-2 ${isGreen ? 'bg-b365-green/15' : isRed ? 'bg-red-500/15' : 'bg-neutral-900/40'}`}>
+                    <div className="text-xs text-neutral-400">Final</div>
+                    <div className={`${isGreen ? 'text-b365-green font-semibold' : isRed ? 'text-red-600 font-semibold' : (finalVal >= 0 ? 'text-b365-yellow' : 'text-red-400')}`}>{formatCurrency(finalVal)}</div>
+                  </div>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-xs text-neutral-400">
+                  <div className="truncate">{e.bet_origin ?? '-'}</div>
+                  <div className="flex items-center gap-2">
+                    <span>{e.campeonato ?? '-'}</span>
+                    <span>· {e.hora ?? '-'}h</span>
+                    <span>· Tentativa {attempt}</span>
+                    <button onClick={() => startEdit(e.id)} className="ml-2 rounded-md border border-neutral-700 px-2 py-0.5 text-xs hover:bg-neutral-800/60">Editar</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="flex items-center justify-between gap-3">
@@ -674,6 +656,104 @@ export default function EntriesTableClient({
                   {savingId === modalRow.id ? 'Salvando...' : 'Salvar'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {filtersOpen ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 px-4" onClick={() => setFiltersOpen(false)}>
+          <div className="w-full max-w-xl rounded-lg border border-neutral-800 bg-neutral-950 p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 text-lg font-semibold">Filtros</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="text-sm">
+                <div className="text-xs text-foreground">De</div>
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full rounded border form-input px-2 py-1" />
+              </label>
+              <label className="text-sm">
+                <div className="text-xs text-foreground">Até</div>
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full rounded border form-input px-2 py-1" />
+              </label>
+              <label className="text-sm sm:col-span-2">
+                <div className="text-xs text-foreground">Bet Origin</div>
+                <input type="text" value={betOrigin} onChange={(e) => setBetOrigin(e.target.value)} placeholder="Ex.: MR TIPS" className="w-full rounded border form-input px-2 py-1" />
+              </label>
+              <label className="text-sm sm:col-span-2">
+                <div className="text-xs text-foreground">Status</div>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as any)}
+                  className="w-full rounded border form-input px-2 py-1"
+                >
+                  <option value="all">Todos</option>
+                  <option value="null">Não entrei</option>
+                  <option value="green">Green</option>
+                  <option value="red">Red</option>
+                </select>
+              </label>
+            </div>
+            {/* Totais também no modal para mobile */}
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:hidden">
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Entradas</div>
+                <div className="font-medium">{totals.count}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Total Entrada</div>
+                <div className="font-medium">{formatCurrency(totals.totalEntrada)}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Total Ganhos</div>
+                <div className="font-medium">{formatCurrency(totals.totalGanhos)}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Total Perdido</div>
+                <div className="font-medium text-red-400">{formatCurrency(totals.totalPerdido)}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Total Final</div>
+                <div className="font-medium">{formatCurrency(totals.totalFinal)}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Greens</div>
+                <div className="font-medium text-b365-green">{totals.greens}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Reds</div>
+                <div className="font-medium text-red-500">{totals.reds}</div>
+              </div>
+            </div>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                onClick={() => {
+                  setStartDate("");
+                  setEndDate("");
+                  setStatus("all");
+                  setBetOrigin("");
+                  setFiltersOpen(false);
+                  router.push(`/entradas/virtual?page=1&limit=${limit}`);
+                }}
+                className="rounded-md border border-neutral-700 px-3 py-1 text-sm hover:bg-neutral-800/60"
+              >
+                Limpar
+              </button>
+              <button
+                onClick={() => {
+                  const qs = new URLSearchParams();
+                  qs.set('page', '1');
+                  qs.set('limit', String(limit));
+                  if (status !== 'all') qs.set('status', status);
+                  if (startDate) qs.set('startDate', startDate);
+                  if (endDate) qs.set('endDate', endDate);
+                  if (betOrigin) qs.set('bet_origin', betOrigin);
+                  setFiltersOpen(false);
+                  const query = qs.toString();
+                  router.push(`/entradas/virtual${query ? `?${query}` : ''}`);
+                }}
+                className="rounded-md border border-neutral-700 bg-b365-green/20 px-3 py-1 text-sm hover:bg-b365-green/30"
+              >
+                Aplicar
+              </button>
             </div>
           </div>
         </div>
