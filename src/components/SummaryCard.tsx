@@ -5,20 +5,20 @@ export default function SummaryCard({
   value,
   isCurrency = false,
   accent,
+  profitMode = false,
 }: {
   title: string;
   value: number;
   isCurrency?: boolean;
   accent?: "green" | "red" | "brand";
+  profitMode?: boolean; // se true, usa verde para positivo e vermelho para negativo
 }) {
-  const color =
-    accent === "green"
-      ? "text-b365-green"
-      : accent === "red"
-      ? "text-red-400"
-      : accent === "brand"
-      ? "text-b365-yellow"
-      : "text-neutral-100";
+  let color = "text-foreground";
+  if (profitMode) {
+    color = value > 0 ? "text-b365-green" : value < 0 ? "text-red-400" : "text-foreground";
+  } else if (accent === "green") color = "text-b365-green";
+  else if (accent === "red") color = "text-red-400";
+  else if (accent === "brand") color = "text-b365-yellow";
 
   return (
     <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
@@ -29,4 +29,3 @@ export default function SummaryCard({
     </div>
   );
 }
-

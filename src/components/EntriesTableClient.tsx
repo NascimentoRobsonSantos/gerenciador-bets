@@ -45,7 +45,6 @@ export default function EntriesTableClient({
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRow, setModalRow] = useState<Entry | null>(null);
   const [modalTouchedGanhos, setModalTouchedGanhos] = useState(false);
-  const [modalFinalInput, setModalFinalInput] = useState<string>("");
   const [betOrigin, setBetOrigin] = useState<string>(initialBetOrigin ?? "");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -66,15 +65,14 @@ export default function EntriesTableClient({
     // Prepare modal copy
     setModalRow({ ...row });
     setModalTouchedGanhos(false);
-    const lucroCalc = ((Number(row.valor_ganhos ?? 0) || 0) - (Number(row.valor_entrada ?? 0) || 0) - (Number(row.valor_perdido ?? 0) || 0));
-    setModalFinalInput(String(lucroCalc || ""));
+    // valor_final é derivado e exibido como leitura
     setModalOpen(true);
   }
 
   function cancelEdit() {
     setModalOpen(false);
     setModalRow(null);
-    setModalFinalInput("");
+    
   }
 
   // Close modal on ESC key
@@ -137,7 +135,6 @@ export default function EntriesTableClient({
       next.valor_ganhos = Math.round(baseEntrada * oddNum * 100) / 100;
       // Atualiza valor_final (lucro): ganhos - perdido - entrada
       next.valor_final = Math.round((((Number(next.valor_ganhos ?? 0) || 0) - (Number(next.valor_perdido ?? 0) || 0) - (Number(next.valor_entrada ?? 0) || 0)) * 100)) / 100;
-      setModalFinalInput(String(Number(next.valor_final ?? 0)));
     } else if (field === 'odd') {
       const oddNum = String(value).trim() === '' ? null : Number(value);
       next.odd = oddNum;
@@ -145,36 +142,20 @@ export default function EntriesTableClient({
       const entradaNum = Number(next.valor_entrada ?? 0) || 0;
       next.valor_ganhos = Math.round(entradaNum * (Number(oddNum || 0)) * 100) / 100;
       next.valor_final = Math.round((((Number(next.valor_ganhos ?? 0) || 0) - (Number(next.valor_perdido ?? 0) || 0) - (Number(next.valor_entrada ?? 0) || 0)) * 100)) / 100;
-      setModalFinalInput(String(Number(next.valor_final ?? 0)));
     } else if (field === 'valor_ganhos') {
       setModalTouchedGanhos(true);
       next.valor_ganhos = String(value).trim() === '' ? null : Number(value);
       next.valor_final = Math.round((((Number(next.valor_ganhos ?? 0) || 0) - (Number(next.valor_perdido ?? 0) || 0) - (Number(next.valor_entrada ?? 0) || 0)) * 100)) / 100;
-      setModalFinalInput(String(Number(next.valor_final ?? 0)));
     } else if (field === 'valor_perdido') {
       next.valor_perdido = String(value).trim() === '' ? null : Number(value);
       next.valor_final = Math.round((((Number(next.valor_ganhos ?? 0) || 0) - (Number(next.valor_perdido ?? 0) || 0) - (Number(next.valor_entrada ?? 0) || 0)) * 100)) / 100;
-      setModalFinalInput(String(Number(next.valor_final ?? 0)));
     } else {
       (next as any)[field] = value;
     }
     setModalRow(next);
   }
 
-  function updateModalFinal(value: string) {
-    if (!modalRow) return;
-    setModalFinalInput(value);
-    // For status red, valor_final deve ser negativo. Se positivo, inverto o sinal.
-    let finalVal = Number(value);
-    if (!Number.isFinite(finalVal)) return;
-    if (modalRow.status === 'red' && finalVal > 0) finalVal = -finalVal;
-    const entrada = Number(modalRow.valor_entrada ?? 0) || 0;
-    const perdido = Number(modalRow.valor_perdido ?? 0) || 0;
-    // valor_final = ganhos - entrada - perdido => ganhos = entrada + perdido + valor_final
-    const novosGanhos = Math.round((entrada + perdido + finalVal) * 100) / 100;
-    setModalTouchedGanhos(true);
-    setModalRow({ ...modalRow, valor_ganhos: novosGanhos });
-  }
+  // Valor final é derivado na UI, não editável
 
   // As filtragens são server-side: usar rows direto para totais e render
   const totals = useMemo(() => {
@@ -185,7 +166,10 @@ export default function EntriesTableClient({
     const totalFinal = rows.reduce((acc, r) => acc + (((Number(r.valor_ganhos ?? 0) || 0) - (Number(r.valor_perdido ?? 0) || 0) - (Number(r.valor_entrada ?? 0) || 0))), 0);
     const greens = rows.filter((r) => r.status === 'green').length;
     const reds = rows.filter((r) => r.status === 'red').length;
-    return { count, totalEntrada, totalGanhos, totalPerdido, totalFinal, greens, reds };
+    const totalRed = rows
+      .filter((r) => r.status === 'red')
+      .reduce((acc, r) => acc + (((Number(r.valor_ganhos ?? 0) || 0) - (Number(r.valor_perdido ?? 0) || 0) - (Number(r.valor_entrada ?? 0) || 0))), 0);
+    return { count, totalEntrada, totalGanhos, totalPerdido, totalFinal, greens, reds, totalRed };
   }, [rows]);
 
   async function saveRow(id: number) {
@@ -293,7 +277,7 @@ export default function EntriesTableClient({
         <button onClick={() => setFiltersOpen(true)} className="ml-auto inline-flex items-center gap-2 rounded-md border border-neutral-700 px-3 py-1 text-sm hover:bg-neutral-800/60" title="Filtros">
           <Filter className="h-4 w-4" /> Filtros
         </button>
-        <div className="grid grid-cols-2 sm:grid-cols-8 gap-3 text-sm w-full">
+        <div className="grid grid-cols-2 sm:grid-cols-9 gap-3 text-sm w-full">
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Entradas (página/filtradas)</div>
             <div className="font-medium">{totals.count}</div>
@@ -325,6 +309,10 @@ export default function EntriesTableClient({
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Reds</div>
             <div className="font-medium text-red-500">{totals.reds}</div>
+          </div>
+          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+            <div className="text-xs text-neutral-400">Total Red</div>
+            <div className="font-medium text-red-500">{formatCurrency(totals.totalRed)}</div>
           </div>
         </div>
       </div>
@@ -358,8 +346,7 @@ export default function EntriesTableClient({
               const attempt = toAttemptLabel(idx >= 0 ? idx : null);
               const oddNum = Number(e.odd ?? 0) || 0;
               const perdido = Number(e.valor_perdido ?? 0) || 0;
-              const finalVal = (Number(e.valor_ganhos ?? 0) || 0) - perdido;
-              const lucro = finalVal - (Number(e.valor_entrada ?? 0) || 0);
+              const finalVal = Number(e.valor_final ?? 0) || 0;
               return (
                 <tr key={e.id} className="border-t border-neutral-800/70 hover:bg-neutral-900/40">
                   <td className="px-3 py-2">{e.id}</td>
@@ -595,16 +582,14 @@ export default function EntriesTableClient({
                   <option value="red">Red</option>
                 </select>
               </label>
-              <label className="text-sm">
+              <div className="text-sm">
                 <div className="text-xs text-foreground">Valor Final (ganhos - perdido - entrada)</div>
-                <input
-                  type="number"
-                  step="0.01"
-                  className={`w-full rounded border form-input px-2 py-1 ${Number(modalFinalInput || 0) < 0 ? 'text-red-300' : 'text-b365-green'}`}
-                  value={modalFinalInput}
-                  onChange={(e) => updateModalFinal(e.target.value)}
-                />
-              </label>
+                {(() => {
+                  const vf = ((Number(modalRow.valor_ganhos ?? 0) || 0) - (Number(modalRow.valor_perdido ?? 0) || 0) - (Number(modalRow.valor_entrada ?? 0) || 0));
+                  const cls = vf >= 0 ? 'text-b365-green' : 'text-red-400';
+                  return <div className={`mt-1 font-medium ${cls}`}>{formatCurrency(vf)}</div>;
+                })()}
+              </div>
               <label className="text-sm">
                 <div className="text-xs text-foreground">Valor Perdido</div>
                 <input
@@ -699,6 +684,10 @@ export default function EntriesTableClient({
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
                 <div className="text-xs text-neutral-400">Reds</div>
                 <div className="font-medium text-red-500">{totals.reds}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Total Red</div>
+                <div className="font-medium text-red-500">{formatCurrency(totals.totalRed)}</div>
               </div>
             </div>
             <div className="mt-4 flex items-center justify-end gap-2">
