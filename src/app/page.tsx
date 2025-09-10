@@ -3,6 +3,7 @@ import SummaryCard from "@/components/SummaryCard";
 import ChartDailyGains from "@/components/ChartDailyGains";
 import ChartPie from "@/components/ChartPie";
 import DashboardFilters from "@/components/DashboardFilters";
+import DashboardFiltersButton from "@/components/DashboardFiltersButton";
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ [k: string]: string | string[] | undefined }> }) {
   const sp = await searchParams;
@@ -53,24 +54,25 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl md:text-3xl font-semibold">Dashboard</h1>
-        {error ? (
-          <span className="text-sm text-red-400">{error}</span>
-        ) : null}
+        <div className="flex items-center gap-3 text-sm text-neutral-400">
+          {error ? <span className="text-red-400">{error}</span> : null}
+          <DashboardFiltersButton />
+        </div>
       </div>
 
       {/* Filters */}
       <DashboardFilters initialStatus={(status ?? 'all') as any} initialStartDate={startDate} initialEndDate={endDate} initialBetOrigin={bet_origin} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
         <SummaryCard title="Entradas" value={total} />
         <SummaryCard title="Greens" value={greens} accent="green" />
         <SummaryCard title="Reds" value={reds} accent="red" />
         <SummaryCard title="Lucro Líquido" value={lucroTotal} isCurrency profitMode />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <SummaryCard title="Total Entrada" value={totalEntrada} isCurrency />
         <SummaryCard title="Total Ganhos" value={totalGanhos} isCurrency />
         <SummaryCard title="Total Perdido" value={totalPerdido} isCurrency />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function DashboardFilters({
   initialStatus = "all",
@@ -20,7 +20,16 @@ export default function DashboardFilters({
   const [endDate, setEndDate] = useState<string>(initialEndDate ?? "");
   const [betOrigin, setBetOrigin] = useState<string>(initialBetOrigin ?? "");
 
-  return (
+  const [open, setOpen] = useState(false);
+
+  // Mobile trigger via global event
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener('open-dashboard-filters', onOpen as any);
+    return () => window.removeEventListener('open-dashboard-filters', onOpen as any);
+  }, []);
+
+  const content = (
     <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-neutral-800 bg-neutral-900/30 p-3">
       <div className="flex flex-wrap items-end gap-3">
         <div>
@@ -104,5 +113,21 @@ export default function DashboardFilters({
         </div>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      <div className="hidden sm:block">{content}</div>
+      {open ? (
+        <div className="fixed inset-0 z-[180] flex items-center justify-center bg-black/60 px-4 sm:hidden" onClick={() => setOpen(false)}>
+          <div className="w-full max-w-xl rounded-lg border border-neutral-800 bg-background text-foreground p-4" onClick={(e) => e.stopPropagation()}>
+            {content}
+            <div className="mt-3 flex justify-end">
+              <button onClick={() => setOpen(false)} className="rounded-md border border-neutral-700 px-3 py-1 text-sm hover:bg-neutral-800/60">Fechar</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
