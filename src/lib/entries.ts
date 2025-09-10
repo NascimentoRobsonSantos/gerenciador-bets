@@ -1,4 +1,5 @@
 import { Entry } from "./types";
+import { apiFetch } from "./api";
 
 type Options = {
   type?: string;
@@ -18,6 +19,7 @@ export async function getEntries(opts: Options = {}): Promise<{
   page: number;
   limit: number;
   error?: string;
+  sessionExpired?: boolean;
 }> {
   const page = Math.max(1, opts.page ?? 1);
   const limit = Math.max(1, Math.min(100, opts.limit ?? 10));
@@ -31,11 +33,14 @@ export async function getEntries(opts: Options = {}): Promise<{
   params.set("page", String(page));
   params.set("limit", String(limit));
 
-  const url = `https://webhook.storeprodigital.site/webhook/entries?${params.toString()}`;
+  const url = `/entries?${params.toString()}`;
 
   try {
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await apiFetch(url);
     if (!res.ok) {
+      if (res.status === 401) {
+        return { entries: [], totalItems: 0, page, limit, error: 'Sessão expirada. Faça login novamente.', sessionExpired: true };
+      }
       return { entries: [], totalItems: 0, page, limit, error: `Falha ao buscar entradas (${res.status})` };
     }
     const raw = await res.json();

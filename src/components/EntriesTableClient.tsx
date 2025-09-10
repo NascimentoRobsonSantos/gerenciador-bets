@@ -199,6 +199,11 @@ export default function EntriesTableClient({
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
+        if (res.status === 401) {
+          alert("Sua sessão expirou. Faça login novamente.");
+          window.location.href = "/logout";
+          return;
+        }
         const t = await res.text();
         throw new Error(t || "Falha ao salvar");
       }
@@ -238,6 +243,11 @@ export default function EntriesTableClient({
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
+        if (res.status === 401) {
+          alert("Sua sessão expirou. Faça login novamente.");
+          window.location.href = "/logout";
+          return;
+        }
         const t = await res.text();
         throw new Error(t || "Falha ao salvar");
       }
@@ -554,6 +564,15 @@ export default function EntriesTableClient({
                 />
               </label>
               <label className="text-sm">
+                <div className="text-xs text-foreground">Placar</div>
+                <input
+                  type="text"
+                  className="w-full rounded border form-input px-2 py-1"
+                  value={modalRow.placar ?? ''}
+                  onChange={(e) => updateModalField('placar' as any, e.target.value)}
+                />
+              </label>
+              <label className="text-sm">
                 <div className="text-xs text-foreground">Valor Ganhos</div>
                 <input
                   type="number"
@@ -573,6 +592,15 @@ export default function EntriesTableClient({
                 />
               </label>
               <label className="text-sm">
+                <div className="text-xs text-foreground">Minuto Green</div>
+                <input
+                  type="number"
+                  className="w-full rounded border form-input px-2 py-1"
+                  value={modalRow.minuto_green ?? ''}
+                  onChange={(e) => updateModalField('minuto_green', e.target.value)}
+                />
+              </label>
+              <label className="text-sm">
                 <div className="text-xs text-foreground">Status</div>
                 <select
                   value={modalRow.status ?? 'null'}
@@ -584,6 +612,15 @@ export default function EntriesTableClient({
                   <option value="red">Red</option>
                 </select>
               </label>
+              <div className="text-sm">
+                <div className="text-xs text-foreground">Tentativa Green</div>
+                {(() => {
+                  const minutosArr = Array.isArray(modalRow.minutos) ? modalRow.minutos : modalRow.minutos == null ? [] : [Number(modalRow.minutos) as any];
+                  const idx = modalRow.minuto_green != null ? minutosArr.findIndex((m: any) => Number(m) === Number(modalRow.minuto_green)) : -1;
+                  const label = idx >= 0 ? toAttemptLabel(idx) : '-';
+                  return <div className="mt-1 font-medium">{label}</div>;
+                })()}
+              </div>
               <div className="text-sm">
                 <div className="text-xs text-foreground">Valor Final (ganhos - perdido - entrada)</div>
                 {(() => {

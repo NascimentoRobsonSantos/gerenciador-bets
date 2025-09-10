@@ -1,9 +1,17 @@
+import { cookies } from "next/headers";
+import { API_BASE_URL } from "@/lib/api";
+
 export async function POST(req: Request) {
   try {
     const payload = await req.json();
-    const res = await fetch("https://webhook.storeprodigital.site/webhook/entries", {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("authToken")?.value;
+    const res = await fetch(`${API_BASE_URL}/entries`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify(payload),
       cache: "no-store",
     });
@@ -19,9 +27,14 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const payload = await req.json();
-    const res = await fetch("https://webhook.storeprodigital.site/webhook/entries", {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("authToken")?.value;
+    const res = await fetch(`${API_BASE_URL}/entries`, {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify(payload),
       cache: "no-store",
     });
