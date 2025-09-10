@@ -47,6 +47,7 @@ export default function EntriesTableClient({
   const [modalTouchedGanhos, setModalTouchedGanhos] = useState(false);
   const [betOrigin, setBetOrigin] = useState<string>(initialBetOrigin ?? "");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [expiredOpen, setExpiredOpen] = useState(false);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil((totalItems ?? 0) / Math.max(1, limit))), [totalItems, limit]);
 
@@ -199,11 +200,7 @@ export default function EntriesTableClient({
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        if (res.status === 401) {
-          alert("Sua sessão expirou. Faça login novamente.");
-          window.location.href = "/logout";
-          return;
-        }
+        if (res.status === 401) { setExpiredOpen(true); return; }
         const t = await res.text();
         throw new Error(t || "Falha ao salvar");
       }
@@ -243,11 +240,7 @@ export default function EntriesTableClient({
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        if (res.status === 401) {
-          alert("Sua sessão expirou. Faça login novamente.");
-          window.location.href = "/logout";
-          return;
-        }
+        if (res.status === 401) { setExpiredOpen(true); return; }
         const t = await res.text();
         throw new Error(t || "Falha ao salvar");
       }
@@ -760,6 +753,18 @@ export default function EntriesTableClient({
               >
                 Aplicar
               </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {expiredOpen ? (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-sm rounded-lg border border-neutral-800 bg-background text-foreground p-5 shadow-xl">
+            <div className="text-lg font-semibold mb-2">Sessão expirada</div>
+            <p className="text-sm text-neutral-400 mb-4">Sua sessão expirou. Faça login novamente para continuar.</p>
+            <div className="flex justify-end">
+              <button onClick={() => { window.location.href = '/login'; }} className="rounded-md border border-neutral-700 bg-b365-green/20 px-3 py-1.5 text-sm hover:bg-b365-green/30">OK</button>
             </div>
           </div>
         </div>

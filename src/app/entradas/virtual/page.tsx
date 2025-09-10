@@ -1,7 +1,7 @@
 import { getEntries } from "@/lib/entries";
 import EntriesTableClient from "@/components/EntriesTableClient";
 import EntriesFiltersButton from "@/components/EntriesFiltersButton";
-import SessionExpired from "@/components/SessionExpired";
+import SessionExpiredModal from "@/components/SessionExpiredModal";
 
 export default async function EntradasVirtualPage({
   searchParams,
@@ -33,7 +33,7 @@ export default async function EntradasVirtualPage({
           <EntriesFiltersButton />
         </div>
       </div>
-      {sessionExpired ? <SessionExpired active /> : null}
+      {sessionExpired ? <SessionExpiredModal active message={error || 'Sua sessão expirou.'} /> : null}
       <EntriesTableClient
         initialEntries={entries}
         page={page}
