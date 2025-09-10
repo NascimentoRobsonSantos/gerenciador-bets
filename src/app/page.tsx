@@ -102,8 +102,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <SummaryCard title="Total Ganhos" value={totalGanhos} isCurrency />
         <SummaryCard title="Total Perdido" value={totalPerdido} isCurrency />
         <SummaryCard title="Total Final" value={totalFinal} isCurrency profitMode />
-        <SummaryCard title="Não Entrou" value={naoEntrou.length} />
-        <SummaryCard title="Não Entrou/Green" value={naoEntrouGreen} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
