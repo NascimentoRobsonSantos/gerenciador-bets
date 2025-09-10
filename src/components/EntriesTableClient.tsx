@@ -13,6 +13,17 @@ function toAttemptLabel(idxZeroBased: number | null) {
   return n === 1 ? "1ª" : n === 2 ? "2ª" : n === 3 ? "3ª" : n === 4 ? "4ª" : `${n}ª`;
 }
 
+function formatCreatedAt(value: string | null | undefined) {
+  if (!value) return "-";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "-";
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${dd}/${mm} - ${hh}:${min}`;
+}
+
 export default function EntriesTableClient({
   initialEntries,
   page,
@@ -328,13 +339,12 @@ export default function EntriesTableClient({
         <table className="min-w-full text-sm hidden md:table">
           <thead className="bg-neutral-900/60">
             <tr className="text-left">
-              <th className="px-3 py-2">ID</th>
+              <th className="px-3 py-2">Criado</th>
               <th className="px-3 py-2">Grupo</th>
               <th className="px-3 py-2">Campeonato</th>
               <th className="px-3 py-2">Hora</th>
               <th className="px-3 py-2">Minutos</th>
               <th className="px-3 py-2">Tentativa</th>
-              <th className="px-3 py-2">Tipo</th>
               <th className="px-3 py-2">Odd</th>
               <th className="px-3 py-2">Placar</th>
               <th className="px-3 py-2">Valor Entrada</th>
@@ -356,13 +366,12 @@ export default function EntriesTableClient({
               const finalVal = Number(e.valor_final ?? 0) || 0;
               return (
                 <tr key={e.id} className="border-t border-neutral-800/70 hover:bg-neutral-900/40">
-                  <td className="px-3 py-2">{e.id}</td>
+                  <td className="px-3 py-2">{formatCreatedAt(e.created_at)}</td>
                   <td className="px-3 py-2">{e.bet_origin}</td>
                   <td className="px-3 py-2">{e.campeonato ?? "-"}</td>
                   <td className="px-3 py-2">{e.hora ?? "-"}</td>
                   <td className="px-3 py-2">{minutosArr.length ? minutosArr.join(", ") : "-"}</td>
                   <td className="px-3 py-2">{attempt}</td>
-                  <td className="px-3 py-2">{e.tipo_entrada ?? "-"}</td>
                   <td className="px-3 py-2">
                     {isEditing ? (
                       <input

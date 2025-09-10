@@ -7,17 +7,18 @@ services:
     # O Portainer usará esta imagem que já existe localmente.
     # O nome da imagem é 'gerenciador-bets-frontend:latest'
     image: gerenciador-bets:latest
-    ports:
-      - "3000:3000"
     networks:
       # Conecta o serviço à rede do Traefik
       - StoreProDigitalNet
+    ports:
+      - "3000:3000"
     deploy:
       restart_policy:
         condition: any
       labels:
         # --- Configurações do Traefik ---
         - "traefik.enable=true"
+        - "traefik.docker.network=StoreProDigitalNet"
 
         # --- Roteador para app.neobrasil.acontece.ai ---
         - "traefik.http.routers.gerenciador-bets-secure.rule=Host(`bet.storeprodigital.site`)"
