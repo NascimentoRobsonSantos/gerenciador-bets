@@ -179,12 +179,12 @@ export default function EntriesTableClient({
   // As filtragens são server-side: usar rows direto para totais e render
   const totals = useMemo(() => {
     const count = rows.length;
+    const greens = rows.filter((r) => r.status === 'green').length;
+    const reds = rows.filter((r) => r.status === 'red').length;
     const totalEntrada = rows.reduce((acc, r) => acc + (Number(r.valor_entrada ?? 0) || 0), 0);
     const totalGanhos = rows.reduce((acc, r) => acc + (Number(r.valor_ganhos ?? 0) || 0), 0);
     const totalPerdido = rows.reduce((acc, r) => acc + (Number(r.valor_perdido ?? 0) || 0), 0);
     const totalFinal = rows.reduce((acc, r) => acc + (((Number(r.valor_ganhos ?? 0) || 0) - (Number(r.valor_perdido ?? 0) || 0) - (Number(r.valor_entrada ?? 0) || 0))), 0);
-    const greens = rows.filter((r) => r.status === 'green').length;
-    const reds = rows.filter((r) => r.status === 'red').length;
     const totalRed = rows
       .filter((r) => r.status === 'red')
       .reduce((acc, r) => acc + (((Number(r.valor_ganhos ?? 0) || 0) - (Number(r.valor_perdido ?? 0) || 0) - (Number(r.valor_entrada ?? 0) || 0))), 0);
@@ -301,6 +301,14 @@ export default function EntriesTableClient({
             <div className="font-medium">{totals.count}</div>
           </div>
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+            <div className="text-xs text-neutral-400">Greens</div>
+            <div className="font-medium text-b365-green">{totals.greens}</div>
+          </div>
+          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+            <div className="text-xs text-neutral-400">Reds</div>
+            <div className="font-medium text-red-500">{totals.reds}</div>
+          </div>
+          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Total Entrada</div>
             <div className="font-medium">{formatCurrency(totals.totalEntrada)}</div>
           </div>
@@ -315,18 +323,6 @@ export default function EntriesTableClient({
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Total Final</div>
             <div className="font-medium">{formatCurrency(totals.totalFinal)}</div>
-          </div>
-          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-            <div className="text-xs text-neutral-400">Total Lucro</div>
-            <div className="font-medium">{formatCurrency(totals.totalLucro)}</div>
-          </div>
-          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-            <div className="text-xs text-neutral-400">Greens</div>
-            <div className="font-medium text-b365-green">{totals.greens}</div>
-          </div>
-          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-            <div className="text-xs text-neutral-400">Reds</div>
-            <div className="font-medium text-red-500">{totals.reds}</div>
           </div>
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Total Red</div>
@@ -415,7 +411,7 @@ export default function EntriesTableClient({
                     )}
                   </td>
                   <td className="px-3 py-2 font-medium text-red-400">{formatCurrency(perdido)}</td>
-                  <td className={`px-3 py-2 font-medium ${e.status === 'green' ? 'bg-b365-green/15 text-b365-green font-semibold' : e.status === 'red' ? 'bg-red-500/15 text-red-600 font-semibold' : (finalVal >= 0 ? 'text-b365-yellow' : 'text-red-400')}`}>{formatCurrency(finalVal)}</td>
+                  <td className={`px-3 py-2 font-medium ${finalVal > 0 ? 'bg-b365-green/15 text-b365-green font-semibold' : finalVal < 0 ? 'bg-red-500/15 text-red-600 font-semibold' : ''}`}>{formatCurrency(finalVal)}</td>
                   <td className="px-3 py-2">
                     {(() => {
                       if (e.status === 'green') {
@@ -482,9 +478,9 @@ export default function EntriesTableClient({
                     <div className={`${isGreen ? 'text-b365-green font-semibold' : isRed ? 'text-red-600 font-semibold' : ''}`}>{formatCurrency(e.valor_ganhos ?? 0)}</div>
                   </div>
                   <div className="rounded border border-neutral-800 bg-neutral-900/40 p-2"><div className="text-xs text-neutral-400">Perdido</div><div className="text-red-400">{formatCurrency(perdido)}</div></div>
-                  <div className={`rounded border border-neutral-800 p-2 col-span-2 ${isGreen ? 'bg-b365-green/15' : isRed ? 'bg-red-500/15' : 'bg-neutral-900/40'}`}>
+                  <div className={`rounded border border-neutral-800 p-2 col-span-2 ${finalVal > 0 ? 'bg-b365-green/15' : finalVal < 0 ? 'bg-red-500/15' : 'bg-neutral-900/40'}`}>
                     <div className="text-xs text-neutral-400">Final</div>
-                    <div className={`${isGreen ? 'text-b365-green font-semibold' : isRed ? 'text-red-600 font-semibold' : (finalVal >= 0 ? 'text-b365-yellow' : 'text-red-400')}`}>{formatCurrency(finalVal)}</div>
+                    <div className={`${finalVal > 0 ? 'text-b365-green font-semibold' : finalVal < 0 ? 'text-red-600 font-semibold' : ''}`}>{formatCurrency(finalVal)}</div>
                   </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-xs text-neutral-400">
@@ -703,6 +699,14 @@ export default function EntriesTableClient({
                 <div className="font-medium">{totals.count}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Greens</div>
+                <div className="font-medium text-b365-green">{totals.greens}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Reds</div>
+                <div className="font-medium text-red-500">{totals.reds}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
                 <div className="text-xs text-neutral-400">Total Entrada</div>
                 <div className="font-medium">{formatCurrency(totals.totalEntrada)}</div>
               </div>
@@ -717,14 +721,6 @@ export default function EntriesTableClient({
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
                 <div className="text-xs text-neutral-400">Total Final</div>
                 <div className="font-medium">{formatCurrency(totals.totalFinal)}</div>
-              </div>
-              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Greens</div>
-                <div className="font-medium text-b365-green">{totals.greens}</div>
-              </div>
-              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Reds</div>
-                <div className="font-medium text-red-500">{totals.reds}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
                 <div className="text-xs text-neutral-400">Total Red</div>

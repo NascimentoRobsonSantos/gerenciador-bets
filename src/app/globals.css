@@ -29,6 +29,10 @@
 .bg-b365-green-dark { background-color: var(--b365-green-dark); }
 .text-b365-yellow { color: var(--b365-yellow); }
 .bg-b365-yellow { background-color: var(--b365-yellow); }
+/* Opacity variants for custom green */
+.bg-b365-green\/15 { background-color: color-mix(in oklab, var(--b365-green) 15%, transparent) !important; }
+.bg-b365-green\/20 { background-color: color-mix(in oklab, var(--b365-green) 20%, transparent) !important; }
+.bg-b365-green\/30 { background-color: color-mix(in oklab, var(--b365-green) 30%, transparent) !important; }
 
 html, body { color-scheme: dark; }
 .light html, .light body { color-scheme: light; }
