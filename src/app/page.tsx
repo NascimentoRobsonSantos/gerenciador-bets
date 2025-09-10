@@ -3,6 +3,7 @@ import SummaryCard from "@/components/SummaryCard";
 import ChartDailyGains from "@/components/ChartDailyGains";
 import ChartPie from "@/components/ChartPie";
 import DashboardFilters from "@/components/DashboardFilters";
+import ChartBetOriginAttempts from "@/components/ChartBetOriginAttempts";
 import DashboardFiltersButton from "@/components/DashboardFiltersButton";
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ [k: string]: string | string[] | undefined }> }) {
@@ -52,6 +53,30 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     { name: 'Não entrou/Red', value: naoEntrouRed },
   ];
 
+  // Bet origin x attempts x result
+  type Row = { origin: string; g1: number; r1: number; g2: number; r2: number; g3: number; r3: number; g4: number; r4: number; total: number };
+  const map = new Map<string, Row>();
+  for (const e of entries) {
+    const origin = e.bet_origin || 'Sem origem';
+    const arr = Array.isArray((e as any).minutos) ? (e as any).minutos as number[] : (e as any).minutos == null ? [] : [Number((e as any).minutos)];
+    const idx = e.minuto_green != null ? arr.findIndex((m) => Number(m) === Number(e.minuto_green)) : -1; // 0..3
+    if (idx < 0) continue; // sem tentativa definida
+    const attempt = Math.min(Math.max(idx + 1, 1), 4);
+    const isGreen = (e.status === 'green') || (e.status == null && idx >= 0);
+    const key = origin;
+    if (!map.has(key)) map.set(key, { origin, g1:0,r1:0,g2:0,r2:0,g3:0,r3:0,g4:0,r4:0, total:0 });
+    const row = map.get(key)!;
+    const field = `${attempt}${isGreen ? 'g' : 'r'}` as any; // not used directly
+    if (attempt===1) (isGreen ? row.g1++ : row.r1++);
+    else if (attempt===2) (isGreen ? row.g2++ : row.r2++);
+    else if (attempt===3) (isGreen ? row.g3++ : row.r3++);
+    else (isGreen ? row.g4++ : row.r4++);
+    row.total++;
+  }
+  const attemptsData = Array.from(map.values())
+    .sort((a,b)=>b.total-a.total)
+    .slice(0,12);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -90,6 +115,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <h2 className="mb-3 font-medium">Ganhos por dia</h2>
           <ChartDailyGains data={porDia} />
         </div>
+      </div>
+
+      <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
+        <h2 className="mb-3 font-medium">Tentativas por origem (Green/Red)</h2>
+        <ChartBetOriginAttempts data={attemptsData as any} />
       </div>
 
     </div>
