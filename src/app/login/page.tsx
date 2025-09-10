@@ -5,7 +5,6 @@ import { useState } from "react";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,7 +16,7 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(token ? { token } : { email, password }),
+        body: JSON.stringify({ email, password }),
       });
       if (!res.ok) {
         const t = await res.text();
@@ -43,6 +42,7 @@ export default function LoginPage() {
               placeholder="voce@exemplo.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
             />
           </div>
           <div>
@@ -53,16 +53,7 @@ export default function LoginPage() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          <div className="text-xs text-neutral-500">ou informe diretamente um token</div>
-          <div>
-            <label className="mb-1 block text-sm text-neutral-400">Token</label>
-            <input
-              className="w-full rounded border form-input px-3 py-2"
-              placeholder="Cole seu token aqui"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
+              required
             />
           </div>
         </div>

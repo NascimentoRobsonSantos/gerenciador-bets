@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import ThemeToggle from "@/components/ThemeToggle";
+import SettingsMenu from "@/components/SettingsMenu";
 import { useState } from "react";
 import { Menu } from "lucide-react";
 import MobileSidebar from "@/components/MobileSidebar";
@@ -19,7 +19,7 @@ export default function Header() {
         </button>
         <div className="font-medium text-b365-yellow">{title || "Gerenciador Bets"}</div>
       </div>
-      <ThemeToggle />
+      <SettingsMenu />
       <MobileSidebar open={open} onClose={() => setOpen(false)} />
     </header>
   );
