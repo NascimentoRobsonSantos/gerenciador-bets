@@ -452,7 +452,7 @@ export default function EntriesTableClient({
             return (
               <div key={e.id} className="p-3 rounded-lg border border-neutral-800 bg-neutral-900/20">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="font-medium truncate">{e.bet_origin ?? '-'}</div>
+                  <div className="text-sm font-medium truncate">{e.bet_origin ?? '-'}</div>
                   <div>
                     {isGreen ? (
                       <span className="inline-flex items-center rounded px-2 py-0.5 bg-b365-green/15 text-b365-green">Green</span>
