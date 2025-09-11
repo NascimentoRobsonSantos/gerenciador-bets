@@ -322,7 +322,9 @@ export default function EntriesTableClient({
           </div>
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Total Final</div>
-            <div className="font-medium">{formatCurrency(totals.totalFinal)}</div>
+            <div className={`font-medium ${totals.totalFinal > 0 ? 'text-b365-green' : totals.totalFinal < 0 ? 'text-red-600' : ''}`}>
+              {formatCurrency(totals.totalFinal)}
+            </div>
           </div>
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Total Red</div>
@@ -484,7 +486,7 @@ export default function EntriesTableClient({
                   </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-xs text-neutral-400">
-                  <div className="truncate">{`${e.campeonato ?? '-' } - ${e.hora ?? '-' }h - ${e.minuto_green ?? '-' } - ${attempt}`}</div>
+                  <div className="truncate">{formatCreatedAt(e.created_at)} - {`${e.campeonato ?? '-' } - ${e.hora ?? '-' }h - ${e.minuto_green ?? '-' } - ${attempt}`}</div>
                   <button onClick={() => startEdit(e.id)} className="ml-2 rounded-md border border-neutral-700 px-2 py-0.5 text-xs hover:bg-neutral-800/60">Editar</button>
                 </div>
               </div>
@@ -720,7 +722,7 @@ export default function EntriesTableClient({
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
                 <div className="text-xs text-neutral-400">Total Final</div>
-                <div className="font-medium">{formatCurrency(totals.totalFinal)}</div>
+                <div className={`font-medium ${totals.totalFinal > 0 ? 'text-b365-green' : totals.totalFinal < 0 ? 'text-red-600' : ''}`}>{formatCurrency(totals.totalFinal)}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
                 <div className="text-xs text-neutral-400">Total Red</div>
