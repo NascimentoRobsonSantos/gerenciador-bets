@@ -66,8 +66,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     const idx = e.minuto_green != null ? arr.findIndex((m) => Number(m) === Number(e.minuto_green)) : -1; // 0..3
     if (idx < 0) continue; // sem tentativa definida
     const attempt = Math.min(Math.max(idx + 1, 1), 4);
-    // Considera como Green se status é "green" OU se não entrou (null/"null") e houve minuto green registrado
-    const isGreen = (e.status === 'green') || (isNaoEntrou(e) && idx >= 0);
+    // Alinha com os cards principais: conta Red apenas quando status === 'red'
+    // Todas as demais situações (green ou não entrou) contam como Green no gráfico
+    const isGreen = e.status !== 'red';
     const key = origin;
     if (!map.has(key)) map.set(key, { origin, g1:0,r1:0,g2:0,r2:0,g3:0,r3:0,g4:0,r4:0, total:0 });
     const row = map.get(key)!;
