@@ -188,7 +188,16 @@ export default function EntriesTableClient({
     const totalRed = rows
       .filter((r) => r.status === 'red')
       .reduce((acc, r) => acc + (((Number(r.valor_ganhos ?? 0) || 0) - (Number(r.valor_perdido ?? 0) || 0) - (Number(r.valor_entrada ?? 0) || 0))), 0);
-    return { count, totalEntrada, totalGanhos, totalPerdido, totalFinal, greens, reds, totalRed };
+    // Somatório de tentativas por etapa (1ª a 4ª)
+    let t1 = 0, t2 = 0, t3 = 0, t4 = 0;
+    for (const r of rows) {
+      const minutosArr = Array.isArray(r.minutos) ? r.minutos : r.minutos == null ? [] : [Number(r.minutos)];
+      const idx = r.minuto_green != null ? minutosArr.findIndex((m) => Number(m) === Number(r.minuto_green)) : -1;
+      if (idx < 0) continue;
+      const attempt = Math.min(Math.max(idx + 1, 1), 4);
+      if (attempt === 1) t1++; else if (attempt === 2) t2++; else if (attempt === 3) t3++; else t4++;
+    }
+    return { count, totalEntrada, totalGanhos, totalPerdido, totalFinal, greens, reds, totalRed, t1, t2, t3, t4 };
   }, [rows]);
 
   async function saveRow(id: number) {
@@ -295,7 +304,7 @@ export default function EntriesTableClient({
 
       {/* Totais + botão de filtros */}
       <div className="rounded-lg border border-neutral-800 bg-neutral-900/30 p-3">
-        <div className="grid grid-cols-3 sm:grid-cols-9 gap-3 text-sm w-full">
+        <div className="grid grid-cols-3 sm:grid-cols-12 gap-3 text-sm w-full">
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Entradas (página/filtradas)</div>
             <div className="font-medium">{totals.count}</div>
@@ -307,6 +316,22 @@ export default function EntriesTableClient({
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Reds</div>
             <div className="font-medium text-red-500">{totals.reds}</div>
+          </div>
+          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+            <div className="text-xs text-neutral-400">1ª Tent.</div>
+            <div className="font-medium">{totals.t1}</div>
+          </div>
+          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+            <div className="text-xs text-neutral-400">2ª Tent.</div>
+            <div className="font-medium">{totals.t2}</div>
+          </div>
+          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+            <div className="text-xs text-neutral-400">3ª Tent.</div>
+            <div className="font-medium">{totals.t3}</div>
+          </div>
+          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+            <div className="text-xs text-neutral-400">4ª Tent.</div>
+            <div className="font-medium">{totals.t4}</div>
           </div>
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Total Entrada</div>
@@ -707,6 +732,22 @@ export default function EntriesTableClient({
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
                 <div className="text-xs text-neutral-400">Reds</div>
                 <div className="font-medium text-red-500">{totals.reds}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">1ª Tent.</div>
+                <div className="font-medium">{totals.t1}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">2ª Tent.</div>
+                <div className="font-medium">{totals.t2}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">3ª Tent.</div>
+                <div className="font-medium">{totals.t3}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">4ª Tent.</div>
+                <div className="font-medium">{totals.t4}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
                 <div className="text-xs text-neutral-400">Total Entrada</div>

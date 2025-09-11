@@ -25,11 +25,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const totalEntrada = entries.reduce((acc, e) => acc + (Number(e.valor_entrada ?? 0) || 0), 0);
   const totalGanhos = entries.reduce((acc, e) => acc + (Number(e.valor_ganhos ?? 0) || 0), 0);
 
+  // Trata "não entrei" de forma robusta (null ou string "null")
   const hasAttemptGreen = (e: any) => {
     const arr = Array.isArray(e.minutos) ? e.minutos : e.minutos == null ? [] : [Number(e.minutos)];
     return e.minuto_green != null && arr.some((m: any) => Number(m) === Number(e.minuto_green));
   };
-  const naoEntrou = entries.filter((e) => e.status == null);
+  const isNaoEntrou = (e: any) => (e.status == null || e.status === 'null');
+  const naoEntrou = entries.filter((e) => isNaoEntrou(e));
   const naoEntrouGreen = naoEntrou.filter((e) => hasAttemptGreen(e)).length;
   const naoEntrouRed = naoEntrou.filter((e) => !hasAttemptGreen(e)).length;
 
@@ -62,7 +64,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     const idx = e.minuto_green != null ? arr.findIndex((m) => Number(m) === Number(e.minuto_green)) : -1; // 0..3
     if (idx < 0) continue; // sem tentativa definida
     const attempt = Math.min(Math.max(idx + 1, 1), 4);
-    const isGreen = (e.status === 'green') || (e.status == null && idx >= 0);
+    // Considera como Green se status é "green" OU se não entrou (null/"null") e houve minuto green registrado
+    const isGreen = (e.status === 'green') || (isNaoEntrou(e) && idx >= 0);
     const key = origin;
     if (!map.has(key)) map.set(key, { origin, g1:0,r1:0,g2:0,r2:0,g3:0,r3:0,g4:0,r4:0, total:0 });
     const row = map.get(key)!;
