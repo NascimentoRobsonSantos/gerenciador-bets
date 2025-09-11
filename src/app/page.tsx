@@ -97,7 +97,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       {/* Filters */}
       <DashboardFilters initialStatus={(status ?? 'all') as any} initialStartDate={startDate} initialEndDate={endDate} initialBetOrigin={bet_origin} />
 
-      <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <SummaryCard title="Entradas" value={total} />
         <SummaryCard title="Greens" value={greens} accent="green" />
         <SummaryCard title="Reds" value={reds} accent="red" />
@@ -111,7 +111,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <SummaryCard title="4ª Tentativa" value={t4} />
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <SummaryCard title="Total Entrada" value={totalEntrada} isCurrency />
         <SummaryCard title="Total Ganhos" value={totalGanhos} isCurrency />
         <SummaryCard title="Total Perdido" value={totalPerdido} isCurrency />

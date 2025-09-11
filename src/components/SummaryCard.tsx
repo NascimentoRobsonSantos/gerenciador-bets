@@ -21,7 +21,7 @@ export default function SummaryCard({
   else if (accent === "brand") color = "text-b365-yellow";
 
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
+    <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 text-center sm:text-left">
       <div className="text-sm text-neutral-400">{title}</div>
       <div className={`mt-1 text-2xl font-semibold ${color}`}>
         {isCurrency ? formatCurrency(value) : value}
