@@ -28,7 +28,24 @@ export default function SettingsMenu() {
     setDark(newDark);
     setTheme(newDark ? 'dark' : 'light');
     try {
-      await fetch('/api/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dark_theme: newDark }) });
+      // Busca sempre o usuário atual para obter o id
+      let userId: string | number | null = null;
+      try {
+        const res = await fetch('/api/users', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          const u = Array.isArray(data) ? (data[0] || {}) : data;
+          if (u?.id != null) userId = u.id;
+        }
+      } catch {}
+      if (!userId) userId = localStorage.getItem('userId');
+      try { if (userId) localStorage.setItem('userId', String(userId)); } catch {}
+      // Envia via API (proxy server-side para evitar CORS) – sempre envia
+      await fetch('/api/users/dark_theme', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: userId ?? null, dark_theme: newDark }),
+      });
     } catch {}
   }
 
@@ -52,4 +69,3 @@ export default function SettingsMenu() {
     </div>
   );
 }
-

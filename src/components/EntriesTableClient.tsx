@@ -38,7 +38,7 @@ export default function EntriesTableClient({
   page: number;
   limit: number;
   totalItems: number;
-  initialStatus?: "all" | "green" | "red" | "null";
+  initialStatus?: "all" | "green" | "red" | "false";
   initialStartDate?: string | undefined;
   initialEndDate?: string | undefined;
   initialBetOrigin?: string | undefined;
@@ -52,7 +52,7 @@ export default function EntriesTableClient({
   const [oddInput, setOddInput] = useState<Record<number, string>>({});
   const [startDate, setStartDate] = useState<string>(initialStartDate ?? "");
   const [endDate, setEndDate] = useState<string>(initialEndDate ?? "");
-  const [status, setStatus] = useState<"all" | "green" | "red" | "null">(initialStatus);
+  const [status, setStatus] = useState<"all" | "green" | "red" | "false">(initialStatus);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRow, setModalRow] = useState<Entry | null>(null);
   const [modalTouchedGanhos, setModalTouchedGanhos] = useState(false);
@@ -713,7 +713,7 @@ export default function EntriesTableClient({
                   className="w-full rounded border form-input px-2 py-1"
                 >
                   <option value="all">Todos</option>
-                  <option value="null">Não entrei</option>
+                  <option value="false">Não entrei</option>
                   <option value="green">Green</option>
                   <option value="red">Red</option>
                 </select>

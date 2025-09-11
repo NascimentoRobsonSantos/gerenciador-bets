@@ -8,7 +8,7 @@ import DashboardFiltersButton from "@/components/DashboardFiltersButton";
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ [k: string]: string | string[] | undefined }> }) {
   const sp = await searchParams;
-  const status = (Array.isArray(sp.status) ? sp.status[0] : sp.status) as 'green'|'red'|'null'|undefined;
+  const status = (Array.isArray(sp.status) ? sp.status[0] : sp.status) as 'green'|'red'|'false'|undefined;
   const today = new Date();
   const todayStr = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())).toISOString().slice(0, 10);
   const startDate = ((Array.isArray(sp.startDate) ? sp.startDate[0] : sp.startDate) as string | undefined) || todayStr;
@@ -30,7 +30,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     const arr = Array.isArray(e.minutos) ? e.minutos : e.minutos == null ? [] : [Number(e.minutos)];
     return e.minuto_green != null && arr.some((m: any) => Number(m) === Number(e.minuto_green));
   };
-  const isNaoEntrou = (e: any) => (e.status == null || e.status === 'null');
+  const isNaoEntrou = (e: any) => (e.status == null || e.status === 'null' || e.status == false);
   const naoEntrou = entries.filter((e) => isNaoEntrou(e));
   const naoEntrouGreen = naoEntrou.filter((e) => hasAttemptGreen(e)).length;
   const naoEntrouRed = naoEntrou.filter((e) => !hasAttemptGreen(e)).length;
@@ -58,6 +58,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // Bet origin x attempts x result
   type Row = { origin: string; g1: number; r1: number; g2: number; r2: number; g3: number; r3: number; g4: number; r4: number; total: number };
   const map = new Map<string, Row>();
+  // Totais de tentativas (independente da origem) — baseado em minuto_green
+  let t1 = 0, t2 = 0, t3 = 0, t4 = 0;
   for (const e of entries) {
     const origin = e.bet_origin || 'Sem origem';
     const arr = Array.isArray((e as any).minutos) ? (e as any).minutos as number[] : (e as any).minutos == null ? [] : [Number((e as any).minutos)];
@@ -75,6 +77,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     else if (attempt===3) (isGreen ? row.g3++ : row.r3++);
     else (isGreen ? row.g4++ : row.r4++);
     row.total++;
+    // Totais de tentativa (somamos quando há minuto_green definido)
+    if (attempt===1) t1++; else if (attempt===2) t2++; else if (attempt===3) t3++; else t4++;
   }
   const attemptsData = Array.from(map.values())
     .sort((a,b)=>b.total-a.total)
@@ -98,6 +102,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <SummaryCard title="Greens" value={greens} accent="green" />
         <SummaryCard title="Reds" value={reds} accent="red" />
         <SummaryCard title="Lucro Líquido" value={lucroTotal} isCurrency profitMode />
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <SummaryCard title="1ª Tentativa" value={t1} />
+        <SummaryCard title="2ª Tentativa" value={t2} />
+        <SummaryCard title="3ª Tentativa" value={t3} />
+        <SummaryCard title="4ª Tentativa" value={t4} />
       </div>
 
       <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">

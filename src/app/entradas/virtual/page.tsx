@@ -14,7 +14,7 @@ export default async function EntradasVirtualPage({
   const rawStatus = (Array.isArray(sp.status) ? sp.status[0] : sp.status) as
     | 'green'
     | 'red'
-    | 'null'
+    | 'false'
     | undefined;
   const status = rawStatus ?? 'all';
   const today = new Date();

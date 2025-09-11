@@ -22,6 +22,17 @@ export default function LoginPage() {
         const t = await res.text();
         throw new Error(t || "Falha no login");
       }
+      // Ajusta tema conforme preferência do usuário no login
+      try {
+        const data = await res.json();
+        const user = data?.user;
+        const dark = !!(user?.dark_theme);
+        if (typeof window !== 'undefined') {
+          // next-themes usa localStorage('theme')
+          localStorage.setItem('theme', dark ? 'dark' : 'light');
+          if (user?.id) localStorage.setItem('userId', String(user.id));
+        }
+      } catch {}
       window.location.href = "/";
     } catch (e: any) {
       setError(e?.message || "Erro ao logar");
