@@ -181,6 +181,15 @@ export default function EntriesTableClient({
     const count = rows.length;
     const greens = rows.filter((r) => r.status === 'green').length;
     const reds = rows.filter((r) => r.status === 'red').length;
+    // Nao entrei (status null) split by attempt result
+    let naoEntrouGreen = 0;
+    let naoEntrouRed = 0;
+    for (const r of rows) {
+      if (r.status === 'green' || r.status === 'red') continue;
+      const minutosArr = Array.isArray(r.minutos) ? r.minutos : r.minutos == null ? [] : [Number(r.minutos)];
+      const hasAttemptGreen = r.minuto_green != null && minutosArr.some((m) => Number(m) === Number(r.minuto_green));
+      if (hasAttemptGreen) naoEntrouGreen++; else naoEntrouRed++;
+    }
     const totalEntrada = rows.reduce((acc, r) => acc + (Number(r.valor_entrada ?? 0) || 0), 0);
     const totalGanhos = rows.reduce((acc, r) => acc + (Number(r.valor_ganhos ?? 0) || 0), 0);
     const totalPerdido = rows.reduce((acc, r) => acc + (Number(r.valor_perdido ?? 0) || 0), 0);
@@ -197,7 +206,7 @@ export default function EntriesTableClient({
       const attempt = Math.min(Math.max(idx + 1, 1), 4);
       if (attempt === 1) t1++; else if (attempt === 2) t2++; else if (attempt === 3) t3++; else t4++;
     }
-    return { count, totalEntrada, totalGanhos, totalPerdido, totalFinal, greens, reds, totalRed, t1, t2, t3, t4 };
+    return { count, totalEntrada, totalGanhos, totalPerdido, totalFinal, greens, reds, totalRed, t1, t2, t3, t4, naoEntrouGreen, naoEntrouRed };
   }, [rows]);
 
   async function saveRow(id: number) {
@@ -315,8 +324,16 @@ export default function EntriesTableClient({
           </div>
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">Reds</div>
-            <div className="font-medium text-red-500">{totals.reds}</div>
-          </div>
+              <div className="font-medium text-red-500">{totals.reds}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Não entrei/Green</div>
+                <div className="font-medium text-b365-green">{totals.naoEntrouGreen}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Não entrei/Red</div>
+                <div className="font-medium text-red-500">{totals.naoEntrouRed}</div>
+              </div>
           <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
             <div className="text-xs text-neutral-400">1ª Tent.</div>
             <div className="font-medium">{totals.t1}</div>
@@ -567,7 +584,7 @@ export default function EntriesTableClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4" onClick={cancelEdit}>
           <div className="w-full max-w-lg rounded-lg border border-neutral-800 bg-neutral-950 p-4" onClick={(e) => e.stopPropagation()}>
             <div className="mb-3 text-lg font-semibold">Editar Entrada #{modalRow.id}</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
               <label className="text-sm">
                 <div className="text-xs text-foreground">Odd</div>
                 <input
@@ -576,6 +593,15 @@ export default function EntriesTableClient({
                   className="w-full rounded border form-input px-2 py-1"
                   value={modalRow.odd ?? ''}
                   onChange={(e) => updateModalField('odd', e.target.value)}
+                />
+              </label>
+              <label className="text-sm">
+                <div className="text-xs text-foreground">Placar</div>
+                <input
+                  type="text"
+                  className="w-full rounded border form-input px-2 py-1"
+                  value={modalRow.placar ?? ''}
+                  onChange={(e) => updateModalField('placar' as any, e.target.value)}
                 />
               </label>
               <label className="text-sm">
@@ -589,12 +615,13 @@ export default function EntriesTableClient({
                 />
               </label>
               <label className="text-sm">
-                <div className="text-xs text-foreground">Placar</div>
+                <div className="text-xs text-foreground">Valor Perdido</div>
                 <input
-                  type="text"
+                  type="number"
+                  step="0.01"
                   className="w-full rounded border form-input px-2 py-1"
-                  value={modalRow.placar ?? ''}
-                  onChange={(e) => updateModalField('placar' as any, e.target.value)}
+                  value={modalRow.valor_perdido ?? ''}
+                  onChange={(e) => updateModalField('valor_perdido', e.target.value)}
                 />
               </label>
               <label className="text-sm">
@@ -608,24 +635,6 @@ export default function EntriesTableClient({
                 />
               </label>
               <label className="text-sm">
-                <div className="text-xs text-foreground">Bet Origin</div>
-                <input
-                  type="text"
-                  className="w-full rounded border form-input px-2 py-1"
-                  value={modalRow.bet_origin ?? ''}
-                  onChange={(e) => updateModalField('bet_origin', e.target.value)}
-                />
-              </label>
-              <label className="text-sm">
-                <div className="text-xs text-foreground">Minuto Green</div>
-                <input
-                  type="number"
-                  className="w-full rounded border form-input px-2 py-1"
-                  value={modalRow.minuto_green ?? ''}
-                  onChange={(e) => updateModalField('minuto_green', e.target.value)}
-                />
-              </label>
-              <label className="text-sm">
                 <div className="text-xs text-foreground">Status</div>
                 <select
                   value={modalRow.status ?? 'null'}
@@ -636,6 +645,15 @@ export default function EntriesTableClient({
                   <option value="green">Green</option>
                   <option value="red">Red</option>
                 </select>
+              </label>
+              <label className="text-sm">
+                <div className="text-xs text-foreground">Minuto Green</div>
+                <input
+                  type="number"
+                  className="w-full rounded border form-input px-2 py-1"
+                  value={modalRow.minuto_green ?? ''}
+                  onChange={(e) => updateModalField('minuto_green', e.target.value)}
+                />
               </label>
               <div className="text-sm">
                 <div className="text-xs text-foreground">Tentativa Green</div>
@@ -655,13 +673,12 @@ export default function EntriesTableClient({
                 })()}
               </div>
               <label className="text-sm">
-                <div className="text-xs text-foreground">Valor Perdido</div>
+                <div className="text-xs text-foreground">Bet Origem</div>
                 <input
-                  type="number"
-                  step="0.01"
+                  type="text"
                   className="w-full rounded border form-input px-2 py-1"
-                  value={modalRow.valor_perdido ?? ''}
-                  onChange={(e) => updateModalField('valor_perdido', e.target.value)}
+                  value={modalRow.bet_origin ?? ''}
+                  onChange={(e) => updateModalField('bet_origin', e.target.value)}
                 />
               </label>
             </div>

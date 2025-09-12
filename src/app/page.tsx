@@ -95,6 +95,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </div>
       </div>
 
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <SummaryCard title="Não entrei/Green" value={naoEntrouGreen} accent="green" />
+        <SummaryCard title="Não entrei/Red" value={naoEntrouRed} accent="red" />
+      </div>
+
       {/* Filters */}
       <DashboardFilters initialStatus={(status ?? 'all') as any} initialStartDate={startDate} initialEndDate={endDate} initialBetOrigin={bet_origin} />
 
