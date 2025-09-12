@@ -5,6 +5,8 @@ import ChartPie from "@/components/ChartPie";
 import DashboardFilters from "@/components/DashboardFilters";
 import ChartBetOriginAttempts from "@/components/ChartBetOriginAttempts";
 import DashboardFiltersButton from "@/components/DashboardFiltersButton";
+import ChartScoreFrequency from "@/components/ChartScoreFrequency";
+import ChartScoreByDate from "@/components/ChartScoreByDate";
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ [k: string]: string | string[] | undefined }> }) {
   const sp = await searchParams;
@@ -30,7 +32,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     const arr = Array.isArray(e.minutos) ? e.minutos : e.minutos == null ? [] : [Number(e.minutos)];
     return e.minuto_green != null && arr.some((m: any) => Number(m) === Number(e.minuto_green));
   };
-  const isNaoEntrou = (e: any) => (e.status == null || e.status === 'null' || e.status == false);
+  // Alinhar com a listagem: considera "não entrei" tudo que NÃO é 'green' nem 'red'
+  const isNaoEntrou = (e: any) => (String(e.status) !== 'green' && String(e.status) !== 'red');
   const naoEntrou = entries.filter((e) => isNaoEntrou(e));
   const naoEntrouGreen = naoEntrou.filter((e) => hasAttemptGreen(e)).length;
   const naoEntrouRed = naoEntrou.filter((e) => !hasAttemptGreen(e)).length;
@@ -85,6 +88,38 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .sort((a,b)=>b.total-a.total)
     .slice(0,12);
 
+  // Placar que mais sai (ordenado do menor para o maior)
+  const placarMap = new Map<string, number>();
+  for (const e of entries) {
+    const p = (e.placar || "").toString().trim();
+    if (!p) continue;
+    placarMap.set(p, (placarMap.get(p) ?? 0) + 1);
+  }
+  const placarFreq = Array.from(placarMap.entries())
+    .map(([placar, count]) => ({ placar, count }))
+    .sort((a, b) => a.count - b.count || (a.placar < b.placar ? -1 : 1));
+
+  // Placar por data (empilhado) usando os top 3 placares globais do período
+  const byDate = new Map<string, Map<string, number>>(); // yyyy-mm-dd -> placar -> count
+  for (const e of entries) {
+    const p = (e.placar || "").toString().trim();
+    if (!p) continue;
+    const dt = e.created_at ? new Date(e.created_at) : null;
+    if (!dt || isNaN(dt.getTime())) continue;
+    const key = dt.toISOString().slice(0, 10);
+    if (!byDate.has(key)) byDate.set(key, new Map());
+    const m = byDate.get(key)!;
+    m.set(p, (m.get(p) ?? 0) + 1);
+  }
+  const topPlacarSeries = placarFreq.slice(-3).map((i) => i.placar);
+  const placarByDate = Array.from(byDate.entries())
+    .map(([date, m]) => {
+      const row: any = { date };
+      for (const s of topPlacarSeries) row[s] = m.get(s) ?? 0;
+      return row;
+    })
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -96,18 +131,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <SummaryCard title="Não entrei/Green" value={naoEntrouGreen} accent="green" />
-        <SummaryCard title="Não entrei/Red" value={naoEntrouRed} accent="red" />
+        <SummaryCard title="Entradas" value={total} />
+        <SummaryCard title="Lucro Líquido" value={lucroTotal} isCurrency profitMode />
       </div>
 
       {/* Filters */}
       <DashboardFilters initialStatus={(status ?? 'all') as any} initialStartDate={startDate} initialEndDate={endDate} initialBetOrigin={bet_origin} />
 
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <SummaryCard title="Entradas" value={total} />
         <SummaryCard title="Greens" value={greens} accent="green" />
         <SummaryCard title="Reds" value={reds} accent="red" />
-        <SummaryCard title="Lucro Líquido" value={lucroTotal} isCurrency profitMode />
+        <SummaryCard title="Não entrei/Green" value={naoEntrouGreen} accent="green" />
+        <SummaryCard title="Não entrei/Red" value={naoEntrouRed} accent="red" />
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -138,6 +173,21 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
         <h2 className="mb-3 font-medium">Tentativas por origem (Green/Red)</h2>
         <ChartBetOriginAttempts data={attemptsData as any} />
+      </div>
+
+      <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
+        <h2 className="mb-3 font-medium">Placar que mais sai</h2>
+        {placarFreq.length ? (
+          <ChartScoreFrequency data={placarFreq} />
+        ) : (
+          <div className="text-sm text-neutral-400">Sem dados de placar neste período.</div>
+        )}
+        {placarByDate.length > 1 && topPlacarSeries.length ? (
+          <>
+            <h3 className="mt-6 mb-3 font-medium text-sm text-neutral-300">Por data (top {topPlacarSeries.length} placares)</h3>
+            <ChartScoreByDate data={placarByDate} series={topPlacarSeries} />
+          </>
+        ) : null}
       </div>
 
     </div>

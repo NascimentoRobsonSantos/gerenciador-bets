@@ -6,6 +6,7 @@ import { formatCurrency } from "@/lib/format";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Filter } from "lucide-react";
+// gráficos de placar movidos para o Dashboard
 
 function toAttemptLabel(idxZeroBased: number | null) {
   if (idxZeroBased == null || idxZeroBased < 0) return "-";
@@ -209,6 +210,7 @@ export default function EntriesTableClient({
     return { count, totalEntrada, totalGanhos, totalPerdido, totalFinal, greens, reds, totalRed, t1, t2, t3, t4, naoEntrouGreen, naoEntrouRed };
   }, [rows]);
 
+
   async function saveRow(id: number) {
     setSavingId(id);
     setErrorMsg(null);
@@ -374,6 +376,8 @@ export default function EntriesTableClient({
           </div>
         </div>
       </div>
+
+      {/* Gráficos de placar removidos daqui; agora no Dashboard */}
 
       <div className="overflow-x-auto rounded-lg border border-neutral-800">
         <table className="min-w-full text-sm hidden md:table">
