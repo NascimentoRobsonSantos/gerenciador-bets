@@ -593,6 +593,7 @@ export default function EntriesTableClient({
                 <div className="text-xs text-foreground">Odd</div>
                 <input
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   className="w-full rounded border form-input px-2 py-1"
                   value={modalRow.odd ?? ''}
@@ -612,9 +613,11 @@ export default function EntriesTableClient({
                 <div className="text-xs text-foreground">Valor Entrada</div>
                 <input
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   className="w-full rounded border form-input px-2 py-1"
                   value={modalRow.valor_entrada ?? ''}
+                  placeholder="0,00"
                   onChange={(e) => updateModalField('valor_entrada', e.target.value)}
                 />
               </label>
@@ -622,9 +625,11 @@ export default function EntriesTableClient({
                 <div className="text-xs text-foreground">Valor Perdido</div>
                 <input
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   className="w-full rounded border form-input px-2 py-1"
                   value={modalRow.valor_perdido ?? ''}
+                  placeholder="0,00"
                   onChange={(e) => updateModalField('valor_perdido', e.target.value)}
                 />
               </label>
@@ -632,9 +637,11 @@ export default function EntriesTableClient({
                 <div className="text-xs text-foreground">Valor Ganhos</div>
                 <input
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   className="w-full rounded border form-input px-2 py-1"
                   value={modalRow.valor_ganhos ?? ''}
+                  placeholder="0,00"
                   onChange={(e) => updateModalField('valor_ganhos', e.target.value)}
                 />
               </label>
@@ -652,12 +659,33 @@ export default function EntriesTableClient({
               </label>
               <label className="text-sm">
                 <div className="text-xs text-foreground">Minuto Green</div>
-                <input
-                  type="number"
-                  className="w-full rounded border form-input px-2 py-1"
-                  value={modalRow.minuto_green ?? ''}
-                  onChange={(e) => updateModalField('minuto_green', e.target.value)}
-                />
+                {(() => {
+                  const minutosArr = Array.isArray(modalRow.minutos) ? modalRow.minutos : modalRow.minutos == null ? [] : [Number(modalRow.minutos) as any];
+                  const hasDefined = modalRow.minuto_green != null && modalRow.minuto_green !== '';
+                  if (!hasDefined && minutosArr.length > 0) {
+                    return (
+                      <select
+                        className="w-full rounded border form-input px-2 py-1"
+                        value={''}
+                        onChange={(e) => updateModalField('minuto_green', Number(e.target.value))}
+                      >
+                        <option value="" disabled>Selecionar minuto</option>
+                        {minutosArr.map((m: any) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                    );
+                  }
+                  return (
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      className="w-full rounded border form-input px-2 py-1"
+                      value={modalRow.minuto_green ?? ''}
+                      onChange={(e) => updateModalField('minuto_green', e.target.value)}
+                    />
+                  );
+                })()}
               </label>
               <div className="text-sm">
                 <div className="text-xs text-foreground">Tentativa Green</div>
