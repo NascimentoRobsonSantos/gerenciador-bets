@@ -463,7 +463,7 @@ export default function EntriesTableClient({
                   <td className="px-3 py-2">
             {(() => {
               const badge = (txt: string, tone: 'green'|'red'|'neutral') => (
-                <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 ${tone==='green' ? 'bg-b365-green/15 text-b365-green' : tone==='red' ? 'bg-red-500/15 text-red-400' : 'bg-neutral-600/15 text-neutral-300'}`}>{txt}</span>
+                <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 ${tone==='green' ? 'bg-b365-green/15 text-b365-green' : tone==='red' ? 'bg-red-500/15 text-red-400' : 'bg-b365-yellow/15 text-b365-yellow'}`}>{txt}</span>
               );
               if (e.status === 'green') return badge('Entrei/Green', 'green');
               if (e.status === 'red') return badge('Entrei/Red', 'red');
@@ -506,7 +506,7 @@ export default function EntriesTableClient({
                   <div>
                     {(() => {
                       const badge = (txt: string, tone: 'green'|'red'|'neutral') => (
-                        <span className={`inline-flex items-center rounded px-2 py-0.5 ${tone==='green' ? 'bg-b365-green/15 text-b365-green' : tone==='red' ? 'bg-red-500/15 text-red-600' : 'bg-neutral-600/15 text-neutral-300'}`}>{txt}</span>
+                        <span className={`inline-flex items-center rounded px-2 py-0.5 ${tone==='green' ? 'bg-b365-green/15 text-b365-green' : tone==='red' ? 'bg-red-500/15 text-red-600' : 'bg-b365-yellow/15 text-b365-yellow'}`}>{txt}</span>
                       );
                       if (e.status === 'green') return badge('Entrei/Green', 'green');
                       if (e.status === 'red') return badge('Entrei/Red', 'red');
