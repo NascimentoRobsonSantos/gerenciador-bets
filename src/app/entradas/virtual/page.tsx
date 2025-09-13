@@ -15,6 +15,8 @@ export default async function EntradasVirtualPage({
     | 'green'
     | 'red'
     | 'false'
+    | 'naoentrei_green'
+    | 'naoentrei_red'
     | undefined;
   const status = rawStatus ?? 'all';
   const today = new Date();

@@ -12,7 +12,7 @@ export type Entry = {
   valor_ganhos: number | null;
   valor_final?: number | null;
   valor_perdido?: number | null;
-  status: 'green' | 'red' | null;
+  status: 'green' | 'red' | 'false' | 'naoentrei_green' | 'naoentrei_red' | null;
   created_at: string | null;
   updated_at: string | null;
   bet_origin?: string | null;

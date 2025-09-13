@@ -5,7 +5,7 @@ type Options = {
   type?: string;
   page?: number;
   limit?: number;
-  status?: 'green' | 'red' | 'false' | 'all';
+  status?: 'green' | 'red' | 'false' | 'naoentrei_green' | 'naoentrei_red' | 'all';
   startDate?: string; // YYYY-MM-DD
   endDate?: string;   // YYYY-MM-DD
   bet_origin?: string;

@@ -39,7 +39,7 @@ export default function EntriesTableClient({
   page: number;
   limit: number;
   totalItems: number;
-  initialStatus?: "all" | "green" | "red" | "false";
+  initialStatus?: "all" | "green" | "red" | "false" | "naoentrei_green" | "naoentrei_red";
   initialStartDate?: string | undefined;
   initialEndDate?: string | undefined;
   initialBetOrigin?: string | undefined;
@@ -53,7 +53,7 @@ export default function EntriesTableClient({
   const [oddInput, setOddInput] = useState<Record<number, string>>({});
   const [startDate, setStartDate] = useState<string>(initialStartDate ?? "");
   const [endDate, setEndDate] = useState<string>(initialEndDate ?? "");
-  const [status, setStatus] = useState<"all" | "green" | "red" | "false">(initialStatus);
+  const [status, setStatus] = useState<"all" | "green" | "red" | "false" | "naoentrei_green" | "naoentrei_red">(initialStatus as any);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRow, setModalRow] = useState<Entry | null>(null);
   const [modalTouchedGanhos, setModalTouchedGanhos] = useState(false);
@@ -182,11 +182,11 @@ export default function EntriesTableClient({
     const count = rows.length;
     const greens = rows.filter((r) => r.status === 'green').length;
     const reds = rows.filter((r) => r.status === 'red').length;
-    // Nao entrei (status null) split by attempt result
-    let naoEntrouGreen = 0;
-    let naoEntrouRed = 0;
+    // Não entrei: novo formato + backcompat
+    let naoEntrouGreen = rows.filter((r) => r.status === 'naoentrei_green').length;
+    let naoEntrouRed = rows.filter((r) => r.status === 'naoentrei_red').length;
     for (const r of rows) {
-      if (r.status === 'green' || r.status === 'red') continue;
+      if (r.status === 'green' || r.status === 'red' || r.status === 'naoentrei_green' || r.status === 'naoentrei_red') continue;
       const minutosArr = Array.isArray(r.minutos) ? r.minutos : r.minutos == null ? [] : [Number(r.minutos)];
       const hasAttemptGreen = r.minuto_green != null && minutosArr.some((m) => Number(m) === Number(r.minuto_green));
       if (hasAttemptGreen) naoEntrouGreen++; else naoEntrouRed++;
@@ -445,7 +445,7 @@ export default function EntriesTableClient({
                       formatCurrency(e.valor_entrada ?? 0)
                     )}
                   </td>
-                  <td className={`px-3 py-2 font-medium ${e.status === 'green' ? 'bg-b365-green/15' : e.status === 'red' ? 'bg-red-500/15' : ''}`}>
+                  <td className={`px-3 py-2 font-medium ${e.status === 'green' || e.status === 'naoentrei_green' ? 'bg-b365-green/15' : (e.status === 'red' || e.status === 'naoentrei_red') ? 'bg-red-500/15' : ''}`}>
                     {isEditing ? (
                       <input
                         type="text"
@@ -455,27 +455,24 @@ export default function EntriesTableClient({
                         readOnly
                       />
                     ) : (
-                      <span className={`${e.status === 'green' ? 'text-b365-green font-semibold' : e.status === 'red' ? 'text-red-600 font-semibold' : ((e.valor_ganhos ?? 0) >= 0 ? 'text-b365-yellow' : 'text-red-400')}`}>{formatCurrency(e.valor_ganhos ?? 0)}</span>
+                      <span className={`${(e.status === 'green' || e.status === 'naoentrei_green') ? 'text-b365-green font-semibold' : (e.status === 'red' || e.status === 'naoentrei_red') ? 'text-red-600 font-semibold' : ((e.valor_ganhos ?? 0) >= 0 ? 'text-b365-yellow' : 'text-red-400')}`}>{formatCurrency(e.valor_ganhos ?? 0)}</span>
                     )}
                   </td>
                   <td className="px-3 py-2 font-medium text-red-400">{formatCurrency(perdido)}</td>
                   <td className={`px-3 py-2 font-medium ${finalVal > 0 ? 'bg-b365-green/15 text-b365-green font-semibold' : finalVal < 0 ? 'bg-red-500/15 text-red-600 font-semibold' : ''}`}>{formatCurrency(finalVal)}</td>
                   <td className="px-3 py-2">
-                    {(() => {
-                      if (e.status === 'green') {
-                        return <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 bg-b365-green/15 text-b365-green">Green</span>;
-                      }
-                      if (e.status === 'red') {
-                        return <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 bg-red-500/15 text-red-400">Red</span>;
-                      }
-                      // status null => Não entrei/Green ou Não entrei/Red
-                      const minutosArr = Array.isArray(e.minutos) ? e.minutos : e.minutos == null ? [] : [Number(e.minutos)];
-                      const hasAttemptGreen = e.minuto_green != null && minutosArr.some((m) => Number(m) === Number(e.minuto_green));
-                      if (hasAttemptGreen) {
-                        return <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 bg-b365-green/15 text-b365-green">Não entrei/Green</span>;
-                      }
-                      return <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 bg-red-500/15 text-red-400">Não entrei/Red</span>;
-                    })()}
+            {(() => {
+              const badge = (txt: string, tone: 'green'|'red'|'neutral') => (
+                <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 ${tone==='green' ? 'bg-b365-green/15 text-b365-green' : tone==='red' ? 'bg-red-500/15 text-red-400' : 'bg-neutral-600/15 text-neutral-300'}`}>{txt}</span>
+              );
+              if (e.status === 'green') return badge('Entrei/Green', 'green');
+              if (e.status === 'red') return badge('Entrei/Red', 'red');
+              if (e.status === 'naoentrei_green') return badge('Não entrei/Green', 'green');
+              if (e.status === 'naoentrei_red') return badge('Não entrei/Red', 'red');
+              const minutosArr = Array.isArray(e.minutos) ? e.minutos : e.minutos == null ? [] : [Number(e.minutos)];
+              const hasAttemptGreen = e.minuto_green != null && minutosArr.some((m) => Number(m) === Number(e.minuto_green));
+              return hasAttemptGreen ? badge('Não entrei/Green', 'green') : badge('Não entrei', 'neutral');
+            })()}
                   </td>
                   <td className="px-3 py-2">
                     <button
@@ -500,22 +497,23 @@ export default function EntriesTableClient({
             const oddNum = Number(e.odd ?? 0) || 0;
             const perdido = Number(e.valor_perdido ?? 0) || 0;
             const finalVal = (Number(e.valor_ganhos ?? 0) || 0) - perdido - (Number(e.valor_entrada ?? 0) || 0);
-            const isGreen = e.status === 'green';
-            const isRed = e.status === 'red';
+            const isGreen = (e.status === 'green' || e.status === 'naoentrei_green');
+            const isRed = (e.status === 'red' || e.status === 'naoentrei_red');
             return (
               <div key={e.id} className="p-3 rounded-lg border border-neutral-800 bg-neutral-900/20">
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-sm font-medium truncate">{e.bet_origin ?? '-'}</div>
                   <div>
-                    {isGreen ? (
-                      <span className="inline-flex items-center rounded px-2 py-0.5 bg-b365-green/15 text-b365-green">Green</span>
-                    ) : isRed ? (
-                      <span className="inline-flex items-center rounded px-2 py-0.5 bg-red-500/15 text-red-600">Red</span>
-                    ) : hasAttemptGreen ? (
-                      <span className="inline-flex items-center rounded px-2 py-0.5 bg-b365-green/15 text-b365-green">Não entrei/Green</span>
-                    ) : (
-                      <span className="inline-flex items-center rounded px-2 py-0.5 bg-red-500/15 text-red-600">Não entrei/Red</span>
-                    )}
+                    {(() => {
+                      const badge = (txt: string, tone: 'green'|'red'|'neutral') => (
+                        <span className={`inline-flex items-center rounded px-2 py-0.5 ${tone==='green' ? 'bg-b365-green/15 text-b365-green' : tone==='red' ? 'bg-red-500/15 text-red-600' : 'bg-neutral-600/15 text-neutral-300'}`}>{txt}</span>
+                      );
+                      if (e.status === 'green') return badge('Entrei/Green', 'green');
+                      if (e.status === 'red') return badge('Entrei/Red', 'red');
+                      if (e.status === 'naoentrei_green') return badge('Não entrei/Green', 'green');
+                      if (e.status === 'naoentrei_red') return badge('Não entrei/Red', 'red');
+                      return hasAttemptGreen ? badge('Não entrei/Green', 'green') : badge('Não entrei', 'neutral');
+                    })()}
                   </div>
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
@@ -648,13 +646,15 @@ export default function EntriesTableClient({
               <label className="text-sm">
                 <div className="text-xs text-foreground">Status</div>
                 <select
-                  value={modalRow.status ?? 'null'}
+                  value={(modalRow.status as any) ?? 'false'}
                   onChange={(e) => updateModalField('status', e.target.value as any)}
                   className="w-full rounded border form-input px-2 py-1"
                 >
-                  <option value="null">Não entrei</option>
-                  <option value="green">Green</option>
-                  <option value="red">Red</option>
+                  <option value="false">Não entrei</option>
+                  <option value="naoentrei_green">Não entrei/Green</option>
+                  <option value="naoentrei_red">Não entrei/Red</option>
+                  <option value="green">Entrei/Green</option>
+                  <option value="red">Entrei/Red</option>
                 </select>
               </label>
               <label className="text-sm">
@@ -763,8 +763,10 @@ export default function EntriesTableClient({
                 >
                   <option value="all">Todos</option>
                   <option value="false">Não entrei</option>
-                  <option value="green">Green</option>
-                  <option value="red">Red</option>
+                  <option value="naoentrei_green">Não entrei/Green</option>
+                  <option value="naoentrei_red">Não entrei/Red</option>
+                  <option value="green">Entrei/Green</option>
+                  <option value="red">Entrei/Red</option>
                 </select>
               </label>
             </div>

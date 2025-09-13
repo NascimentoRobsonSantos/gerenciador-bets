@@ -9,7 +9,7 @@ export default function DashboardFilters({
   initialEndDate,
   initialBetOrigin,
 }: {
-  initialStatus?: "all" | "green" | "red" | "false";
+  initialStatus?: "all" | "green" | "red" | "false" | "naoentrei_green" | "naoentrei_red";
   initialStartDate?: string | undefined;
   initialEndDate?: string | undefined;
   initialBetOrigin?: string | undefined;
@@ -69,6 +69,8 @@ export default function DashboardFilters({
           >
             <option value="all">Todos</option>
             <option value="false">Não entrei</option>
+            <option value="naoentrei_green">Não entrei/Green</option>
+            <option value="naoentrei_red">Não entrei/Red</option>
             <option value="green">Green</option>
             <option value="red">Red</option>
           </select>

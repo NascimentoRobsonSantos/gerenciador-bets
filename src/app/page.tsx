@@ -10,7 +10,7 @@ import ChartScoreByDate from "@/components/ChartScoreByDate";
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ [k: string]: string | string[] | undefined }> }) {
   const sp = await searchParams;
-  const status = (Array.isArray(sp.status) ? sp.status[0] : sp.status) as 'green'|'red'|'false'|undefined;
+  const status = (Array.isArray(sp.status) ? sp.status[0] : sp.status) as 'green'|'red'|'false'|'naoentrei_green'|'naoentrei_red'|undefined;
   const today = new Date();
   const todayStr = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())).toISOString().slice(0, 10);
   const startDate = ((Array.isArray(sp.startDate) ? sp.startDate[0] : sp.startDate) as string | undefined) || todayStr;
@@ -32,11 +32,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     const arr = Array.isArray(e.minutos) ? e.minutos : e.minutos == null ? [] : [Number(e.minutos)];
     return e.minuto_green != null && arr.some((m: any) => Number(m) === Number(e.minuto_green));
   };
-  // Alinhar com a listagem: considera "não entrei" tudo que NÃO é 'green' nem 'red'
-  const isNaoEntrou = (e: any) => (String(e.status) !== 'green' && String(e.status) !== 'red');
-  const naoEntrou = entries.filter((e) => isNaoEntrou(e));
-  const naoEntrouGreen = naoEntrou.filter((e) => hasAttemptGreen(e)).length;
-  const naoEntrouRed = naoEntrou.filter((e) => !hasAttemptGreen(e)).length;
+  // Novo formato de status: false | naoentrei_green | naoentrei_red | green | red
+  const naoEntrouExplicitGreen = entries.filter((e) => e.status === 'naoentrei_green').length;
+  const naoEntrouExplicitRed = entries.filter((e) => e.status === 'naoentrei_red').length;
+  // Backcompat: status que não é green/red e não classificado explicitamente (ex.: 'false' ou null)
+  const naoEntrouLegacy = entries.filter((e) => (String(e.status) !== 'green' && String(e.status) !== 'red' && e.status !== 'naoentrei_green' && e.status !== 'naoentrei_red'));
+  const naoEntrouGreen = naoEntrouExplicitGreen + naoEntrouLegacy.filter((e) => hasAttemptGreen(e)).length;
+  const naoEntrouRed = naoEntrouExplicitRed + naoEntrouLegacy.filter((e) => !hasAttemptGreen(e)).length;
 
   // ganhos por dia
   const porDiaMap = new Map<string, number>();
@@ -52,10 +54,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .sort((a, b) => (a.date < b.date ? -1 : 1));
 
   const pieData = [
-    { name: 'Entrou/Green', value: greens },
-    { name: 'Entrou/Red', value: reds },
-    { name: 'Não entrou/Green', value: naoEntrouGreen },
-    { name: 'Não entrou/Red', value: naoEntrouRed },
+    { name: 'Entrei/Green', value: greens },
+    { name: 'Entrei/Red', value: reds },
+    { name: 'Não entrei/Green', value: naoEntrouGreen },
+    { name: 'Não entrei/Red', value: naoEntrouRed },
   ];
 
   // Bet origin x attempts x result
@@ -71,7 +73,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     const attempt = Math.min(Math.max(idx + 1, 1), 4);
     // Alinha com os cards principais: conta Red apenas quando status === 'red'
     // Todas as demais situações (green ou não entrou) contam como Green no gráfico
-    const isGreen = e.status !== 'red';
+    const isGreen = (e.status === 'green' || e.status === 'naoentrei_green');
     const key = origin;
     if (!map.has(key)) map.set(key, { origin, g1:0,r1:0,g2:0,r2:0,g3:0,r3:0,g4:0,r4:0, total:0 });
     const row = map.get(key)!;
@@ -139,8 +141,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <DashboardFilters initialStatus={(status ?? 'all') as any} initialStartDate={startDate} initialEndDate={endDate} initialBetOrigin={bet_origin} />
 
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <SummaryCard title="Greens" value={greens} accent="green" />
-        <SummaryCard title="Reds" value={reds} accent="red" />
+        <SummaryCard title="Entrei/Green" value={greens} accent="green" />
+        <SummaryCard title="Entrei/Red" value={reds} accent="red" />
         <SummaryCard title="Não entrei/Green" value={naoEntrouGreen} accent="green" />
         <SummaryCard title="Não entrei/Red" value={naoEntrouRed} accent="red" />
       </div>
