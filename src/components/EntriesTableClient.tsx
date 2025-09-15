@@ -60,6 +60,15 @@ export default function EntriesTableClient({
   const [betOrigin, setBetOrigin] = useState<string>(initialBetOrigin ?? "");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [expiredOpen, setExpiredOpen] = useState(false);
+  const [totalsOpen, setTotalsOpen] = useState(false); // cards de totais recolhidos por padrão
+
+  // Persistir preferência de expandir/recolher totais
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem('entries_totals_open');
+      if (v === '1') setTotalsOpen(true);
+    } catch {}
+  }, []);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil((totalItems ?? 0) / Math.max(1, limit))), [totalItems, limit]);
 
@@ -313,20 +322,31 @@ export default function EntriesTableClient({
     <div className="space-y-4">
       {errorMsg ? <div className="text-sm text-red-400">{errorMsg}</div> : null}
 
-      {/* Totais + botão de filtros */}
-      <div className="rounded-lg border border-neutral-800 bg-neutral-900/30 p-3">
-        <div className="grid grid-cols-3 sm:grid-cols-12 gap-3 text-sm w-full">
-          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-            <div className="text-xs text-neutral-400">Entradas (página/filtradas)</div>
-            <div className="font-medium">{totals.count}</div>
-          </div>
-          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-            <div className="text-xs text-neutral-400">Greens</div>
-            <div className="font-medium text-b365-green">{totals.greens}</div>
-          </div>
-          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-            <div className="text-xs text-neutral-400">Reds</div>
-              <div className="font-medium text-red-500">{totals.reds}</div>
+      {/* Totais (colapsável) */}
+      <div className="rounded-lg border border-neutral-800 bg-neutral-900/30">
+        <div className="flex items-center justify-between px-3 py-2">
+          <div className="text-sm text-neutral-400">Totais</div>
+          <button
+            onClick={() => setTotalsOpen((v) => { const next = !v; try { localStorage.setItem('entries_totals_open', next ? '1' : '0'); } catch {}; return next; })}
+            className="rounded-md border border-neutral-700 px-2 py-0.5 text-xs hover:bg-neutral-800/60"
+          >
+            {totalsOpen ? 'Ocultar' : 'Mostrar'}
+          </button>
+        </div>
+        {totalsOpen ? (
+          <div className="px-3 pb-3">
+            <div className="grid grid-cols-3 sm:grid-cols-12 gap-3 text-sm w-full">
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Entradas (página/filtradas)</div>
+                <div className="font-medium">{totals.count}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Entrei/Green</div>
+                <div className="font-medium text-b365-green">{totals.greens}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Entrei/Red</div>
+                <div className="font-medium text-red-500">{totals.reds}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
                 <div className="text-xs text-neutral-400">Não entrei/Green</div>
@@ -336,45 +356,47 @@ export default function EntriesTableClient({
                 <div className="text-xs text-neutral-400">Não entrei/Red</div>
                 <div className="font-medium text-red-500">{totals.naoEntrouRed}</div>
               </div>
-          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-            <div className="text-xs text-neutral-400">1ª Tent.</div>
-            <div className="font-medium">{totals.t1}</div>
-          </div>
-          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-            <div className="text-xs text-neutral-400">2ª Tent.</div>
-            <div className="font-medium">{totals.t2}</div>
-          </div>
-          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-            <div className="text-xs text-neutral-400">3ª Tent.</div>
-            <div className="font-medium">{totals.t3}</div>
-          </div>
-          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-            <div className="text-xs text-neutral-400">4ª Tent.</div>
-            <div className="font-medium">{totals.t4}</div>
-          </div>
-          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-            <div className="text-xs text-neutral-400">Total Entrada</div>
-            <div className="font-medium">{formatCurrency(totals.totalEntrada)}</div>
-          </div>
-          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-            <div className="text-xs text-neutral-400">Total Ganhos</div>
-            <div className="font-medium">{formatCurrency(totals.totalGanhos)}</div>
-          </div>
-          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-            <div className="text-xs text-neutral-400">Total Perdido</div>
-            <div className="font-medium text-red-400">{formatCurrency(totals.totalPerdido)}</div>
-          </div>
-          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-            <div className="text-xs text-neutral-400">Total Final</div>
-            <div className={`font-medium ${totals.totalFinal > 0 ? 'text-b365-green' : totals.totalFinal < 0 ? 'text-red-600' : ''}`}>
-              {formatCurrency(totals.totalFinal)}
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">1ª Tent.</div>
+                <div className="font-medium">{totals.t1}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">2ª Tent.</div>
+                <div className="font-medium">{totals.t2}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">3ª Tent.</div>
+                <div className="font-medium">{totals.t3}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">4ª Tent.</div>
+                <div className="font-medium">{totals.t4}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Total Entrada</div>
+                <div className="font-medium">{formatCurrency(totals.totalEntrada)}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Total Ganhos</div>
+                <div className="font-medium">{formatCurrency(totals.totalGanhos)}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Total Perdido</div>
+                <div className="font-medium text-red-400">{formatCurrency(totals.totalPerdido)}</div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Total Final</div>
+                <div className={`font-medium ${totals.totalFinal > 0 ? 'text-b365-green' : totals.totalFinal < 0 ? 'text-red-600' : ''}`}>
+                  {formatCurrency(totals.totalFinal)}
+                </div>
+              </div>
+              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
+                <div className="text-xs text-neutral-400">Total Red</div>
+                <div className="font-medium text-red-500">{formatCurrency(totals.totalRed)}</div>
+              </div>
             </div>
           </div>
-          <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-            <div className="text-xs text-neutral-400">Total Red</div>
-            <div className="font-medium text-red-500">{formatCurrency(totals.totalRed)}</div>
-          </div>
-        </div>
+        ) : null}
       </div>
 
       {/* Gráficos de placar removidos daqui; agora no Dashboard */}
@@ -770,57 +792,7 @@ export default function EntriesTableClient({
                 </select>
               </label>
             </div>
-            {/* Totais também no modal para mobile */}
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:hidden">
-              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Entradas</div>
-                <div className="font-medium">{totals.count}</div>
-              </div>
-              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Greens</div>
-                <div className="font-medium text-b365-green">{totals.greens}</div>
-              </div>
-              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Reds</div>
-                <div className="font-medium text-red-500">{totals.reds}</div>
-              </div>
-              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">1ª Tent.</div>
-                <div className="font-medium">{totals.t1}</div>
-              </div>
-              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">2ª Tent.</div>
-                <div className="font-medium">{totals.t2}</div>
-              </div>
-              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">3ª Tent.</div>
-                <div className="font-medium">{totals.t3}</div>
-              </div>
-              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">4ª Tent.</div>
-                <div className="font-medium">{totals.t4}</div>
-              </div>
-              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Total Entrada</div>
-                <div className="font-medium">{formatCurrency(totals.totalEntrada)}</div>
-              </div>
-              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Total Ganhos</div>
-                <div className="font-medium">{formatCurrency(totals.totalGanhos)}</div>
-              </div>
-              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Total Perdido</div>
-                <div className="font-medium text-red-400">{formatCurrency(totals.totalPerdido)}</div>
-              </div>
-              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Total Final</div>
-                <div className={`font-medium ${totals.totalFinal > 0 ? 'text-b365-green' : totals.totalFinal < 0 ? 'text-red-600' : ''}`}>{formatCurrency(totals.totalFinal)}</div>
-              </div>
-              <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Total Red</div>
-                <div className="font-medium text-red-500">{formatCurrency(totals.totalRed)}</div>
-              </div>
-            </div>
+            {/* Removidos os cards de totais dentro do modal para mobile */}
             <div className="mt-4 flex items-center justify-end gap-2">
               <button
                 onClick={() => {
