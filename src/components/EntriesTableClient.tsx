@@ -538,22 +538,36 @@ export default function EntriesTableClient({
                     })()}
                   </div>
                 </div>
-                <div className="mt-2 text-xs overflow-x-auto whitespace-nowrap">
-                  <span className="text-neutral-400">Odd:</span> {oddNum ? oddNum.toFixed(2) : (e.odd ?? '-')}
-                  <span className="mx-2 text-neutral-700">•</span>
-                  <span className="text-neutral-400">Entrada:</span> {formatCurrency(e.valor_entrada ?? 0)}
-                  <span className="mx-2 text-neutral-700">•</span>
-                  <span className="text-neutral-400">Ganhos:</span> <span className={`${isGreen ? 'text-b365-green font-semibold' : isRed ? 'text-red-600 font-semibold' : ''}`}>{formatCurrency(e.valor_ganhos ?? 0)}</span>
-                  <span className="mx-2 text-neutral-700">•</span>
-                  <span className="text-neutral-400">Perdido:</span> <span className="text-red-400">{formatCurrency(perdido)}</span>
-                  <span className="mx-2 text-neutral-700">•</span>
-                  <span className="text-neutral-400">Final:</span> <span className={`${finalVal > 0 ? 'text-b365-green font-semibold' : finalVal < 0 ? 'text-red-600 font-semibold' : ''}`}>{formatCurrency(finalVal)}</span>
-                  {e.placar ? (
-                    <>
-                      <span className="mx-2 text-neutral-700">•</span>
-                      <span className="text-neutral-400">Placar:</span> {e.placar}
-                    </>
-                  ) : null}
+                {/* Linha de cards compactos: legenda em cima, valor embaixo */}
+                <div className="mt-2 overflow-x-auto">
+                  <div className="flex items-stretch gap-2 text-xs">
+                    <div className="min-w-[84px] rounded border border-neutral-800 bg-neutral-900/40 p-2">
+                      <div className="text-[10px] text-neutral-400">Odd</div>
+                      <div className="mt-0.5">{oddNum ? oddNum.toFixed(2) : (e.odd ?? '-')}</div>
+                    </div>
+                    <div className="min-w-[110px] rounded border border-neutral-800 bg-neutral-900/40 p-2">
+                      <div className="text-[10px] text-neutral-400">Entrada</div>
+                      <div className="mt-0.5">{formatCurrency(e.valor_entrada ?? 0)}</div>
+                    </div>
+                    <div className={`min-w-[110px] rounded border border-neutral-800 p-2 ${isGreen ? 'bg-b365-green/15' : isRed ? 'bg-red-500/15' : 'bg-neutral-900/40'}`}>
+                      <div className="text-[10px] text-neutral-400">Ganhos</div>
+                      <div className={`mt-0.5 ${isGreen ? 'text-b365-green font-semibold' : isRed ? 'text-red-600 font-semibold' : ''}`}>{formatCurrency(e.valor_ganhos ?? 0)}</div>
+                    </div>
+                    <div className="min-w-[110px] rounded border border-neutral-800 bg-neutral-900/40 p-2">
+                      <div className="text-[10px] text-neutral-400">Perdido</div>
+                      <div className="mt-0.5 text-red-400">{formatCurrency(perdido)}</div>
+                    </div>
+                    <div className={`min-w-[110px] rounded border border-neutral-800 p-2 ${finalVal > 0 ? 'bg-b365-green/15' : finalVal < 0 ? 'bg-red-500/15' : 'bg-neutral-900/40'}`}>
+                      <div className="text-[10px] text-neutral-400">Final</div>
+                      <div className={`mt-0.5 ${finalVal > 0 ? 'text-b365-green font-semibold' : finalVal < 0 ? 'text-red-600 font-semibold' : ''}`}>{formatCurrency(finalVal)}</div>
+                    </div>
+                    {e.placar ? (
+                      <div className="min-w-[100px] rounded border border-neutral-800 bg-neutral-900/40 p-2">
+                        <div className="text-[10px] text-neutral-400">Placar</div>
+                        <div className="mt-0.5">{e.placar}</div>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-xs text-neutral-400">
                   <div className="truncate">{formatCreatedAt(e.created_at)} - {`${e.campeonato ?? '-' } - ${e.hora ?? '-' }h - ${e.minuto_green ?? '-' } - ${attempt}`}</div>
