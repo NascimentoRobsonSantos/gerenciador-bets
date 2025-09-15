@@ -538,18 +538,22 @@ export default function EntriesTableClient({
                     })()}
                   </div>
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                  <div className="rounded border border-neutral-800 bg-neutral-900/40 p-2"><div className="text-xs text-neutral-400">Odd</div><div>{oddNum ? oddNum.toFixed(2) : e.odd ?? '-'}</div></div>
-                  <div className="rounded border border-neutral-800 bg-neutral-900/40 p-2"><div className="text-xs text-neutral-400">Entrada</div><div>{formatCurrency(e.valor_entrada ?? 0)}</div></div>
-                  <div className={`rounded border border-neutral-800 p-2 ${isGreen ? 'bg-b365-green/15' : isRed ? 'bg-red-500/15' : 'bg-neutral-900/40'}`}>
-                    <div className="text-xs text-neutral-400">Ganhos</div>
-                    <div className={`${isGreen ? 'text-b365-green font-semibold' : isRed ? 'text-red-600 font-semibold' : ''}`}>{formatCurrency(e.valor_ganhos ?? 0)}</div>
-                  </div>
-                  <div className="rounded border border-neutral-800 bg-neutral-900/40 p-2"><div className="text-xs text-neutral-400">Perdido</div><div className="text-red-400">{formatCurrency(perdido)}</div></div>
-                  <div className={`rounded border border-neutral-800 p-2 col-span-2 ${finalVal > 0 ? 'bg-b365-green/15' : finalVal < 0 ? 'bg-red-500/15' : 'bg-neutral-900/40'}`}>
-                    <div className="text-xs text-neutral-400">Final</div>
-                    <div className={`${finalVal > 0 ? 'text-b365-green font-semibold' : finalVal < 0 ? 'text-red-600 font-semibold' : ''}`}>{formatCurrency(finalVal)}</div>
-                  </div>
+                <div className="mt-2 text-xs overflow-x-auto whitespace-nowrap">
+                  <span className="text-neutral-400">Odd:</span> {oddNum ? oddNum.toFixed(2) : (e.odd ?? '-')}
+                  <span className="mx-2 text-neutral-700">•</span>
+                  <span className="text-neutral-400">Entrada:</span> {formatCurrency(e.valor_entrada ?? 0)}
+                  <span className="mx-2 text-neutral-700">•</span>
+                  <span className="text-neutral-400">Ganhos:</span> <span className={`${isGreen ? 'text-b365-green font-semibold' : isRed ? 'text-red-600 font-semibold' : ''}`}>{formatCurrency(e.valor_ganhos ?? 0)}</span>
+                  <span className="mx-2 text-neutral-700">•</span>
+                  <span className="text-neutral-400">Perdido:</span> <span className="text-red-400">{formatCurrency(perdido)}</span>
+                  <span className="mx-2 text-neutral-700">•</span>
+                  <span className="text-neutral-400">Final:</span> <span className={`${finalVal > 0 ? 'text-b365-green font-semibold' : finalVal < 0 ? 'text-red-600 font-semibold' : ''}`}>{formatCurrency(finalVal)}</span>
+                  {e.placar ? (
+                    <>
+                      <span className="mx-2 text-neutral-700">•</span>
+                      <span className="text-neutral-400">Placar:</span> {e.placar}
+                    </>
+                  ) : null}
                 </div>
                 <div className="mt-2 flex items-center justify-between text-xs text-neutral-400">
                   <div className="truncate">{formatCreatedAt(e.created_at)} - {`${e.campeonato ?? '-' } - ${e.hora ?? '-' }h - ${e.minuto_green ?? '-' } - ${attempt}`}</div>
@@ -721,6 +725,8 @@ export default function EntriesTableClient({
               <div className="text-sm">
                 <div className="text-xs text-foreground">Valor Final (ganhos - perdido - entrada)</div>
                 {(() => {
+                  const hasAny = (modalRow.valor_ganhos != null) || (modalRow.valor_perdido != null) || (modalRow.valor_entrada != null);
+                  if (!hasAny) return <div className="mt-1 font-medium text-neutral-400">-</div>;
                   const vf = ((Number(modalRow.valor_ganhos ?? 0) || 0) - (Number(modalRow.valor_perdido ?? 0) || 0) - (Number(modalRow.valor_entrada ?? 0) || 0));
                   const cls = vf >= 0 ? 'text-b365-green' : 'text-red-400';
                   return <div className={`mt-1 font-medium ${cls}`}>{formatCurrency(vf)}</div>;
