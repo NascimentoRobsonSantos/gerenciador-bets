@@ -1,4 +1,5 @@
 import { getEntries } from "@/lib/entries";
+import { formatDateForDateInput } from "@/lib/format";
 import EntriesTableClient from "@/components/EntriesTableClient";
 import EntriesFiltersButton from "@/components/EntriesFiltersButton";
 import SessionExpiredModal from "@/components/SessionExpiredModal";
@@ -19,8 +20,7 @@ export default async function EntradasVirtualPage({
     | 'naoentrei_red'
     | undefined;
   const status = rawStatus ?? 'all';
-  const today = new Date();
-  const todayStr = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())).toISOString().slice(0, 10);
+  const todayStr = formatDateForDateInput(new Date());
   const startDate = ((Array.isArray(sp.startDate) ? sp.startDate[0] : sp.startDate) as string | undefined) || todayStr;
   const endDate = ((Array.isArray(sp.endDate) ? sp.endDate[0] : sp.endDate) as string | undefined) || todayStr;
   const bet_origin = (Array.isArray(sp.bet_origin) ? sp.bet_origin[0] : sp.bet_origin) as string | undefined;

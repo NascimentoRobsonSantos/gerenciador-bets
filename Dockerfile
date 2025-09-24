@@ -1,38 +1,48 @@
-# Etapa 1: Build da aplicação
+# Stage 1: Build application
 FROM node:20-alpine AS builder
 
+ARG TZ=America/Sao_Paulo
+ENV TZ=$TZ
+
+RUN apk add --no-cache tzdata \
+    && ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime \
+    && echo "${TZ}" > /etc/timezone
+
 WORKDIR /app
 
-# Copiar apenas package.json e package-lock.json primeiro (melhor uso do cache)
+# Copy package manifests first to leverage cache
 COPY package*.json ./
 
-# Instalar TODAS as dependências (inclui devDependencies para conseguir rodar o build)
+# Install all dependencies (including devDependencies for the build step)
 RUN npm install --legacy-peer-deps
 
-# Copiar o restante do código
+# Copy the remaining source code
 COPY . .
 
-# Gerar build de produção
+# Build production bundle
 RUN NEXT_DISABLE_ESLINT=1 NEXT_DISABLE_TYPECHECK=1 npm run build
 
-# Etapa 2: Rodar aplicação em produção
+# Stage 2: Run application in production
 FROM node:20-alpine
+
+ARG TZ=America/Sao_Paulo
+ENV TZ=$TZ
+
+RUN apk add --no-cache tzdata \
+    && ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime \
+    && echo "${TZ}" > /etc/timezone
 
 WORKDIR /app
 
-# Copiar apenas package.json e package-lock.json
+# Copy package manifests and install only production dependencies
 COPY package*.json ./
-
-# Instalar somente dependências necessárias em produção (sem devDependencies)
 RUN npm install --omit=dev --legacy-peer-deps
 
-# Copiar artefatos gerados no build
+# Copy build artifacts
 COPY --from=builder /app/.next ./.next
-# COPY --from=builder /app/public ./public
 
-# Porta usada pelo Next.js
+# Expose Next.js port
 EXPOSE 3000
 
-# Rodar aplicação
+# Start application
 CMD ["npm", "start", "--", "-H", "0.0.0.0"]
-

@@ -1,4 +1,5 @@
 import { getEntries } from "@/lib/entries";
+import { formatDateForDateInput } from "@/lib/format";
 import SummaryCard from "@/components/SummaryCard";
 import ChartDailyGains from "@/components/ChartDailyGains";
 import ChartPie from "@/components/ChartPie";
@@ -11,8 +12,7 @@ import ChartScoreByDate from "@/components/ChartScoreByDate";
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ [k: string]: string | string[] | undefined }> }) {
   const sp = await searchParams;
   const status = (Array.isArray(sp.status) ? sp.status[0] : sp.status) as 'green'|'red'|'false'|'naoentrei_green'|'naoentrei_red'|undefined;
-  const today = new Date();
-  const todayStr = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())).toISOString().slice(0, 10);
+  const todayStr = formatDateForDateInput(new Date());
   const startDate = ((Array.isArray(sp.startDate) ? sp.startDate[0] : sp.startDate) as string | undefined) || todayStr;
   const endDate = ((Array.isArray(sp.endDate) ? sp.endDate[0] : sp.endDate) as string | undefined) || todayStr;
   const bet_origin = (Array.isArray(sp.bet_origin) ? sp.bet_origin[0] : sp.bet_origin) as string | undefined;
