@@ -267,12 +267,23 @@ export default function EntriesTableClient({
     if (!modalRow) return;
     setSavingId(modalRow.id);
     setErrorMsg(null);
+    const hasEntrada = modalRow.valor_entrada != null && Number(modalRow.valor_entrada) > 0;
+    const hasPerdido = modalRow.valor_perdido != null && Number(modalRow.valor_perdido) > 0;
+    const computedStatus: Entry["status"] = hasEntrada
+      ? "green"
+      : hasPerdido
+      ? "red"
+      : (modalRow.status ?? null);
+    const nextRow = computedStatus === modalRow.status ? modalRow : { ...modalRow, status: computedStatus };
+    if (nextRow !== modalRow) {
+      setModalRow(nextRow);
+    }
     // Ajusta payload: valor_final (lucro) = ganhos - perdido - entrada
-    const entrada = Number(modalRow.valor_entrada ?? 0) || 0;
-    const ganhos = Number(modalRow.valor_ganhos ?? 0) || 0;
-    const perdido = Number(modalRow.valor_perdido ?? 0) || 0;
+    const entrada = Number(nextRow.valor_entrada ?? 0) || 0;
+    const ganhos = Number(nextRow.valor_ganhos ?? 0) || 0;
+    const perdido = Number(nextRow.valor_perdido ?? 0) || 0;
     const valor_final = Math.round(((ganhos - perdido - entrada) + Number.EPSILON) * 100) / 100;
-    const payload = { ...modalRow, valor_final, updated_at: new Date().toISOString() };
+    const payload = { ...nextRow, valor_final, updated_at: new Date().toISOString() };
     try {
       const res = await fetch("/api/entries/update", {
         method: "POST",
@@ -524,7 +535,7 @@ export default function EntriesTableClient({
             return (
               <div key={e.id} className="p-3 rounded-lg border border-neutral-800 bg-neutral-900/20">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-medium truncate">{e.bet_origin ?? '-'}</div>
+                  <div className="text-sm font-medium truncate">{formatCreatedAt(e.created_at)} - {`${e.campeonato ?? '-' } - ${e.hora ?? '-' }h - ${e.minuto_green ?? '-' } - ${attempt}`}</div>
                   <div>
                     {(() => {
                       const badge = (txt: string, tone: 'green'|'red'|'neutral') => (
@@ -570,7 +581,7 @@ export default function EntriesTableClient({
                   </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-xs text-neutral-400">
-                  <div className="truncate">{formatCreatedAt(e.created_at)} - {`${e.campeonato ?? '-' } - ${e.hora ?? '-' }h - ${e.minuto_green ?? '-' } - ${attempt}`}</div>
+                  <div className="truncate">{e.bet_origin ?? '-'}</div>
                   <button onClick={() => startEdit(e.id)} className="ml-2 rounded-md border border-neutral-700 px-2 py-0.5 text-xs hover:bg-neutral-800/60">Editar</button>
                 </div>
               </div>
