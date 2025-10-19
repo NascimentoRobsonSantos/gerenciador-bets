@@ -534,9 +534,16 @@ export default function EntriesTableClient({
             const isRed = (e.status === 'red' || e.status === 'naoentrei_red');
             return (
               <div key={e.id} className="p-3 rounded-lg border border-neutral-800 bg-neutral-900/20">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-medium truncate">{formatCreatedAt(e.created_at)} - {`${e.campeonato ?? '-' } - ${e.hora ?? '-' }h - ${e.minuto_green ?? '-' } - ${attempt}`}</div>
-                  <div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium leading-5 whitespace-normal break-words">
+                      {formatCreatedAt(e.created_at)} - {e.campeonato ?? '-'}
+                    </div>
+                    <div className="mt-0.5 text-xs text-neutral-400 whitespace-normal break-words">
+                      {`${e.hora ?? '-' }h - ${e.minuto_green ?? '-' } - ${attempt}`}
+                    </div>
+                  </div>
+                  <div className="shrink-0">
                     {(() => {
                       const badge = (txt: string, tone: 'green'|'red'|'neutral') => (
                         <span className={`inline-flex items-center rounded px-2 py-0.5 ${tone==='green' ? 'bg-b365-green/15 text-b365-green' : tone==='red' ? 'bg-red-500/15 text-red-600' : 'bg-b365-yellow/15 text-b365-yellow'}`}>{txt}</span>
@@ -580,8 +587,8 @@ export default function EntriesTableClient({
                     ) : null}
                   </div>
                 </div>
-                <div className="mt-2 flex items-center justify-between text-xs text-neutral-400">
-                  <div className="truncate">{e.bet_origin ?? '-'}</div>
+                <div className="mt-2 flex items-start justify-between text-xs text-neutral-400">
+                  <div className="flex-1 min-w-0 whitespace-normal break-words">{e.bet_origin ?? '-'}</div>
                   <button onClick={() => startEdit(e.id)} className="ml-2 rounded-md border border-neutral-700 px-2 py-0.5 text-xs hover:bg-neutral-800/60">Editar</button>
                 </div>
               </div>
