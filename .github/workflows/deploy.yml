@@ -1,14 +1,9 @@
 name: Deploy automático para VPS
 
 on:
-  workflow_call:
-    secrets:
-      SSH_PRIVATE_KEY:
-        required: true
-      SSH_HOST:
-        required: true
-      SSH_USER:
-        required: true
+  push:
+    branches:
+      - main  # ou outra branch principal
 
 jobs:
   deploy:
