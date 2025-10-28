@@ -1,9 +1,14 @@
 name: Deploy automático para VPS
 
 on:
-  push:
-    branches:
-      - main  # ou outra branch principal
+  workflow_call:
+    secrets:
+      SSH_PRIVATE_KEY:
+        required: true
+      SSH_HOST:
+        required: true
+      SSH_USER:
+        required: true
 
 jobs:
   deploy:
@@ -23,4 +28,4 @@ jobs:
 
       - name: Rodar script remoto via SSH
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "bash /root/gerenciador-post/deploy.sh"
+          ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "bash /root/gerenciador-bets/deploy.sh"
