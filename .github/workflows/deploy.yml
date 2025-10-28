@@ -1,37 +1,26 @@
 name: Deploy automático para VPS
 
 on:
-  workflow_call:
-    secrets:
-      SSH_PRIVATE_KEY:
-        required: true
-      SSH_HOST:
-        required: true
-      SSH_USER:
-        required: true
+  push:
+    branches:
+      - main  # ou outra branch principal
 
 jobs:
   deploy:
+    name: Deploy via SSH
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout do código
         uses: actions/checkout@v3
 
-      - name: Configurar SSH
+      - name: Configurar chave SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Copiar deploy.sh para o servidor
+      - name: Rodar script remoto via SSH
         run: |
-          scp -i ~/.ssh/id_rsa deploy.sh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/deploy.sh
-
-      - name: Executar deploy no servidor
-        run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-            chmod +x /tmp/deploy.sh &&
-            bash /tmp/deploy.sh
-          "
+          ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "bash /root/gerenciador-bets/deploy.sh"
