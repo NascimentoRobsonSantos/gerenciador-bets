@@ -10,6 +10,7 @@ export default function SettingsMenu() {
   const [accountOpen, setAccountOpen] = useState(false);
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [dark, setDark] = useState(true);
+  const [updating, setUpdating] = useState(false);
   useEffect(() => {
     const isDark = (theme ?? resolvedTheme) !== 'light';
     setDark(isDark);
@@ -49,6 +50,22 @@ export default function SettingsMenu() {
     } catch {}
   }
 
+  async function handleUpdateGroups() {
+    setUpdating(true);
+    alert('Atualizando os grupos monitorados...');
+    try {
+      await fetch('https://webhook.storeprodigital.site/webhook/bot-telegram/get-groups-corujao', {
+        method: 'GET',
+      });
+      alert('Grupos atualizados com sucesso!');
+    } catch (error) {
+      alert('Erro ao atualizar grupos. Tente novamente.');
+    } finally {
+      setUpdating(false);
+      setOpen(false);
+    }
+  }
+
   return (
     <div id="settings-menu" className="relative">
       <button onClick={() => setOpen((v) => !v)} className="rounded-md border border-neutral-700 px-3 py-1 text-sm hover:bg-neutral-800/60" title="Configurações">
@@ -61,6 +78,13 @@ export default function SettingsMenu() {
           </button>
           <button onClick={() => setAccountOpen(true)} className="w-full text-left rounded px-2 py-2 hover:bg-neutral-800/40 text-sm">
             Conta
+          </button>
+          <button
+            onClick={handleUpdateGroups}
+            disabled={updating}
+            className="w-full text-left rounded px-2 py-2 hover:bg-neutral-800/40 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {updating ? 'Atualizando...' : 'Atualizar Grupos'}
           </button>
           <a href="/logout" className="block rounded px-2 py-2 hover:bg-neutral-800/40 text-sm">Sair</a>
         </div>
