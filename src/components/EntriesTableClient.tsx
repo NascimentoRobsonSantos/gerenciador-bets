@@ -336,7 +336,7 @@ export default function EntriesTableClient({
       {/* Totais (colapsável) */}
       <div className="rounded-lg border border-neutral-800 bg-neutral-900/30">
         <div className="flex items-center justify-between px-3 py-2">
-          <div className="text-sm text-neutral-400">Totais</div>
+          <div className="text-sm text-muted-adaptive">Totais</div>
           <button
             onClick={() => setTotalsOpen((v) => { const next = !v; try { localStorage.setItem('entries_totals_open', next ? '1' : '0'); } catch {}; return next; })}
             className="rounded-md border border-neutral-700 px-2 py-0.5 text-xs hover:bg-neutral-800/60"
@@ -348,61 +348,61 @@ export default function EntriesTableClient({
           <div className="px-3 pb-3">
             <div className="grid grid-cols-3 sm:grid-cols-12 gap-3 text-sm w-full">
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Entradas (página/filtradas)</div>
+                <div className="text-xs text-muted-adaptive">Entradas (página/filtradas)</div>
                 <div className="font-medium">{totals.count}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Entrei/Green</div>
+                <div className="text-xs text-muted-adaptive">Entrei/Green</div>
                 <div className="font-medium text-b365-green">{totals.greens}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Entrei/Red</div>
+                <div className="text-xs text-muted-adaptive">Entrei/Red</div>
                 <div className="font-medium text-red-500">{totals.reds}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Não entrei/Green</div>
+                <div className="text-xs text-muted-adaptive">Não entrei/Green</div>
                 <div className="font-medium text-b365-green">{totals.naoEntrouGreen}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Não entrei/Red</div>
+                <div className="text-xs text-muted-adaptive">Não entrei/Red</div>
                 <div className="font-medium text-red-500">{totals.naoEntrouRed}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">1ª Tent.</div>
+                <div className="text-xs text-muted-adaptive">1ª Tent.</div>
                 <div className="font-medium">{totals.t1}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">2ª Tent.</div>
+                <div className="text-xs text-muted-adaptive">2ª Tent.</div>
                 <div className="font-medium">{totals.t2}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">3ª Tent.</div>
+                <div className="text-xs text-muted-adaptive">3ª Tent.</div>
                 <div className="font-medium">{totals.t3}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">4ª Tent.</div>
+                <div className="text-xs text-muted-adaptive">4ª Tent.</div>
                 <div className="font-medium">{totals.t4}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Total Entrada</div>
+                <div className="text-xs text-muted-adaptive">Total Entrada</div>
                 <div className="font-medium">{formatCurrency(totals.totalEntrada)}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Total Ganhos</div>
+                <div className="text-xs text-muted-adaptive">Total Ganhos</div>
                 <div className="font-medium">{formatCurrency(totals.totalGanhos)}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Total Perdido</div>
+                <div className="text-xs text-muted-adaptive">Total Perdido</div>
                 <div className="font-medium text-red-400">{formatCurrency(totals.totalPerdido)}</div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Total Final</div>
+                <div className="text-xs text-muted-adaptive">Total Final</div>
                 <div className={`font-medium ${totals.totalFinal > 0 ? 'text-b365-green' : totals.totalFinal < 0 ? 'text-red-600' : ''}`}>
                   {formatCurrency(totals.totalFinal)}
                 </div>
               </div>
               <div className="rounded border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <div className="text-xs text-neutral-400">Total Red</div>
+                <div className="text-xs text-muted-adaptive">Total Red</div>
                 <div className="font-medium text-red-500">{formatCurrency(totals.totalRed)}</div>
               </div>
             </div>
@@ -539,7 +539,7 @@ export default function EntriesTableClient({
                     <div className="text-sm font-medium leading-5 whitespace-normal break-words">
                       {formatCreatedAt(e.created_at)} - {e.campeonato ?? '-'}
                     </div>
-                    <div className="mt-0.5 text-xs text-neutral-400 whitespace-normal break-words">
+                    <div className="mt-0.5 text-xs text-muted-adaptive whitespace-normal break-words">
                       {`${e.hora ?? '-' }h - ${e.minuto_green ?? '-' } - ${attempt}`}
                     </div>
                   </div>
@@ -560,35 +560,35 @@ export default function EntriesTableClient({
                 <div className="mt-2 overflow-x-auto">
                   <div className="flex items-stretch gap-2 text-xs">
                     <div className="min-w-[70px] rounded border border-neutral-800 bg-neutral-900/40 p-2">
-                      <div className="text-[10px] text-neutral-400">Odd</div>
+                      <div className="text-[10px] text-muted-adaptive">Odd</div>
                       <div className="mt-0.5">{oddNum ? oddNum.toFixed(2) : (e.odd ?? '-')}</div>
                     </div>
                     <div className="min-w-[70px] rounded border border-neutral-800 bg-neutral-900/40 p-2">
-                      <div className="text-[10px] text-neutral-400">Entrada</div>
+                      <div className="text-[10px] text-muted-adaptive">Entrada</div>
                       <div className="mt-0.5">{formatCurrency(e.valor_entrada ?? 0)}</div>
                     </div>
                     <div className={`min-w-[70px] rounded border border-neutral-800 p-2 ${isGreen ? 'bg-b365-green/15' : isRed ? 'bg-red-500/15' : 'bg-neutral-900/40'}`}>
-                      <div className="text-[10px] text-neutral-400">Ganhos</div>
+                      <div className="text-[10px] text-muted-adaptive">Ganhos</div>
                       <div className={`mt-0.5 ${isGreen ? 'text-b365-green font-semibold' : isRed ? 'text-red-600 font-semibold' : ''}`}>{formatCurrency(e.valor_ganhos ?? 0)}</div>
                     </div>
                     <div className="min-w-[70px] rounded border border-neutral-800 bg-neutral-900/40 p-2">
-                      <div className="text-[10px] text-neutral-400">Perdido</div>
+                      <div className="text-[10px] text-muted-adaptive">Perdido</div>
                       <div className="mt-0.5 text-red-400">{formatCurrency(perdido)}</div>
                     </div>
                     <div className={`min-w-[70px] rounded border border-neutral-800 p-2 ${finalVal > 0 ? 'bg-b365-green/15' : finalVal < 0 ? 'bg-red-500/15' : 'bg-neutral-900/40'}`}>
-                      <div className="text-[10px] text-neutral-400">Final</div>
+                      <div className="text-[10px] text-muted-adaptive">Final</div>
                       <div className={`mt-0.5 ${finalVal > 0 ? 'text-b365-green font-semibold' : finalVal < 0 ? 'text-red-600 font-semibold' : ''}`}>{formatCurrency(finalVal)}</div>
                     </div>
                     {e.placar ? (
                       <div className="min-w-[70px] rounded border border-neutral-800 bg-neutral-900/40 p-2">
-                        <div className="text-[10px] text-neutral-400">Placar</div>
+                        <div className="text-[10px] text-muted-adaptive">Placar</div>
                         <div className="mt-0.5">{e.placar}</div>
                       </div>
                     ) : null}
                   </div>
                 </div>
-                <div className="mt-2 flex items-start justify-between text-xs text-neutral-400">
-                  <div className="flex-1 min-w-0 whitespace-normal break-words">{e.bet_origin ?? '-'}</div>
+                <div className="mt-2 flex items-start justify-between text-xs">
+                  <div className="flex-1 min-w-0 whitespace-normal break-words text-muted-adaptive">{e.bet_origin ?? '-'}</div>
                   <button onClick={() => startEdit(e.id)} className="ml-2 rounded-md border border-neutral-700 px-2 py-0.5 text-xs hover:bg-neutral-800/60">Editar</button>
                 </div>
               </div>
@@ -600,7 +600,7 @@ export default function EntriesTableClient({
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 text-xs text-neutral-500">
           <span>Página {page} de {totalPages}</span>
-          <label className="flex items-center gap-2 text-neutral-400">
+          <label className="flex items-center gap-2 text-muted-adaptive">
             <span>Itens por página</span>
             <select
               value={limit}
