@@ -5,6 +5,7 @@
   --b365-green: #0b6236;
   --b365-green-dark: #0a4f2c;
   --b365-yellow: #ffc400;
+  --text-muted: #9ca3af;
 
   --background: #0a0a0a;
   --foreground: #f3f3f3;
@@ -15,6 +16,9 @@
   --input-fg: #0a0a0a;
 }
 .light {
+  --b365-yellow: #b8860b; /* amarelo escuro para melhor contraste no tema claro */
+  --text-muted: #4b5563; /* cinza escuro para melhor legibilidade no tema claro */
+
   --background: #ffffff;
   --foreground: #0a0a0a;
   --muted: #4b5563;
@@ -60,3 +64,6 @@ table td, table th { white-space: nowrap; }
   color: var(--input-fg) !important;
   border-color: var(--border) !important;
 }
+
+/* Text muted adapts to theme */
+.text-muted-adaptive { color: var(--text-muted) !important; }
