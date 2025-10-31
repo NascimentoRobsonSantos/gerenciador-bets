@@ -438,6 +438,15 @@ export default function EntriesTableClient({
               const minutosArr = Array.isArray(e.minutos) ? e.minutos : e.minutos == null ? [] : [Number(e.minutos)];
               const idx = e.minuto_green != null ? minutosArr.findIndex((m) => Number(m) === Number(e.minuto_green)) : -1;
               const attempt = toAttemptLabel(idx >= 0 ? idx : null);
+              const hasAttemptGreen = e.minuto_green != null && minutosArr.some((m) => Number(m) === Number(e.minuto_green));
+              const tone: 'green' | 'red' | null =
+                e.status === 'green' || e.status === 'naoentrei_green'
+                  ? 'green'
+                  : e.status === 'red' || e.status === 'naoentrei_red'
+                  ? 'red'
+                  : hasAttemptGreen
+                  ? 'green'
+                  : null;
               const oddNum = Number(e.odd ?? 0) || 0;
               const perdido = Number(e.valor_perdido ?? 0) || 0;
               const finalVal = Number(e.valor_final ?? 0) || 0;
@@ -478,7 +487,7 @@ export default function EntriesTableClient({
                       formatCurrency(e.valor_entrada ?? 0)
                     )}
                   </td>
-                  <td className={`px-3 py-2 font-medium ${e.status === 'green' || e.status === 'naoentrei_green' ? 'bg-b365-green/15' : (e.status === 'red' || e.status === 'naoentrei_red') ? 'bg-red-500/15' : ''}`}>
+                  <td className={`px-3 py-2 font-medium ${tone === 'green' ? 'bg-b365-green/15' : tone === 'red' ? 'bg-red-500/15' : ''}`}>
                     {isEditing ? (
                       <input
                         type="text"
@@ -488,7 +497,7 @@ export default function EntriesTableClient({
                         readOnly
                       />
                     ) : (
-                      <span className={`${(e.status === 'green' || e.status === 'naoentrei_green') ? 'text-b365-green font-semibold' : (e.status === 'red' || e.status === 'naoentrei_red') ? 'text-red-600 font-semibold' : ((e.valor_ganhos ?? 0) >= 0 ? 'text-b365-yellow' : 'text-red-400')}`}>{formatCurrency(e.valor_ganhos ?? 0)}</span>
+                      <span className={`${tone === 'green' ? 'text-b365-green font-semibold' : tone === 'red' ? 'text-red-600 font-semibold' : ((e.valor_ganhos ?? 0) >= 0 ? 'text-b365-yellow' : 'text-red-400')}`}>{formatCurrency(e.valor_ganhos ?? 0)}</span>
                     )}
                   </td>
                   <td className="px-3 py-2 font-medium text-red-400">{formatCurrency(perdido)}</td>
@@ -502,8 +511,6 @@ export default function EntriesTableClient({
               if (e.status === 'red') return badge('Entrei/Red', 'red');
               if (e.status === 'naoentrei_green') return badge('Não entrei/Green', 'green');
               if (e.status === 'naoentrei_red') return badge('Não entrei/Red', 'red');
-              const minutosArr = Array.isArray(e.minutos) ? e.minutos : e.minutos == null ? [] : [Number(e.minutos)];
-              const hasAttemptGreen = e.minuto_green != null && minutosArr.some((m) => Number(m) === Number(e.minuto_green));
               return hasAttemptGreen ? badge('Não entrei/Green', 'green') : badge('Não entrei', 'neutral');
             })()}
                   </td>
@@ -527,11 +534,17 @@ export default function EntriesTableClient({
             const idx = e.minuto_green != null ? minutosArr.findIndex((m) => Number(m) === Number(e.minuto_green)) : -1;
             const attempt = toAttemptLabel(idx >= 0 ? idx : null);
             const hasAttemptGreen = e.minuto_green != null && minutosArr.some((m) => Number(m) === Number(e.minuto_green));
+            const tone: 'green' | 'red' | null =
+              e.status === 'green' || e.status === 'naoentrei_green'
+                ? 'green'
+                : e.status === 'red' || e.status === 'naoentrei_red'
+                ? 'red'
+                : hasAttemptGreen
+                ? 'green'
+                : null;
             const oddNum = Number(e.odd ?? 0) || 0;
             const perdido = Number(e.valor_perdido ?? 0) || 0;
             const finalVal = (Number(e.valor_ganhos ?? 0) || 0) - perdido - (Number(e.valor_entrada ?? 0) || 0);
-            const isGreen = (e.status === 'green' || e.status === 'naoentrei_green');
-            const isRed = (e.status === 'red' || e.status === 'naoentrei_red');
             return (
               <div key={e.id} className="p-3 rounded-lg border border-neutral-800 bg-neutral-900/20">
                 <div className="flex items-start justify-between gap-3">
@@ -567,9 +580,9 @@ export default function EntriesTableClient({
                       <div className="text-[10px] text-muted-adaptive">Entrada</div>
                       <div className="mt-0.5">{formatCurrency(e.valor_entrada ?? 0)}</div>
                     </div>
-                    <div className={`min-w-[70px] rounded border border-neutral-800 p-2 ${isGreen ? 'bg-b365-green/15' : isRed ? 'bg-red-500/15' : 'bg-neutral-900/40'}`}>
-                      <div className="text-[10px] text-muted-adaptive">Ganhos</div>
-                      <div className={`mt-0.5 ${isGreen ? 'text-b365-green font-semibold' : isRed ? 'text-red-600 font-semibold' : ''}`}>{formatCurrency(e.valor_ganhos ?? 0)}</div>
+                    <div className={`min-w-[70px] rounded border border-neutral-800 p-2 ${tone === 'green' ? 'bg-b365-green/15' : tone === 'red' ? 'bg-red-500/15' : 'bg-neutral-900/40'}`}>
+                      <div className="text-[10px] text-neutral-400">Ganhos</div>
+                      <div className={`mt-0.5 ${tone === 'green' ? 'text-b365-green font-semibold' : tone === 'red' ? 'text-red-600 font-semibold' : ''}`}>{formatCurrency(e.valor_ganhos ?? 0)}</div>
                     </div>
                     <div className="min-w-[70px] rounded border border-neutral-800 bg-neutral-900/40 p-2">
                       <div className="text-[10px] text-muted-adaptive">Perdido</div>
